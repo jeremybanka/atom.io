@@ -96,7 +96,7 @@ export function EcologyEditorRow(props: {
 					}}
 				/>
 			) : (
-				<p>State was disposed. Refresh to update the snapshot.</p>
+				<p>State was disposed.</p>
 			)}
 			{props.pinned && (
 				<small data-pinned>Unfinished edit · outside filter</small>

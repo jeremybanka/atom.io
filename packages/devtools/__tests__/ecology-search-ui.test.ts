@@ -189,7 +189,7 @@ it(`explains an empty filter without losing the retained selection or capture`, 
 	expect(f.app.getState(f.countAtom)).toBe(2)
 })
 
-it(`keeps an unfinished numeric draft and its node mounted through query, clear, selection and Refresh`, async () => {
+it(`keeps an unfinished numeric draft mounted through query, selection and live capture`, async () => {
 	const f = await setup()
 	await f.select(`state:count`)
 
@@ -206,7 +206,7 @@ it(`keeps an unfinished numeric draft and its node mounted through query, clear,
 		.querySelector<HTMLButtonElement>(`ecology-view [data-results] button`)!
 		.click()
 	await settle()
-	f.button(`Refresh`).click()
+	f.app.atom<number>({ key: `new`, default: 0 })
 	await settle()
 	expect(f.host.querySelector(`ecology-editor input`)).toBe(editor)
 	expect(editor.value).toBe(`1e`)
@@ -250,8 +250,9 @@ it(`retains invalid-query results, respects IME/native find and searches new sta
 	expect((await f.key(f.input(), `f`, { ctrlKey: true })).defaultPrevented).toBe(
 		false,
 	)
-	f.app.atom<number>({ key: `later`, default: 0 })
-	await f.query(`later`)
+	const laterAtom = f.app.atom<number>({ key: `later`, default: 0 })
+	f.app.setState(laterAtom, 1)
+	await f.query(`later number`)
 	expect(
 		f.host.querySelectorAll(`ecology-view [data-results] button`),
 	).toHaveLength(1)
@@ -357,7 +358,7 @@ it(`uses latest input while metadata indexing is in flight and cancels hidden/di
 	await settle()
 	input.value = `record1`
 	input.dispatchEvent(new Event(`input`, { bubbles: true }))
-	host.querySelector<HTMLButtonElement>(`[data-action="refresh"]`)!.click()
+	app.atom<number>({ key: `created-while-hidden`, default: 0 })
 	await settle()
 	expect(host.dataset[`jobs`]).toBe(jobs)
 	panel.dataset[`open`] = `true`
@@ -378,45 +379,56 @@ it(`uses latest input while metadata indexing is in flight and cancels hidden/di
 	expect(vi.getTimerCount()).toBe(0)
 })
 
-it(`waits for a committed root and can clear a restored selection before capturing it`, async () => {
-	const { createGraphContext } = await import(`../src/ecology-graph.ts`)
-	const app = new Silo({
-		name: `ecology-transaction`,
-		lifespan: `ephemeral`,
-		isProduction: true,
-	})
-	const captureTransaction = app.transaction<() => void>({
-		key: `capture`,
-		do: () => {},
-	})
-	const panel = document.createElement(`main`)
-	const context = createGraphContext()
-	context.selected = `state:restored`
-	let host!: HTMLElement
-	document.body.append(panel)
-	const stop = app.store.on.transactionApplying.subscribe(
-		`mount-search`,
-		(applying) => {
-			if (applying !== null) {
-				;({ dispose, host } = mountEcologyFixture(panel, app.store, context))
-				expect(
-					host.querySelector(`[data-action="clear"]:not([inert])`),
-				).toBeNull()
-				expect(host.textContent).toContain(`Waiting for the current transaction`)
-				host.dispatchEvent(
-					new KeyboardEvent(`keydown`, { key: `Escape`, bubbles: true }),
-				)
-				expect(context.selected).toBeNull()
-			}
-		},
-	)
-	app.runTransaction(captureTransaction)()
-	stop()
-	await settle()
-	expect(host.dataset[`ready`]).toBe(`true`)
-})
+it.each([false, true])(
+	`waits for a committed root and can clear a restored selection before capturing it (hide before commit: %s)`,
+	async (hideBeforeCommit) => {
+		const { createGraphContext } = await import(`../src/ecology-graph.ts`)
+		const app = new Silo({
+			name: `ecology-transaction`,
+			lifespan: `ephemeral`,
+			isProduction: true,
+		})
+		const captureTransaction = app.transaction<() => void>({
+			key: `capture`,
+			do: () => {},
+		})
+		const panel = document.createElement(`main`)
+		const context = createGraphContext()
+		context.selected = `state:restored`
+		let host!: HTMLElement
+		document.body.append(panel)
+		const stop = app.store.on.transactionApplying.subscribe(
+			`mount-search`,
+			(applying) => {
+				if (applying !== null) {
+					;({ dispose, host } = mountEcologyFixture(panel, app.store, context))
+					expect(
+						host.querySelector(`[data-action="clear"]:not([inert])`),
+					).toBeNull()
+					expect(host.textContent).toContain(
+						`Waiting for the current transaction`,
+					)
+					host.dispatchEvent(
+						new KeyboardEvent(`keydown`, { key: `Escape`, bubbles: true }),
+					)
+					expect(context.selected).toBeNull()
+					if (hideBeforeCommit) panel.hidden = true
+				}
+			},
+		)
+		app.runTransaction(captureTransaction)()
+		stop()
+		await settle()
+		if (hideBeforeCommit) {
+			expect(host.dataset[`ready`]).toBe(`false`)
+			panel.hidden = false
+			await settle()
+		}
+		expect(host.dataset[`ready`]).toBe(`true`)
+	},
+)
 
-it(`closes a disposed live member on Refresh without applying the unfinished draft`, async () => {
+it(`closes a disposed live member without applying the unfinished draft`, async () => {
 	const f = await setup()
 	await f.query(`green tea`)
 	f.host
@@ -433,7 +445,6 @@ it(`closes a disposed live member on Refresh without applying the unfinished dra
 	editor.dispatchEvent(new Event(`input`, { bubbles: true }))
 	await f.query(`items`)
 	f.app.disposeState(f.itemsAtoms, `green-tea`)
-	f.button(`Refresh`).click()
 	await settle()
 	expect(editor.isConnected).toBe(false)
 	expect(
@@ -452,10 +463,13 @@ it(`reports incomplete snapshots, truncated prefixes and bounded approximate mat
 	})
 	const options = { key: `long`.repeat(1000), default: 0 }
 	app.atom<number>(options)
-	for (let i = 0; i < 10001; i++) {
-		const optionsForMember = { key: `${`a`.repeat(61)}b-${i}`, default: 0 }
-		app.atom<number>(optionsForMember)
-	}
+	const recordsAtoms = app.atomFamily<number, string>({
+		key: `records`,
+		default: 0,
+	})
+	const records = app.store.families.get(recordsAtoms.key)!
+	// Exercise the search limits with the records clustered into one graph card.
+	for (let i = 0; i < 10_001; i++) records.create(`${`a`.repeat(61)}b-${i}`)
 	const panel = document.createElement(`main`)
 	let host!: HTMLElement
 	document.body.append(panel)
@@ -477,7 +491,7 @@ it(`reports incomplete snapshots, truncated prefixes and bounded approximate mat
 	).toHaveLength(100)
 })
 
-it(`keeps keyed cards across filters and Refresh while preserving logical focus`, async () => {
+it(`keeps keyed cards across filters and live captures while preserving logical focus`, async () => {
 	const f = await setup()
 	await f.query(`count`)
 	const original = f.host.querySelector<HTMLElement>(
@@ -515,7 +529,7 @@ it(`keeps keyed cards across filters and Refresh while preserving logical focus`
 	const current = f.host.querySelector(
 		`ecology-node-card > button[data-graph-id]`,
 	)
-	f.button(`Refresh`).click()
+	f.app.atom<number>({ key: `new`, default: 0 })
 	await settle()
 	expect(f.host.querySelector(`ecology-node-card > button[data-graph-id]`)).toBe(
 		current,
@@ -529,7 +543,6 @@ it(`bounds retained cards when successive filters visit disjoint parts of a larg
 			const options = { key: `${group}${i}`, default: 0 }
 			f.app.atom<number>(options)
 		}
-	f.button(`Refresh`).click()
 	await settle()
 	for (const group of [`alpha`, `beta`]) {
 		await f.query(group)

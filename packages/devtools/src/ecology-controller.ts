@@ -271,8 +271,8 @@ export function createEcologyController(
 			notice: noticeText,
 			empty: !value.rows.length,
 			emptyText: context.query.trim()
-				? `No nodes match this search. Clear search to see the captured graph, or Refresh to recapture.`
-				: `No nodes in this capture. Refresh after your application creates state.`,
+				? `No nodes match this search. Clear search to see all captured nodes.`
+				: `No nodes in this capture.`,
 		})
 		passive()
 		commitPaint = () => {
@@ -547,8 +547,8 @@ export function createEcologyController(
 			closeDialog()
 			return
 		}
-		if (name === `refresh`) {
-			refresh()
+		if (name === `reset`) {
+			camera(`reset`)
 			return
 		}
 		if (name === `more-rows`) {

@@ -391,8 +391,9 @@ it(`retains selection/pan/expansion across snapshots and navigation; geometry-on
 	f.silo.getState(countAtom)
 	f.mount()
 	await settle()
-	await f.select(`state:count`)
 	const scene = f.host.querySelector(`ecology-scene`)!
+	const startingPose = scene.getAttribute(`data-camera`)!.split(`,`).map(Number)
+	await f.select(`state:count`)
 	for (const key of [`+`, `-`, `+`]) {
 		scene.dispatchEvent(
 			new KeyboardEvent(`keydown`, { key, bubbles: true, cancelable: true }),
@@ -402,11 +403,14 @@ it(`retains selection/pan/expansion across snapshots and navigation; geometry-on
 	const transform = f.host
 		.querySelector(`ecology-scene`)!
 		.getAttribute(`data-camera`)
+	expect(transform!.split(`,`).map(Number)).not.toEqual(
+		startingPose.map((value) => expect.closeTo(value, 10)),
+	)
 	const position = f.host
 		.querySelector(`ecology-node-card`)!
 		.getAttribute(`data-position`)
 	f.silo.setState(countAtom, `changed`)
-	await f.click(`Refresh`)
+	await settle()
 	expect(
 		f.host.querySelector<HTMLElement>(`ecology-view`)!.dataset[`newPositions`],
 	).toBe(`0`)
@@ -447,11 +451,14 @@ it(`retains selection/pan/expansion across snapshots and navigation; geometry-on
 	).toEqual(
 		transform!.split(`,`).map((value) => expect.closeTo(Number(value), 10)),
 	)
-	await f.click(`Fit`)
 	await f.click(`Reset view`)
+	const resetScene = f.host.querySelector(`ecology-scene`)!
+	expect(resetScene.getAttribute(`data-camera`)!.split(`,`).map(Number)).toEqual(
+		startingPose.map((value) => expect.closeTo(value, 10)),
+	)
 	expect(
-		f.host.querySelector(`ecology-scene`)!.getAttribute(`data-camera`),
-	).not.toContain(`NaN`)
+		f.host.querySelector(`[data-section="selected"] button[data-graph-id]`),
+	).toHaveProperty(`textContent`, `count`)
 	f.host.querySelector(`ecology-view`)!.dispatchEvent(
 		new KeyboardEvent(`keydown`, {
 			key: `Escape`,
@@ -793,7 +800,7 @@ it(`cleans up hidden, minimized, superseded and disposed jobs and keeps empty fl
 	expect(
 		f.host.querySelector<HTMLElement>(`ecology-view`)!.dataset[`jobs`],
 	).toBe(`1`)
-	await f.click(`Fit`)
+	await f.click(`Reset view`)
 	expect(f.host.querySelector(`[data-action="clear"]:not([inert])`)).toBeNull()
 	const form = f.host.querySelector(`form`)!
 	expect(
@@ -955,13 +962,14 @@ it(`reports capture limits and ignores activity outside the retained graph`, asy
 		Array.from({ length: 50_001 }, (_, index) => `missing${index}`),
 	)
 	f.silo.store.selectorGraph.relations.set(`wide`, related)
-	await f.click(`Refresh`)
+	f.silo.atom<number>({ key: `new`, default: 0 })
+	await settle()
 	expect(
 		f.host.querySelector(`ecology-view [data-notice]`)!.textContent,
 	).toContain(`full store totals unknown`)
 	for (let index = 0; index < 10_001; index++)
 		f.silo.store.families.get(manyAtoms.key)!.create(index)
-	await f.click(`Refresh`)
+	await settle()
 	expect(f.host.querySelector(`ecology-editor`)!.textContent).toContain(
 		`Selection outside this captured snapshot`,
 	)
@@ -976,7 +984,7 @@ it(`reports capture limits and ignores activity outside the retained graph`, asy
 	)
 })
 
-it(`preserves keyboard focus during refresh and highlights related cards when selection changes`, async () => {
+it(`preserves keyboard focus during live capture and highlights related cards when selection changes`, async () => {
 	const f = setup()
 	f.silo.atom<number>({ key: `a`, default: 0 })
 	f.silo.selector<number>({ key: `s`, get: () => 0 })
@@ -991,7 +999,8 @@ it(`preserves keyboard focus during refresh and highlights related cards when se
 		`ecology-node-card > button[data-graph-id="state:s"]`,
 	)!
 	graph.focus()
-	await f.click(`Refresh`)
+	f.silo.atom<number>({ key: `new`, default: 0 })
+	await settle()
 	expect(document.activeElement?.getAttribute(`data-graph-id`)).toBe(`state:s`)
 	await f.select(`state:a`)
 	const tracedCards = f.host.querySelectorAll<HTMLElement>(
@@ -1002,7 +1011,7 @@ it(`preserves keyboard focus during refresh and highlights related cards when se
 	)
 })
 
-it(`returns focus to search when refreshed selection controls or headings disappear`, async () => {
+it(`returns focus to search when a live capture removes selection controls or headings`, async () => {
 	const f = setup()
 	const membersAtoms = f.silo.atomFamily<number, string>({
 		key: `members`,
@@ -1018,7 +1027,8 @@ it(`returns focus to search when refreshed selection controls or headings disapp
 	expand.focus()
 	const definition = f.silo.store.families.get(membersAtoms.key)!
 	f.silo.store.families.delete(membersAtoms.key)
-	await f.click(`Refresh`)
+	f.silo.atom<number>({ key: `new`, default: 0 })
+	await settle()
 	expect(document.activeElement?.getAttribute(`aria-label`)).toBe(
 		`Search ecology`,
 	)
@@ -1030,7 +1040,7 @@ it(`returns focus to search when refreshed selection controls or headings disapp
 		.focus()
 	f.silo.store.families.set(membersAtoms.key, definition)
 	f.silo.disposeState(membersAtoms, `a`)
-	await f.click(`Refresh`)
+	await settle()
 	expect(document.activeElement?.getAttribute(`aria-label`)).toBe(
 		`Search ecology`,
 	)
@@ -1348,7 +1358,8 @@ it(`reveals the caught-error bands over one explosion cycle`, async () => {
 	image.dispatchEvent(new Event(`animationend`))
 	expect(card.querySelector(`img`)).toBeNull()
 	expect(card.dataset[`caught`]).toBe(`true`)
-	await f.click(`Refresh`)
+	f.silo.atom<number>({ key: `new`, default: 0 })
+	await settle()
 	expect(card.querySelector(`img`)).toBeNull()
 })
 
@@ -1552,9 +1563,7 @@ it(`refuses to generate a replacement atom from a stale row`, async () => {
 	family.create(`one`)
 	generate.click()
 	await settle()
-	expect(f.host.textContent).toContain(
-		`State was disposed. Refresh to update the snapshot.`,
-	)
+	expect(f.host.textContent).toContain(`State was disposed.`)
 	expect(read).not.toHaveBeenCalled()
 })
 

@@ -43,9 +43,12 @@ window-overlay.class {
 	> snap-palette > button[aria-pressed="true"] {
 		background: var(--accent);
 	}
-	> snap-palette > button:hover:not(:focus-visible, [aria-pressed="true"]) {
-		outline: 1px solid var(--accent);
-		outline-offset: -1px;
+	> snap-palette > button:hover:not([aria-pressed="true"]) {
+		color: var(--ink-strong);
+		background: var(--bg-color);
+		> svg > rect[stroke] {
+			stroke: currentColor;
+		}
 	}
 	> snap-palette > button:focus-visible {
 		outline: 2px solid var(--accent);

@@ -221,6 +221,74 @@ it(`opens/searches/selects/traces/expands passively and evaluates only with Gene
 	expect(f.silo.getState(dormantSelector)).toBe(2)
 })
 
+it(`searches and expands timeline families independently of state families with the same key`, async () => {
+	const f = setup()
+	const draftAtoms = f.silo.atomFamily<number, string>({
+		key: `draft`,
+		default: 0,
+	})
+	const state = f.silo.findState(draftAtoms, `first`)
+	f.silo.getState(state)
+	const run = vi.fn()
+	f.silo.transaction({ key: state.key, do: run })
+	dispose = mountEcology(f.host, { store: f.silo.store }).dispose
+	await settle()
+
+	const row = (id: string) => f.host.querySelector(`[data-row-id='${id}']`)
+	const card = (id: string) =>
+		f.host.querySelector(`ecology-node-card > button[data-graph-id='${id}']`)
+	expect(card(`transaction:${state.key}`)?.textContent).toContain(`Transaction`)
+	expect(
+		row(`transaction:${state.key}`)?.firstElementChild?.getAttribute(
+			`data-primitive`,
+		),
+	).toBe(`transaction`)
+
+	const draftTimelines = f.silo.timelineFamily<string>({
+		key: `draft`,
+		scope: [],
+	})
+	await settle()
+	expect(card(`timeline_family:${draftTimelines.key}`)?.textContent).toContain(
+		`Timeline Family · 0 members`,
+	)
+	expect(
+		row(
+			`timeline_family:${draftTimelines.key}`,
+		)?.firstElementChild?.getAttribute(`data-primitive`),
+	).toBe(`timeline-family`)
+	const timeline = f.silo.findTimeline(draftTimelines, `first`)
+	await settle()
+	expect(timeline.key).toBe(state.key)
+	expect(card(`timeline_family:${draftTimelines.key}`)?.textContent).toContain(
+		`1 members`,
+	)
+	expect(row(`timeline:${timeline.key}`)).toBeNull()
+	await f.search(`timeline`)
+	f.host
+		.querySelector<HTMLButtonElement>(
+			`[data-result-id='timeline:${timeline.key}']`,
+		)!
+		.click()
+	await settle()
+	expect(card(`timeline:${timeline.key}`)?.textContent).toContain(
+		`Timeline · 0/0 steps`,
+	)
+	expect(
+		row(`timeline:${timeline.key}`)?.firstElementChild?.getAttribute(
+			`data-primitive`,
+		),
+	).toBe(`timeline`)
+	await f.search(``)
+	expect(
+		row(`family:${draftAtoms.key}`)
+			?.querySelector(`button[data-action="expand"]`)
+			?.getAttribute(`aria-expanded`),
+	).toBe(`false`)
+	expect(row(`state:${state.key}`)).toBeNull()
+	expect(run).not.toHaveBeenCalled()
+})
+
 it(`updates and flashes cards from the root cache without evaluating dormant state`, async () => {
 	const f = setup()
 	const countAtom = f.silo.atom<number>({ key: `count`, default: () => 2 })

@@ -7,11 +7,14 @@ import {
 } from "atom.io/introspection"
 
 import {
+	captureEcologyOperations,
 	captureEcologySnapshot,
 	describeEcologyNode,
 	type EcologyFamily,
 	type EcologyLimits,
 	type EcologyNode,
+	type EcologyOperation,
+	ecologyOperationId,
 	type EcologySnapshot,
 	ecologyValue,
 	scanEcologyRelations,
@@ -57,12 +60,13 @@ function index(snapshot: EcologySnapshot) {
 type EcologyChanges = Pick<
 	StoreChanges,
 	`values` | `states` | `families` | `dependencies`
->
+> & { operations?: boolean }
 
 const remoteLimits = {
 	maxNodes: 10_000,
 	maxFamilies: 10_000,
 	maxRelations: 50_000,
+	maxOperations: 10_000,
 }
 const emptyChange = <T>(): RemoteRecordsUpdate<T> => ({ upsert: [], remove: [] })
 const compare = (a: string, b: string) => (a < b ? -1 : Number(a > b))
@@ -91,13 +95,16 @@ function updateFrame(
 /** Track observed changes by key. Recapture when limits can change which records are visible. */
 export function trackRemoteEcology(
 	store: RootStore,
-	limits: Required<EcologyLimits> = remoteLimits,
+	options: EcologyLimits = {},
 ): {
 	initial: EcologySnapshot
 	update(changes: EcologyChanges): RemoteEcologyUpdate | undefined
 } {
+	const limits = { ...remoteLimits, ...options }
 	const capture = () => captureEcologySnapshot(store, limits)
 	const initial = capture()
+	let operationCapture = initial.operations
+	let operationRecords = toMap(operationCapture.records, ecologyOperationId)
 	const neighbors = (key: string) => peekDependencies(store, key, 0).total
 	const definition = (key: string) => peekStateDefinition(store, key)
 	function indexTopology(snapshot: EcologySnapshot) {
@@ -303,10 +310,31 @@ export function trackRemoteEcology(
 
 	return {
 		initial,
-		update: (changes) =>
-			changes.states.size || changes.dependencies.size || changes.families.size
-				? updateTopology(changes)
-				: updateValues(changes.values),
+		update(changes) {
+			const state =
+				changes.states.size || changes.dependencies.size || changes.families.size
+					? updateTopology(changes)
+					: updateValues(changes.values)
+			if (!changes.operations) return state
+			const { records, work, truncated } = captureEcologyOperations(
+				store,
+				limits.maxOperations,
+			)
+			const next = toMap(records, ecologyOperationId)
+			const operations = diff(operationRecords, next)
+			const changed =
+				hasChanges(operations) ||
+				work !== operationCapture.work ||
+				truncated !== operationCapture.truncated
+			operationCapture = { records, work, truncated }
+			operationRecords = next
+			if (!changed) return state
+			return {
+				nodes: emptyChange<EcologyNode>(),
+				...state,
+				operations: { ...operations, work, truncated },
+			}
+		},
 	}
 }
 
@@ -324,6 +352,14 @@ export function projectRemoteEcology(initial: EcologySnapshot): {
 	update(change: RemoteEcologyUpdate): boolean
 } {
 	const graph = index(initial)
+	const operations = toMap<EcologyOperation>(
+		initial.operations?.records ?? [],
+		ecologyOperationId,
+	)
+	let operationMetadata = initial.operations && {
+		work: initial.operations.work,
+		truncated: initial.operations.truncated,
+	}
 	let snapshot: EcologySnapshot | undefined
 	return {
 		read: () =>
@@ -343,11 +379,24 @@ export function projectRemoteEcology(initial: EcologySnapshot): {
 						...family,
 						memberKeys: [...family.memberKeys].sort(compare),
 					})),
+				...(operationMetadata && {
+					operations: {
+						...operationMetadata,
+						records: [...operations.values()].sort(
+							(a, b) => compare(a.type, b.type) || compare(a.key, b.key),
+						),
+					},
+				}),
 				...graph.metadata,
 			}),
 		update(change: RemoteEcologyUpdate): boolean {
 			const topology =
-				Boolean(change.edges ?? change.families ?? change.metadata) ||
+				Boolean(
+					change.edges ??
+					change.families ??
+					change.metadata ??
+					change.operations,
+				) ||
 				change.nodes.remove.length > 0 ||
 				change.nodes.upsert.some((node) => {
 					const previous = graph.nodes.get(node.key)
@@ -361,6 +410,11 @@ export function projectRemoteEcology(initial: EcologySnapshot): {
 			apply(graph.nodes, keyOf, change.nodes)
 			if (change.edges) apply(graph.edges, edgeKey, change.edges)
 			if (change.families) apply(graph.families, keyOf, change.families)
+			if (change.operations) {
+				apply(operations, ecologyOperationId, change.operations)
+				const { work, truncated } = change.operations
+				operationMetadata = { work, truncated }
+			}
 			if (change.metadata) graph.metadata = change.metadata
 			snapshot = undefined
 			return topology

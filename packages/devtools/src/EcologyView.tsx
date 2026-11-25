@@ -189,7 +189,7 @@ export function EcologyView(props: {
 	const state = presentation.read
 	const selectedFamily = () => {
 		const selected = state().selected
-		return selected?.kind === `family` ? selected.key : selected?.familyLabel
+		return selected?.kind === `family` ? selected.id : selected?.familyId
 	}
 	const hover = (event: PointerEvent) => {
 		const target =

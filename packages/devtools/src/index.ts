@@ -3,6 +3,8 @@ export type {
 	EcologyFamily,
 	EcologyLimits,
 	EcologyNode,
+	EcologyOperation,
+	EcologyOperations,
 	EcologyRootTrace,
 	EcologySnapshot,
 	EcologyValueType,

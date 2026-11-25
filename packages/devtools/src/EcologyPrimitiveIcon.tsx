@@ -4,6 +4,17 @@ import type { SpaElement } from "@atom.io/spa"
 import type { GraphItem } from "./ecology-graph.ts"
 import css from "./EcologyPrimitiveIcon.module.css"
 
+type Glyph = {
+	rect?: { x: number; y: number; width: number; height: number; rx: number }
+	ellipses?: readonly (readonly [
+		cx: number,
+		cy: number,
+		rx: number,
+		ry: number,
+	])[]
+	paths: readonly string[]
+}
+
 // Filled outlines from the atom.io primitive icon set.
 const glyphs = {
 	atom: {
@@ -41,7 +52,41 @@ const glyphs = {
 			`M3,8.29c-.55,0-1-.45-1-1,0-4.01,1.28-5.29,5.29-5.29.55,0,1,.45,1,1s-.45,1-1,1c-2.89,0-3.29.4-3.29,3.29C4,7.84,3.55,8.29,3,8.29Z`,
 		],
 	},
-}
+	transaction: {
+		rect: { x: 17.07, y: 4.5, width: 3, height: 15, rx: 1.4 },
+		paths: [
+			`M10.39,5.73c-1.24-1.16-3.26-.27-3.26,1.42v2.85h-3.13c-1.1,0-2,.9-2,2s.9,2,2,2h3.13v2.85c0,1.69,2.02,2.58,3.26,1.42l5.23-4.85c.83-.76.83-2.08,0-2.84L10.39,5.73Z`,
+		],
+	},
+	timeline: {
+		ellipses: [
+			[12.02, 17, 2.5, 2.5],
+			[5, 17, 2.5, 2.5],
+			[19, 17, 2.5, 2.5],
+		],
+		paths: [
+			`M8.29,3.82c-1.37,0-2.19,1.52-1.44,2.66l3.74,5.72c.68,1.03,2.2,1.03,2.88,0l3.74-5.72c.75-1.14-.07-2.66-1.44-2.66H8.29Z`,
+		],
+	},
+	"timeline-family": {
+		ellipses: [
+			[18.5, 7.5, 3, 1.5],
+			[12, 13.5, 3, 1.5],
+			[5.5, 19.5, 3, 1.5],
+			[12, 19.5, 3, 1.5],
+		],
+		paths: [
+			`M13.87,6.34l-.67,1.01c-.26.41-.71.65-1.2.65s-.94-.24-1.2-.65l-.67-1.01c-.68.27-1.13.69-1.13,1.16,0,.83,1.34,1.5,3,1.5s3-.67,3-1.5C15,7.03,14.55,6.61,13.87,6.34Z`,
+			`M12,7c.07,0,.25-.02.37-.2h0s2.04-3.12,2.04-3.12c.13-.2.06-.38.02-.45-.04-.07-.15-.23-.39-.23h-4.08c-.24,0-.35.16-.39.23-.04.07-.11.25.02.45l2.04,3.12C11.75,6.98,11.93,7,12,7Z`,
+			`M20.37,18.34l-.67,1.01c-.26.41-.71.65-1.2.65s-.94-.24-1.2-.65l-.67-1.01c-.68.27-1.13.69-1.13,1.16,0,.83,1.34,1.5,3,1.5s3-.67,3-1.5C21.5,19.03,21.05,18.61,20.37,18.34Z`,
+			`M18.5,19c.07,0,.25-.02.37-.2l2.04-3.12c.13-.2.06-.38.02-.45-.04-.07-.15-.23-.39-.23h-4.08c-.24,0-.35.16-.39.23-.04.07-.11.25.02.45l2.04,3.12C18.25,18.98,18.43,19,18.5,19Z`,
+			`M15.82,14.16c.2-.1.41-.16.64-.16h4.08c.23,0,.44.06.64.16.2-.2.32-.42.32-.66,0-.83-1.34-1.5-3-1.5s-3,.67-3,1.5C15.5,13.74,15.62,13.96,15.82,14.16Z`,
+			`M7.37,12.34l-.67,1.01c-.26.41-.71.65-1.2.65s-.94-.24-1.2-.65l-.67-1.01c-.68.27-1.13.69-1.13,1.16,0,.83,1.34,1.5,3,1.5s3-.67,3-1.5C8.5,13.03,8.05,12.61,7.37,12.34Z`,
+			`M5.5,13c.07,0,.25-.02.37-.2l2.04-3.12c.13-.2.06-.38.02-.45-.04-.07-.15-.23-.39-.23H3.46c-.24,0-.35.16-.39.23-.04.07-.11.25.02.45l2.04,3.12C5.25,12.98,5.43,13,5.5,13Z`,
+			`M2.82,8.16c.2-.1.41-.16.64-.16h4.08c.23,0,.44.06.64.16.2-.2.32-.42.32-.66,0-.83-1.34-1.5-3-1.5s-3,.67-3,1.5C2.5,7.74,2.62,7.96,2.82,8.16Z`,
+		],
+	},
+} satisfies Record<string, Glyph>
 
 export function EcologyPrimitiveIcon(props: {
 	source: GraphItem[`source`]
@@ -49,11 +94,13 @@ export function EcologyPrimitiveIcon(props: {
 }): SpaElement {
 	const kind = () => {
 		const { source } = props
-		if (`memberKeys` in source)
+		if (`memberKeys` in source) {
+			if (source.type === `timeline_family`) return `timeline-family`
 			return source.type.includes(`selector`) ? `selector-family` : `atom-family`
-		return source.kind
+		}
+		return `kind` in source ? source.kind : source.type
 	}
-	const glyph = () => glyphs[kind()]
+	const glyph = (): Glyph => glyphs[kind()]
 	return (
 		<ecology-primitive-icon
 			class={css.class}
@@ -68,7 +115,10 @@ export function EcologyPrimitiveIcon(props: {
 				aria-hidden="true"
 				focusable="false"
 			>
-				<rect {...glyph().rect} />
+				{glyph().rect && <rect {...glyph().rect!} />}
+				{glyph().ellipses?.map(([cx, cy, rx, ry]) => (
+					<ellipse cx={cx} cy={cy} rx={rx} ry={ry} />
+				))}
 				{glyph().paths.map((d) => (
 					<path d={d} />
 				))}

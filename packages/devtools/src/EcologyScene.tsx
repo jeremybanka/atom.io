@@ -76,9 +76,12 @@ export function EcologyScene(props: {
 	const highlighted = (item: GraphItem) => {
 		const keys = props.traced,
 			source = item.source
-		return `memberKeys` in source
-			? source.memberKeys.some((key) => keys.has(key))
-			: keys.has(item.key)
+		if (`kind` in source) return keys.has(item.key)
+		return (
+			`memberKeys` in source &&
+			source.type !== `timeline_family` &&
+			source.memberKeys.some((key) => keys.has(key))
+		)
 	}
 	const dimmed = (item: GraphItem) => {
 		const focused = props.focused
@@ -86,7 +89,7 @@ export function EcologyScene(props: {
 		return (
 			focused !== undefined &&
 			!focused.has(item.id) &&
-			(family === undefined || item.familyLabel !== family)
+			(family === undefined || item.familyId !== family)
 		)
 	}
 	const selected = (item: GraphItem) =>

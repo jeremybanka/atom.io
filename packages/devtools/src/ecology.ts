@@ -47,6 +47,24 @@ export interface EcologyFamily {
 	readonly memberCount: number
 	readonly countComplete: boolean
 }
+type EcologyTimeline = {
+	readonly type: `timeline`
+	readonly key: string
+	readonly family: EcologyNode[`family`]
+	readonly at: number
+	readonly historyLength: number
+}
+export type EcologyOperation =
+	| { readonly type: `transaction`; readonly key: string }
+	| EcologyTimeline
+	| (EcologyFamily & { readonly type: `timeline_family` })
+
+export interface EcologyOperations {
+	readonly records: readonly EcologyOperation[]
+	readonly truncated: boolean
+	readonly work: number
+}
+
 export interface EcologyLimits {
 	/** Returned application nodes, excluding reserved introspection records. Default 1,000; ceiling 10,000.
 	 * Total state inspections are capped at maxNodes + 1,000, including excluded records and an omission probe.
@@ -57,6 +75,8 @@ export interface EcologyLimits {
 	readonly maxFamilies?: number
 	/** Counts inspected neighboring graph relations, including reverse/excluded relations. Default 5,000; ceiling 50,000. */
 	readonly maxRelations?: number
+	/** Counts inspected transaction, timeline, and timeline family records. Default 1,000; ceiling 10,000. */
+	readonly maxOperations?: number
 }
 export interface EcologySnapshot {
 	readonly version: 1
@@ -67,6 +87,8 @@ export interface EcologySnapshot {
 		readonly selector: string
 	}[]
 	readonly families: readonly EcologyFamily[]
+	/** Absent from version 1 captures predating operation records. */
+	readonly operations?: EcologyOperations
 	readonly truncated: {
 		readonly nodes: boolean
 		readonly families: boolean
@@ -92,6 +114,72 @@ function limit(
 		)
 	return value
 }
+
+export function ecologyOperationId(operation: EcologyOperation): string {
+	return `${operation.type}:${operation.key}`
+}
+
+export const ecologyOperationLabels = {
+	transaction: `Transaction`,
+	timeline: `Timeline`,
+	timeline_family: `Timeline Family`,
+} as const
+
+export function ecologyTimelinePosition(timeline: EcologyTimeline): string {
+	return `${timeline.at}/${timeline.historyLength} steps`
+}
+
+export function captureEcologyOperations(
+	store: RootStore,
+	maxOperations?: number,
+): EcologyOperations {
+	const budget = limit(maxOperations, 1_000, 10_000)
+	const maps = [store.timelineFamilies, store.transactions, store.timelines]
+	const records: EcologyOperation[] = []
+	const families: string[] = []
+	const members = new Map<string, string[]>()
+	let work = 0
+	for (const map of maps) {
+		const entries = map.values()
+		while (work < budget) {
+			const entry = entries.next()
+			if (entry.done) break
+			work++
+			const { key, type } = entry.value
+			if (isReservedIntrospectionKey(key) || key.startsWith(`👁‍🗨`)) continue
+			if (type === `timeline_family`) families.push(key)
+			else if (type === `transaction`) records.push({ type, key })
+			else {
+				const { at, history, family } = entry.value
+				records.push({
+					type,
+					key,
+					family: family ? { key: family.key, subKey: family.subKey } : null,
+					at,
+					historyLength: history.length,
+				})
+				if (family) {
+					let keys = members.get(family.key)
+					if (!keys) members.set(family.key, (keys = []))
+					keys.push(key)
+				}
+			}
+		}
+	}
+	const truncated = work < maps.reduce((sum, map) => sum + map.size, 0)
+	for (const key of families) {
+		const memberKeys = members.get(key) ?? []
+		records.push({
+			type: `timeline_family`,
+			key,
+			memberKeys,
+			memberCount: memberKeys.length,
+			countComplete: !truncated,
+		})
+	}
+	return { records, truncated, work }
+}
+
 function valueType(value: unknown): EcologyValueType {
 	if (value === null) return `null`
 	try {
@@ -189,10 +277,11 @@ export function ecologyLoadState(
 export function captureEcologySnapshot(
 	store: RootStore,
 	options: EcologyLimits = {},
-): EcologySnapshot {
+): EcologySnapshot & { readonly operations: EcologyOperations } {
 	const maxNodes = limit(options.maxNodes, 1_000, 10_000)
 	const maxFamilies = limit(options.maxFamilies, 1_000, 10_000)
 	const maxRelations = limit(options.maxRelations, 5_000, 50_000)
+	const operations = captureEcologyOperations(store, options.maxOperations)
 	const maxNodeInspections = maxNodes === 0 ? 0 : maxNodes + 1_000
 	let omittedNode = false
 	const work = { nodes: 0, families: 0, relations: 0 }
@@ -264,7 +353,7 @@ export function captureEcologySnapshot(
 		})
 	}
 	truncated.families = work.families < store.families.size
-	return { version: 1, nodes, edges, families, truncated, work }
+	return { version: 1, nodes, edges, families, operations, truncated, work }
 }
 
 export interface EcologyRootTrace {

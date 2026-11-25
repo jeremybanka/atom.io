@@ -128,13 +128,13 @@ it(`traces family members through cycles, retains parallel edges and recomputes 
 	)
 	expect(collapsed.edges.every((edge) => edge.traced)).toBe(true)
 	expect(collapsed.familyConnections).toEqual([])
-	context.expanded.add(`inputs`)
+	context.expanded.add(`family:inputs`)
 	const expanded = drain(projectEcology(data, context, undefined, collapsed))
 	expect(expanded.selection).toBe(collapsed.selection)
 	expect(expanded.edges[0].from).toBe(`state:a`)
 	expect(expanded.familyConnections).toEqual([
 		{
-			family: `inputs`,
+			family: `family:inputs`,
 			from: expanded.all.get(`family:inputs`),
 			to: expanded.all.get(`state:a`),
 			color: expanded.all.get(`family:inputs`)!.color,
@@ -176,7 +176,7 @@ it(`admits all selected family members before related families within the editor
 	}
 	const context = createGraphContext()
 	context.selected = `family:inputs`
-	context.expanded.add(`inputs`)
+	context.expanded.add(`family:inputs`)
 	context.rowLimit = 3
 	const model = drain(projectEcology(data, context))
 	expect(model.rows.map((row) => row.id)).toEqual([
@@ -242,8 +242,8 @@ it(`groups families, keeps zero definitions and namespaces group/member identiti
 	context.selected = `state:b`
 	model = drain(projectEcology(withFamilies, context))
 	expect(model.edges[1].traced).toBe(true)
-	context.expanded.add(`items`)
-	context.expanded.add(`zero`)
+	context.expanded.add(`family:items`)
+	context.expanded.add(`family:zero`)
 	model = drain(projectEcology(withFamilies, context))
 	expect(model.items).toHaveLength(5)
 	expect(point(`state:a`)).not.toEqual(point(`state:b`))
@@ -254,7 +254,7 @@ it(`groups families, keeps zero definitions and namespaces group/member identiti
 	).toBeCloseTo(0)
 	expect(model.familyConnections).toEqual([
 		{
-			family: `items`,
+			family: `family:items`,
 			from: model.all.get(`state:b`),
 			to: member,
 			color: anchor.color,
@@ -300,7 +300,7 @@ it(`bounds family connections to painted members, including when the family card
 		],
 	}
 	const context = createGraphContext()
-	context.expanded.add(`members`)
+	context.expanded.add(`family:members`)
 	const model = drain(
 		projectEcology(
 			data,
@@ -312,7 +312,7 @@ it(`bounds family connections to painted members, including when the family card
 	expect(model.items.some((item) => item.id === `family:members`)).toBe(false)
 	expect(model.familyConnections).toEqual([
 		{
-			family: `members`,
+			family: `family:members`,
 			from: model.all.get(`state:member499`),
 			to: model.all.get(`state:member498`),
 			color: model.all.get(`family:members`)!.color,
@@ -527,7 +527,7 @@ it(`keeps parallel helices opposite at every shared height, with equal steps and
 		families,
 	}
 	const context = createGraphContext()
-	for (const family of families) context.expanded.add(family.key)
+	for (const family of families) context.expanded.add(`family:${family.key}`)
 	const model = drain(projectEcology(data, context))
 	const position = (slot: number, selector: boolean) =>
 		model.all.get(selector ? `state:s${slot}` : `family:group${slot}`)!
@@ -649,14 +649,14 @@ it(`keeps lazy metadata immutable across equal-sized expansion changes and ignor
 		],
 	}
 	const context = createGraphContext()
-	context.expanded.add(`derived`)
+	context.expanded.add(`family:derived`)
 	const first = drain(projectEcology(data, context)),
 		member = first.all.get(`state:s1`)!
 	const before = [member.x, member.y, member.z]
 	context.expanded = new Set([`inputs`])
 	const next = drain(projectEcology(data, context, undefined, first))
 	expect(next.all).not.toBe(first.all)
-	expect(first.all.expanded.has(`derived`)).toBe(true)
+	expect(first.all.expanded.has(`family:derived`)).toBe(true)
 	expect([member.x, member.y, member.z]).toEqual(before)
 	const collapsed = next.all.get(`state:s1`)!,
 		group = next.all.get(`family:derived`)!
@@ -744,7 +744,7 @@ it(`keeps clustered member endpoints distinct, bounded and stable without admitt
 	expect(
 		members.map((member) => filtered.all.get(`state:${member.key}`)),
 	).toEqual(points)
-	context.expanded.add(`inputs`)
+	context.expanded.add(`family:inputs`)
 	const expanded = drain(projectEcology(data, context, undefined, filtered))
 	expect(expanded.items).toHaveLength(102)
 	expect(expanded.all.get(`state:input0`)!.x).not.toBe(points[0].x)

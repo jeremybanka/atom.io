@@ -214,7 +214,7 @@ it(`projects viewer-facing DOM cards and source-stacked edges, keeps a camera th
 	expect(f.viewport.dataset[`edges`]).toBe(`1`)
 	f.patch({
 		familyConnections: [
-			{ family: `items`, from: f.a, to: f.b, color: f.a.color },
+			{ family: `family:items`, from: f.a, to: f.b, color: f.a.color },
 		],
 	})
 	f.tick()
@@ -247,12 +247,12 @@ it(`projects viewer-facing DOM cards and source-stacked edges, keeps a camera th
 	expect(selectedSpine.material.opacity).toBeGreaterThan(spine.material.opacity)
 	expect(spine.renderOrder).toBeLessThan(0)
 	expect(ground.renderOrder).toBeLessThan(spine.renderOrder)
-	const member = { ...f.a, familyLabel: `items` },
-		sibling = { ...f.b, familyLabel: `items` }
+	const member = { ...f.a, familyLabel: `items`, familyId: `family:items` },
+		sibling = { ...f.b, familyLabel: `items`, familyId: `family:items` }
 	f.patch({
 		items: [member, sibling],
 		selected: member.id,
-		selectedFamily: member.familyLabel,
+		selectedFamily: member.familyId,
 		focused: new Set([member.id]),
 	})
 	f.tick()
@@ -367,9 +367,10 @@ it(`projects animated member cards, arrows and family spines from the same world
 	const member = {
 		...item(`items("a")`, 16, 4, -8),
 		familyLabel: `items`,
+		familyId: `family:items`,
 		cluster: { x: 8.1, y: 4, z: 0 },
 	}
-	f.context.expanded.add(`items`)
+	f.context.expanded.add(`family:items`)
 	f.patch({
 		items: [family, member, f.b],
 		edges: [
@@ -383,7 +384,7 @@ it(`projects animated member cards, arrows and family spines from the same world
 			},
 		],
 		familyConnections: [
-			{ family: `items`, from: family, to: member, color: family.color },
+			{ family: `family:items`, from: family, to: member, color: family.color },
 		],
 	})
 	f.tick()
@@ -436,7 +437,7 @@ it(`writes arrowless family spines with shared colors, world scaling and reusabl
 		scale = new THREE.Vector3(2, 3, 4)
 	expect(positions.count).toBe(500)
 	expect(geometry.instanceCount).toBe(0)
-	const connections = [{ family: `items`, from, to, color: from.color }]
+	const connections = [{ family: `family:items`, from, to, color: from.color }]
 	writeFamilySpine(spine, connections, scale)
 	expect(geometry.instanceCount).toBe(1)
 	expect(spine.visible).toBe(true)

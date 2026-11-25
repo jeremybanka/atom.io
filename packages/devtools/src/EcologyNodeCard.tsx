@@ -8,7 +8,11 @@ import type { Scene } from "three"
 // eslint-disable-next-line import/extensions -- Three addon exports require the .js suffix.
 import { CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js"
 
-import { ecologyLoadState } from "./ecology.ts"
+import {
+	ecologyLoadState,
+	ecologyOperationLabels,
+	ecologyTimelinePosition,
+} from "./ecology.ts"
 import { createCardFeedback } from "./ecology-card-feedback.ts"
 import type { GraphItem } from "./ecology-graph.ts"
 import type { ProjectedEdge } from "./ecology-lines.ts"
@@ -56,8 +60,19 @@ export function EcologyNodeCard(props: {
 		return text
 	}
 	const detail = (source: GraphItem[`source`]) => {
-		if (`memberKeys` in source)
-			return `${source.type.includes(`selector`) ? `Selector Family` : `Atom Family`} · ${source.memberCount}${source.countComplete ? `` : `+`} members`
+		if (`memberKeys` in source) {
+			const label =
+				source.type === `timeline_family`
+					? ecologyOperationLabels.timeline_family
+					: source.type.includes(`selector`)
+						? `Selector Family`
+						: `Atom Family`
+			return `${label} · ${source.memberCount}${source.countComplete ? `` : `+`} members`
+		}
+		if (!(`kind` in source))
+			return source.type === `transaction`
+				? ecologyOperationLabels.transaction
+				: `${ecologyOperationLabels.timeline} · ${ecologyTimelinePosition(source)}`
 		return `${source.kind === `atom` ? `Atom` : `Selector`} · ${detailValue()}`
 	}
 	const description = () => {
@@ -154,7 +169,7 @@ export function EcologyNodeCard(props: {
 				)
 			},
 		)
-		if (props.item.kind !== `family`) {
+		if (`kind` in props.item.source) {
 			const feedback = createCardFeedback(button!, props.reducedMotion)
 			let lastCaught: unknown
 			let feedbackRevision = 0

@@ -16,8 +16,10 @@ export interface StoreChanges {
 	readonly values: ReadonlySet<string>
 	/** State keys registered, replaced, or disposed. */
 	readonly states: ReadonlySet<string>
-	/** Family keys registered or replaced. */
+	/** State family keys registered or replaced. */
 	readonly families: ReadonlySet<string>
+	/** Timeline family keys registered in this batch, when present. */
+	readonly timelineFamilies?: ReadonlySet<string>
 	/** Selector keys whose observed incoming edges changed. */
 	readonly dependencies: ReadonlySet<string>
 	/** Timeline keys created, updated, or disposed. */
@@ -41,6 +43,7 @@ type Batch = {
 	values: Set<string>
 	states: Set<string>
 	families: Set<string>
+	timelineFamilies: Set<string>
 	edges: Map<string, Edge>
 	futures: Map<string, Set<FutureActivity>>
 	timelines: Set<string>
@@ -74,6 +77,7 @@ function getBatch(store: Store, observation: StoreObservation): Batch {
 		values: new Set<string>(),
 		states: new Set<string>(),
 		families: new Set<string>(),
+		timelineFamilies: new Set<string>(),
 		edges: new Map<string, Edge>(),
 		futures: new Map<string, Set<FutureActivity>>(),
 		timelines: new Set<string>(),
@@ -94,11 +98,20 @@ function getBatch(store: Store, observation: StoreObservation): Batch {
 		}
 		for (const key of dependencies)
 			if (isReservedIntrospectionKey(key)) dependencies.delete(key)
-		const { values, states, families, futures, timelines, transactions } = batch
+		const {
+			values,
+			states,
+			families,
+			timelineFamilies,
+			futures,
+			timelines,
+			transactions,
+		} = batch
 		if (
 			values.size ||
 			states.size ||
 			families.size ||
+			timelineFamilies.size ||
 			dependencies.size ||
 			timelines.size ||
 			transactions.size
@@ -109,6 +122,7 @@ function getBatch(store: Store, observation: StoreObservation): Batch {
 						values,
 						states,
 						families,
+						...(timelineFamilies.size > 0 && { timelineFamilies }),
 						dependencies,
 						futures,
 						timelines,
@@ -134,7 +148,7 @@ export function recordFutureActivity(
 
 export function recordStoreChange(
 	store: Store,
-	kind: `values` | `states` | `families` | `timelines`,
+	kind: `values` | `states` | `families` | `timelines` | `timelineFamilies`,
 	key: string,
 ): void {
 	const observation = store.observation

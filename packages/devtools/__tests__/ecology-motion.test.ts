@@ -19,6 +19,7 @@ const family = { id: `family:items`, x: 2, y: 3, z: 4 } as GraphItem
 const member = {
 	id: `state:items("a")`,
 	familyLabel: `items`,
+	familyId: `family:items`,
 	cluster: { x: 2.1, y: 3, z: 4 },
 	x: 12,
 	y: 3,
@@ -121,7 +122,7 @@ it(`animates the compact editor from its current height and releases the split o
 
 it(`flies between clustered and expanded positions, preserving progress on rapid reversal and retaining stable settled endpoints`, () => {
 	const f = fixture(),
-		expanded = new Set([`items`])
+		expanded = new Set([`family:items`])
 	f.motion.sync([family, member], expanded, 1)
 	expect(f.motion.entering(member.id)).toBe(true)
 	expect(f.motion.position(member.id)).toBe(member.cluster)
@@ -149,7 +150,7 @@ it(`flies between clustered and expanded positions, preserving progress on rapid
 
 it(`keeps arrows on moving member ports while using the collapsed family's SVG origin`, () => {
 	const f = fixture()
-	f.motion.sync([member], new Set([`items`]), 1)
+	f.motion.sync([member], new Set([`family:items`]), 1)
 	const value = progress()
 	value.set(0.5)
 	f.motion.sync([family], new Set(), 1)
@@ -188,18 +189,18 @@ it(`keeps arrows on moving member ports while using the collapsed family's SVG o
 
 it(`snaps initial/restored captures and refreshes, and disposes members evicted by filtering without collapse exits`, () => {
 	const f = fixture()
-	f.motion.sync([member, other], new Set([`items`]), 2)
+	f.motion.sync([member, other], new Set([`family:items`]), 2)
 	expect(f.motion.entering(member.id)).toBe(false)
 	expect(animate).not.toHaveBeenCalled()
-	f.motion.sync([family], new Set([`items`]), 2)
+	f.motion.sync([family], new Set([`family:items`]), 2)
 	expect(f.motion.exiting(member.id)).toBe(false)
-	f.motion.sync([member], new Set([`items`]), 2)
+	f.motion.sync([member], new Set([`family:items`]), 2)
 	expect(f.motion.entering(member.id)).toBe(false)
 	f.motion.sync([family], new Set(), 3)
 	expect(f.motion.position(member.id)).toBeUndefined()
-	f.motion.sync([member], new Set([`items`]), 3)
+	f.motion.sync([member], new Set([`family:items`]), 3)
 	progress().set(0.3)
-	f.motion.sync([member], new Set([`items`]), 4)
+	f.motion.sync([member], new Set([`family:items`]), 4)
 	expect(f.motion.position(member.id)).toBe(member)
 	expect(f.motion.active).toBe(false)
 	f.motion.dispose()
@@ -207,7 +208,7 @@ it(`snaps initial/restored captures and refreshes, and disposes members evicted 
 
 it(`respects reduced motion initially and finishes in-flight springs when the preference changes`, () => {
 	const f = fixture(true),
-		expanded = new Set([`items`])
+		expanded = new Set([`family:items`])
 	f.motion.sync([member], expanded, 1)
 	expect(animate).not.toHaveBeenCalled()
 	expect(f.motion.entering(member.id)).toBe(false)

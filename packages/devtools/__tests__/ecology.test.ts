@@ -11,6 +11,67 @@ const fixture = () =>
 const byKey = (snapshot: EcologySnapshot, key: string) =>
 	snapshot.nodes.find((node) => node.key === key)!
 
+it(`captures bounded, detached transaction and timeline metadata`, () => {
+	const silo = fixture()
+	const run = vi.fn()
+	silo.transaction({ key: `save`, do: run })
+	const historyTimelines = silo.timelineFamily<string>({
+		key: `history`,
+		scope: [],
+	})
+	const member = silo.findTimeline(historyTimelines, `draft`)
+	silo.timeline({ key: `👁‍🗨 internal`, scope: [] })
+
+	const snapshot = captureEcologySnapshot(silo.store)
+	expect(snapshot.operations).toEqual({
+		records: [
+			{ type: `transaction`, key: `save` },
+			{
+				type: `timeline`,
+				key: member.key,
+				family: member.family,
+				at: 0,
+				historyLength: 0,
+			},
+			{
+				type: `timeline_family`,
+				key: historyTimelines.key,
+				memberKeys: [member.key],
+				memberCount: 1,
+				countComplete: true,
+			},
+		],
+		truncated: false,
+		work: 4,
+	})
+	expect(
+		captureEcologySnapshot(silo.store, { maxOperations: 2 }).operations,
+	).toMatchObject({
+		records: [
+			{ type: `transaction`, key: `save` },
+			{
+				type: `timeline_family`,
+				memberKeys: [],
+				memberCount: 0,
+				countComplete: false,
+			},
+		],
+		truncated: true,
+		work: 2,
+	})
+	expect(
+		captureEcologySnapshot(silo.store, { maxOperations: 0 }).operations,
+	).toEqual({ records: [], truncated: true, work: 0 })
+	expect(() =>
+		captureEcologySnapshot(silo.store, { maxOperations: -1 }),
+	).toThrow(RangeError)
+	silo.disposeTimeline(member)
+	expect(snapshot.operations?.records[1]).toMatchObject({
+		family: member.family,
+	})
+	expect(run).not.toHaveBeenCalled()
+})
+
 it(`captures detached metadata without evaluating dormant defaults or selectors or attaching introspection`, () => {
 	const silo = fixture()
 	const lazy = vi.fn(() => 9),

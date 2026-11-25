@@ -1,4 +1,11 @@
-import type { EcologyFamily, EcologyNode, EcologySnapshot } from "./ecology.ts"
+import {
+	type EcologyFamily,
+	type EcologyNode,
+	type EcologyOperation,
+	ecologyOperationId,
+	type EcologySnapshot,
+	ecologyTimelinePosition,
+} from "./ecology.ts"
 import { ecologyColor } from "./ecology-color.ts"
 import { scheduleTask } from "./task.ts"
 
@@ -7,16 +14,20 @@ export interface GraphPosition {
 	y: number
 	z: number
 }
+export type EcologySource = EcologyNode | EcologyFamily | EcologyOperation
+type GraphLane = `atom` | `selector` | `operation`
+
 export interface GraphItem extends GraphPosition {
 	id: string
 	key: string
-	kind: `atom` | `selector` | `family`
+	kind: `atom` | `selector` | `family` | `transaction` | `timeline`
 	label: string
 	familyLabel?: string | undefined
+	familyId?: string | undefined
 	cluster?: GraphPosition | undefined
 	detail: string
 	color: string
-	source: EcologyNode | EcologyFamily
+	source: EcologySource
 }
 export interface FamilyConnection {
 	family: string
@@ -46,13 +57,14 @@ export interface GraphContext {
 }
 interface GraphRecord {
 	id: string
-	source: EcologyNode | EcologyFamily
+	source: EcologySource
+	lane: GraphLane
 	slot: number
 	order: number
 	group: GraphRecord | undefined
 }
 interface GraphLayout {
-	families: Map<string, GraphRecord>
+	records: Map<string, GraphRecord>
 	nodes: Map<string, GraphRecord>
 	ordered: GraphRecord[]
 	groupSelectors: Map<GraphRecord, string[]>
@@ -107,15 +119,16 @@ export function createGraphContext(): GraphContext {
 	}
 }
 
-/** Equal arc-length steps on two opposed helices. The cylinder and paths are mathematical only. */
+/** Equal arc-length steps around the same cylinder. */
 function helixPosition(
 	slot: number,
-	selector: boolean,
+	lane: GraphLane,
 	height: number,
 ): GraphPosition {
-	// Both paths have the same winding at a given height, although selectors are added bottom-up.
+	const selector = lane === `selector`
 	const depth = selector ? height / 2 - slot : slot
-	const angle = (depth * Math.PI) / 4 + (selector ? Math.PI : 0)
+	const phase = selector ? Math.PI : lane === `operation` ? Math.PI / 2 : 0
+	const angle = (depth * Math.PI) / 4 + phase
 	return {
 		x: 8 * Math.cos(angle),
 		y: selector ? -height / 2 + slot * 2 : height / 2 - slot * 2,
@@ -152,7 +165,7 @@ function clusterPosition(anchor: GraphPosition, member: number): GraphPosition {
 /** Build capture-local ordering and adjacency once, without preparing offscreen cards or geometry. */
 function* indexGraph(snapshot: EcologySnapshot): Generator<void, GraphLayout> {
 	const layout: GraphLayout = {
-		families: new Map(),
+		records: new Map(),
 		nodes: new Map(),
 		ordered: [],
 		groupSelectors: new Map(),
@@ -165,19 +178,31 @@ function* indexGraph(snapshot: EcologySnapshot): Generator<void, GraphLayout> {
 		selectors: 0,
 		members: 0,
 	}
-	const slots = { atom: 0, selector: 0 },
+	const slots = { atom: 0, selector: 0, operation: 0 },
 		members = new Map<GraphRecord, number>()
+	const add = (
+		id: string,
+		source: EcologySource,
+		lane: GraphLane,
+		group?: GraphRecord,
+	): void => {
+		const slot = group ? (members.get(group) ?? 0) : slots[lane]++
+		if (group) members.set(group, slot + 1)
+		const record: GraphRecord = {
+			id,
+			source,
+			lane,
+			slot,
+			order: layout.ordered.length,
+			group,
+		}
+		if (`kind` in source) layout.nodes.set(source.key, record)
+		else layout.records.set(id, record)
+		layout.ordered.push(record)
+	}
 	for (const source of snapshot.families) {
 		const lane = source.type.includes(`selector`) ? `selector` : `atom`
-		const record: GraphRecord = {
-			id: `family:${source.key}`,
-			source,
-			slot: slots[lane]++,
-			order: layout.ordered.length,
-			group: undefined,
-		}
-		layout.families.set(source.key, record)
-		layout.ordered.push(record)
+		add(`family:${source.key}`, source, lane)
 		yield
 	}
 	for (const source of snapshot.nodes) {
@@ -185,19 +210,9 @@ function* indexGraph(snapshot: EcologySnapshot): Generator<void, GraphLayout> {
 		else layout.selectors++
 		if (source.family) layout.members++
 		const group = source.family
-			? layout.families.get(source.family.key)
+			? layout.records.get(`family:${source.family.key}`)
 			: undefined
-		const slot = group ? (members.get(group) ?? 0) : slots[source.kind]++
-		if (group) members.set(group, slot + 1)
-		const record: GraphRecord = {
-			id: `state:${source.key}`,
-			source,
-			slot,
-			order: layout.ordered.length,
-			group,
-		}
-		layout.nodes.set(source.key, record)
-		layout.ordered.push(record)
+		add(`state:${source.key}`, source, source.kind, group)
 		if (group && source.kind === `selector`) {
 			let keys = layout.groupSelectors.get(group)
 			if (!keys) layout.groupSelectors.set(group, (keys = []))
@@ -205,7 +220,23 @@ function* indexGraph(snapshot: EcologySnapshot): Generator<void, GraphLayout> {
 		}
 		yield
 	}
-	layout.height = Math.max(8, (Math.max(slots.atom, slots.selector) - 1) * 2)
+	const operations = snapshot.operations?.records ?? []
+	for (const source of operations) {
+		if (source.type === `timeline_family`)
+			add(ecologyOperationId(source), source, `operation`)
+		yield
+	}
+	for (const source of operations) {
+		if (source.type !== `timeline_family`) {
+			const group =
+				source.type === `timeline` && source.family
+					? layout.records.get(`timeline_family:${source.family.key}`)
+					: undefined
+			add(ecologyOperationId(source), source, `operation`, group)
+		}
+		yield
+	}
+	layout.height = Math.max(8, (Math.max(...Object.values(slots)) - 1) * 2)
 	for (let index = 0; index < snapshot.edges.length; index++) {
 		const key = snapshot.edges[index].selector
 		let indices = layout.edgeIndex.get(key)
@@ -223,11 +254,10 @@ function resolveRecord(
 	layout: GraphLayout,
 	id: string,
 ): GraphRecord | undefined {
-	if (id.startsWith(`family:`)) return layout.families.get(id.slice(7))
-	if (id.startsWith(`state:`)) return layout.nodes.get(id.slice(6))
-	return undefined
+	return id.startsWith(`state:`)
+		? layout.nodes.get(id.slice(6))
+		: layout.records.get(id)
 }
-
 /** Walk each direction independently: never turn onto an ancestor's offshoot or a consumer's other roots. */
 function* traceSelection(
 	snapshot: EcologySnapshot,
@@ -235,13 +265,31 @@ function* traceSelection(
 	selected: GraphRecord,
 ): Generator<void, GraphSelection> {
 	const source = selected.source
-	const seeds = `memberKeys` in source ? source.memberKeys : [source.key]
+	const seeds =
+		selected.lane === `operation`
+			? []
+			: `memberKeys` in source
+				? source.memberKeys
+				: [source.key]
 	const selection: GraphSelection = {
 		id: selected.id,
 		selectedIds: new Set([selected.id]),
 		nodes: new Set(seeds),
 		items: new Set([selected.id]),
 		edges: new Set(),
+	}
+	if (selected.lane === `operation`) {
+		if (`memberKeys` in source) {
+			for (const key of source.memberKeys) {
+				const record = layout.records.get(`timeline:${key}`)
+				if (record?.group === selected) {
+					selection.items.add(record.id)
+					selection.selectedIds.add(record.id)
+				}
+				yield
+			}
+		} else if (selected.group) selection.items.add(selected.group.id)
+		return selection
 	}
 	for (const upstream of [true, false]) {
 		const visited = new Set(seeds),
@@ -281,13 +329,18 @@ function createRegistry(
 ): GraphRegistry {
 	const expanded = new Set(expansion)
 	const read = (record: GraphRecord): GraphItem => {
-		const fan = Boolean(record.group && expanded.has(record.group.source.key))
+		const fan = Boolean(record.group && expanded.has(record.group.id))
 		const cache = fan ? layout.expanded : layout.collapsed
 		const prior = cache.get(record)
 		if (prior) return prior
 		const source = record.source
 		const member = `family` in source ? source.family : undefined
-		const kind = `kind` in source ? source.kind : `family`
+		const kind =
+			`kind` in source
+				? source.kind
+				: `memberKeys` in source
+					? `family`
+					: source.type
 		const cluster = record.group
 			? clusterPosition(read(record.group), record.slot)
 			: undefined
@@ -295,24 +348,24 @@ function createRegistry(
 			? fan
 				? familyPosition(read(record.group), record.slot)
 				: cluster!
-			: helixPosition(
-					record.slot,
-					kind === `selector` ||
-						(kind === `family` && source.type.includes(`selector`)),
-					layout.height,
-				)
+			: helixPosition(record.slot, record.lane, layout.height)
 		const item: GraphItem = {
 			id: record.id,
 			key: source.key,
 			kind,
 			label: member?.subKey ?? source.key,
 			familyLabel: member?.key,
+			familyId: record.group?.id,
 			cluster,
 			color: ecologyColor(source),
 			detail:
 				`memberKeys` in source
 					? `${source.type} · ${source.memberCount}${source.countComplete ? `` : `+`} members`
-					: `${source.kind} · ${source.value.status === `cached` ? `cached ${source.value.type}` : `not cached / unknown`}`,
+					: `kind` in source
+						? `${source.kind} · ${source.value.status === `cached` ? `cached ${source.value.type}` : `not cached / unknown`}`
+						: source.type === `timeline`
+							? ecologyTimelinePosition(source)
+							: `transaction`,
 			source,
 			x: position.x,
 			y: position.y,
@@ -325,7 +378,7 @@ function createRegistry(
 		layout,
 		expanded,
 		visible: layout.ordered.filter(
-			(record) => !record.group || expanded.has(record.group.source.key),
+			(record) => !record.group || expanded.has(record.group.id),
 		),
 		get(id) {
 			const record = resolveRecord(layout, id)
@@ -358,7 +411,7 @@ export function* projectEcology(
 			const record = resolveRecord(layout, id)
 			if (record)
 				matchingRecords.add(
-					record.group && !all.expanded.has(record.group.source.key)
+					record.group && !all.expanded.has(record.group.id)
 						? record.group
 						: record,
 				)
@@ -386,7 +439,7 @@ export function* projectEcology(
 			: yield* traceSelection(snapshot, layout, selected)
 		: undefined
 	const selectedCard =
-		selected?.group && !all.expanded.has(selected.group.source.key)
+		selected?.group && !all.expanded.has(selected.group.id)
 			? selected.group
 			: selected
 	if (selectedCard && !admitted.includes(selectedCard)) {
@@ -451,7 +504,7 @@ export function* projectEcology(
 		painted.add(item.id)
 		const family =
 			record.group ??
-			(`memberKeys` in record.source && all.expanded.has(record.source.key)
+			(`memberKeys` in record.source && all.expanded.has(record.id)
 				? record
 				: undefined)
 		if (family) {
@@ -485,7 +538,7 @@ export function* projectEcology(
 		)
 		if (`kind` in record.source) {
 			if (record.source.kind === `selector`) selectorKeys.push(record.source.key)
-		} else if (!all.expanded.has(record.source.key))
+		} else if (`memberKeys` in record.source && !all.expanded.has(record.id))
 			selectorKeys.push(...(layout.groupSelectors.get(record) ?? []))
 		yield
 	}
@@ -493,7 +546,7 @@ export function* projectEcology(
 	for (const [family, span] of familySpans) {
 		if (span.from !== span.to)
 			familyConnections.push({
-				family: family.source.key,
+				family: family.id,
 				from: span.from,
 				to: span.to,
 				color: all.get(family.id)!.color,
@@ -511,7 +564,7 @@ export function* projectEcology(
 	candidates.sort((a, b) => a - b)
 	const endpoint = (key: string) => {
 		const record = layout.nodes.get(key)
-		return record?.group && !all.expanded.has(record.group.source.key)
+		return record?.group && !all.expanded.has(record.group.id)
 			? record.group.id
 			: record?.id
 	}
@@ -536,13 +589,14 @@ export function* projectEcology(
 		}
 	for (const id of removed) context.positions.delete(id)
 	for (const [id, position] of pending) context.positions.set(id, position)
-	if (
-		context.selected &&
-		!all.has(context.selected) &&
-		!snapshot.truncated.nodes &&
-		!snapshot.truncated.families
-	) {
-		context.selected = null
+	if (context.selected && !all.has(context.selected)) {
+		const stateSelection =
+			context.selected.startsWith(`state:`) ||
+			context.selected.startsWith(`family:`)
+		const truncated = stateSelection
+			? snapshot.truncated.nodes || snapshot.truncated.families
+			: snapshot.operations?.truncated
+		if (!truncated) context.selected = null
 	}
 	return {
 		snapshot,

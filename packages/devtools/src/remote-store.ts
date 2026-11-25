@@ -126,6 +126,7 @@ export function exposeWholeStore(
 		TransactionOutcomeEvent<TransactionToken<any>>[]
 	>()
 	let timelineRevision = 0
+	let changedOperations = false
 	let closed = false
 	let sequence = 0
 	const subscriber = arbitrary()
@@ -218,12 +219,14 @@ export function exposeWholeStore(
 			states: changedDefinitions,
 			families: changedFamilies,
 			dependencies: changedDependencies,
+			operations: changedOperations,
 		})
 		if (graph) update.ecology = graph
 		changedStates.clear()
 		changedDefinitions.clear()
 		changedFamilies.clear()
 		changedDependencies.clear()
+		changedOperations = false
 		for (const key of changedTimelines) {
 			const timeline = store.timelines.get(key)
 			if (!timeline) {
@@ -368,14 +371,17 @@ export function exposeWholeStore(
 					watches.delete(key)
 				}
 				for (const key of families) changedFamilies.add(key)
+				changedOperations ||= Boolean(changes.timelineFamilies?.size)
 				for (const key of dependencies) changedDependencies.add(key)
 				for (const key of timelines) {
 					if (!visible(key)) continue
 					timelineRevisions.set(key, ++timelineRevision)
 					changedTimelines.add(key)
+					changedOperations = true
 				}
 				for (const [key, { registeredAt, outcomes }] of changes.transactions) {
 					if (!visible(key)) continue
+					changedOperations ||= registeredAt !== undefined
 					const previous =
 						registeredAt === undefined ? (transactions.get(key) ?? []) : []
 					const history = previous

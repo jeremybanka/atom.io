@@ -6,7 +6,13 @@ import type {
 	TransactionToken,
 } from "atom.io"
 
-import type { EcologyFamily, EcologyNode, EcologySnapshot } from "./ecology.ts"
+import type {
+	EcologyFamily,
+	EcologyNode,
+	EcologyOperation,
+	EcologyOperations,
+	EcologySnapshot,
+} from "./ecology.ts"
 
 export type RemotePrimitive = boolean | number | string | null
 export const REMOTE_PROTOCOL_VERSION = 1
@@ -94,6 +100,8 @@ export type RemoteEcologyUpdate = {
 	nodes: RemoteRecordsUpdate<EcologyNode>
 	edges?: RemoteRecordsUpdate<RemoteEcologyEdge>
 	families?: RemoteRecordsUpdate<EcologyFamily>
+	operations?: RemoteRecordsUpdate<EcologyOperation> &
+		Pick<EcologyOperations, `truncated` | `work`>
 	metadata?: RemoteEcologyMetadata
 }
 export interface RemoteStoreUpdate {

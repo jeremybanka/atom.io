@@ -238,7 +238,7 @@ export function createEcologyMotion(
 					target(member, 1)
 					if (fresh) member.value.jump(1)
 					updatePoint(member)
-				} else if (!fresh && !expanded.has(member.item.familyLabel!)) {
+				} else if (!fresh && !expanded.has(member.item.familyId!)) {
 					member.retiring = true
 					target(member, 0)
 				} else release(id)
@@ -246,9 +246,7 @@ export function createEcologyMotion(
 			for (const item of items) {
 				if (!item.cluster || members.has(item.id)) continue
 				const entering =
-					!fresh &&
-					!preference.matches &&
-					!previousExpanded.has(item.familyLabel!)
+					!fresh && !preference.matches && !previousExpanded.has(item.familyId!)
 				const value = motionValue(entering ? 0 : 1)
 				const member: MemberMotion = {
 					item,

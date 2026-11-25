@@ -3,7 +3,8 @@ import { mountEcology } from "@atom.io/devtools/ecology"
 import { type Loadable, type RegularAtomToken, Silo } from "atom.io"
 
 const host = document.createElement(`section`)
-const inline = new URLSearchParams(location.search).has(`inline`)
+const fixture = new URLSearchParams(location.search)
+const inline = fixture.has(`inline`)
 if (inline) {
 	host.style.width = `900px`
 	host.style.height = `500px`
@@ -65,6 +66,15 @@ function mount(mode: `small` | `empty` | `large`): void {
 			{ source: itemAtom.key },
 		)
 		app.atomFamily<number, string>({ key: `zero`, default: 0 })
+		if (fixture.has(`operations`)) {
+			app.transaction({ key: `save price`, do: () => {} })
+			app.timeline({ key: `price history`, scope: [priceAtom] })
+			const historiesTimelines = app.timelineFamily<string>({
+				key: `histories`,
+				scope: [],
+			})
+			app.findTimeline(historiesTimelines, `draft`)
+		}
 		change = () => {
 			app.setState(priceAtom, 6)
 			app.getState(totalSelector)

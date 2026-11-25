@@ -1,4 +1,8 @@
-import type { EcologySnapshot } from "./ecology.ts"
+import {
+	ecologyOperationId,
+	ecologyOperationLabels,
+	type EcologySnapshot,
+} from "./ecology.ts"
 import {
 	addSearchDocument,
 	indexStateSearch,
@@ -14,7 +18,9 @@ export function* indexEcologySearch(
 	const capture: SearchCapture = {
 		documents: [],
 		capturedAt: Date.now(),
-		partial: Object.values(snapshot.truncated).some(Boolean),
+		partial:
+			Boolean(snapshot.operations?.truncated) ||
+			Object.values(snapshot.truncated).some(Boolean),
 		truncatedText: 0,
 		characters: 0,
 		snapshotWork: snapshot.work,
@@ -65,6 +71,30 @@ export function* indexEcologySearch(
 				key: node.key,
 				family: node.family?.key ?? null,
 				kind: node.kind,
+				detail,
+			},
+			fields,
+		)
+		if (capture.documents.length === 64) yield* flush()
+		yield
+	}
+	for (const operation of snapshot.operations?.records ?? []) {
+		const fields: RawField[] = [{ kind: `key`, text: operation.key }]
+		const family = operation.type === `timeline` ? operation.family : null
+		if (family)
+			fields.push(
+				{ kind: `key`, text: family.subKey },
+				{ kind: `family`, text: family.key },
+			)
+		const detail = ecologyOperationLabels[operation.type]
+		fields.push({ kind: `metadata`, text: detail })
+		addSearchDocument(
+			capture,
+			{
+				id: ecologyOperationId(operation),
+				key: operation.key,
+				family: family?.key ?? null,
+				kind: operation.type === `timeline_family` ? `family` : operation.type,
 				detail,
 			},
 			fields,

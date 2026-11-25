@@ -9,7 +9,7 @@ export interface SearchDocument {
 	id: string
 	key: string
 	family: string | null
-	kind: `atom` | `selector` | `family`
+	kind: `atom` | `selector` | `family` | `transaction` | `timeline`
 	label: string
 	detail: string
 	truncated: boolean

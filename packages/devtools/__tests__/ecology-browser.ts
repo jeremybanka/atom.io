@@ -592,7 +592,7 @@ try {
 						.trim(),
 					border: getComputedStyle(node.querySelector(`button`)!).borderTopColor,
 					iconFill: getComputedStyle(
-						node.querySelector(`ecology-primitive-icon rect`)!,
+						node.querySelector(`ecology-primitive-icon svg`)!,
 					).fill,
 				})),
 			)
@@ -617,13 +617,55 @@ try {
 					id: node.getAttribute(`data-row-id`),
 					border: getComputedStyle(node).borderLeftColor,
 					iconFill: getComputedStyle(
-						node.querySelector(`ecology-primitive-icon rect`)!,
+						node.querySelector(`ecology-primitive-icon svg`)!,
 					).fill,
 				})),
 			)
 		assert.ok(rows.length > 0)
 		for (const { id, iconFill, border } of rows)
 			assert.equal(iconFill, border, `Editor icon color: ${id}`)
+	}
+	const operations = await context.newPage()
+	try {
+		await operations.goto(
+			`http://127.0.0.1:${(server.address() as AddressInfo).port}/?inline&operations`,
+		)
+		for (const [id, kind, detail] of [
+			[`transaction:save price`, `transaction`, `Transaction`],
+			[`timeline:price history`, `timeline`, `Timeline · 0/0 steps`],
+			[
+				`timeline_family:histories`,
+				`timeline-family`,
+				`Timeline Family · 1 members`,
+			],
+		]) {
+			const card = operations.locator(
+				`ecology-node-card > button[data-graph-id="${id}"]`,
+			)
+			assert.equal(await card.locator(`small`).textContent(), detail)
+			assert.equal(
+				await card
+					.locator(`ecology-primitive-icon`)
+					.getAttribute(`data-primitive`),
+				kind,
+			)
+			const editorIcon = operations.locator(
+				`ecology-editor-row[data-row-id="${id}"] > ecology-primitive-icon`,
+			)
+			assert.equal(await editorIcon.getAttribute(`data-primitive`), kind)
+			assert.equal(
+				await card.evaluate(
+					(node) =>
+						getComputedStyle(node.querySelector(`ecology-primitive-icon svg`)!)
+							.fill,
+				),
+				await editorIcon.evaluate(
+					(node) => getComputedStyle(node.parentElement!).borderLeftColor,
+				),
+			)
+		}
+	} finally {
+		await operations.close()
 	}
 	assert.equal(await page.locator(`ecology-view nav[data-workspace]`).count(), 0)
 	assert.equal(

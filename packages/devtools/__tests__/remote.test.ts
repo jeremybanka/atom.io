@@ -210,6 +210,105 @@ it(`rejects an incompatible initial protocol version before exposing any values`
 	}
 })
 
+it(`ships initial and incremental Ecology operations over the remote protocol`, async () => {
+	const { silo, host, store, panel, mount } = fixture()
+	const countAtom = silo.atom<number>({ key: `count`, default: 0 })
+	silo.getState(countAtom)
+	const countTimeline = silo.timeline({ key: `count`, scope: [countAtom] })
+	silo.transaction({ key: `save`, do: () => {} })
+	const mounted = mount()
+	const stop = exposeDevtoolsStore(store.transport, silo, { access: `inspect` })
+	const card = (id: string) =>
+		host.querySelector(`ecology-node-card > button[data-graph-id='${id}']`)
+	try {
+		const [[initial]] = store.transport.send.mock.calls
+		expect(initial).toMatchObject({
+			type: `store`,
+			version: 1,
+			snapshot: {
+				ecology: {
+					operations: {
+						records: [
+							{ type: `transaction`, key: `save` },
+							{
+								type: `timeline`,
+								key: countTimeline.key,
+								at: 0,
+								historyLength: 0,
+							},
+						],
+					},
+				},
+			},
+		})
+		await vi.waitFor(() => {
+			host
+				.querySelector<HTMLButtonElement>(`[data-testid="view-ecology"]`)!
+				.click()
+		})
+		await vi.waitFor(() => {
+			expect(card(`transaction:save`)?.textContent).toContain(`Transaction`)
+			expect(card(`timeline:${countTimeline.key}`)?.textContent).toContain(
+				`0/0 steps`,
+			)
+		})
+
+		const draftTimelines = silo.timelineFamily<string>({
+			key: `draft`,
+			scope: [],
+		})
+		silo.transaction({ key: `publish`, do: () => {} })
+		silo.setState(countAtom, 1)
+		await vi.waitFor(() => {
+			expect(
+				card(`timeline_family:${draftTimelines.key}`)?.textContent,
+			).toContain(`0 members`)
+			expect(card(`transaction:publish`)).not.toBeNull()
+			expect(card(`timeline:${countTimeline.key}`)?.textContent).toContain(
+				`1/1 steps`,
+			)
+		})
+		const member = silo.findTimeline(draftTimelines, `first`)
+		await vi.waitFor(() => {
+			expect(
+				card(`timeline_family:${draftTimelines.key}`)?.textContent,
+			).toContain(`1 members`)
+		})
+		host
+			.querySelector<HTMLButtonElement>(
+				`[aria-label="Expand ${draftTimelines.key}"]`,
+			)!
+			.click()
+		await vi.waitFor(() => {
+			expect(card(`timeline:${member.key}`)?.textContent).toContain(`0/0 steps`)
+		})
+		silo.disposeTimeline(member)
+		await vi.waitFor(() => {
+			expect(
+				card(`timeline_family:${draftTimelines.key}`)?.textContent,
+			).toContain(`0 members`)
+			expect(card(`timeline:${member.key}`)).toBeNull()
+		})
+		const updates = store.transport.send.mock.calls.flatMap(([message]) =>
+			message.type === `store-update`
+				? [message.update.ecology?.operations]
+				: [],
+		)
+		expect(updates).toContainEqual(
+			expect.objectContaining({
+				remove: [`timeline:${member.key}`],
+				upsert: [
+					expect.objectContaining({ type: `timeline_family`, memberCount: 0 }),
+				],
+			}),
+		)
+		expect(panel.transport.send).not.toHaveBeenCalled()
+	} finally {
+		mounted.dispose()
+		stop()
+	}
+})
+
 it(`mirrors a store over a custom transport and enforces inspection mode at the owner`, async () => {
 	const { silo, host, panel, store, mount } = fixture(true)
 	const countAtom = silo.atom<number>({ key: `count`, default: 1 })

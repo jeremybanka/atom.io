@@ -146,26 +146,19 @@ export function createEcologyController(
 	const resize = new document.defaultView!.ResizeObserver(syncSearchMode)
 	resize.observe(panel)
 	syncSearchMode()
-	const familyKey = (item: GraphItem | undefined): string | undefined => {
-		const key =
-			item?.kind === `family`
-				? item.key
-				: item && `family` in item.source
-					? item.source.family?.key
-					: undefined
-		return key && model?.all.has(`family:${key}`) ? key : undefined
-	}
+	const familyId = (item: GraphItem | undefined): string | undefined =>
+		item?.kind === `family` ? item.id : item?.familyId
 	const visibleId = (id: string | null | undefined): string | undefined => {
 		if (!id) return undefined
-		const family = familyKey(model?.all.get(id))
-		return family && !context.expanded.has(family) ? `family:${family}` : id
+		const family = familyId(model?.all.get(id))
+		return family && !context.expanded.has(family) ? family : id
 	}
 	const passive = () => {
 		const selected = context.selected
 			? model?.all.get(context.selected)
 			: undefined
 		const selectedCard = visibleId(context.selected)
-		const family = familyKey(selected)
+		const family = familyId(selected)
 		update({
 			selected,
 			selectedCard,
@@ -188,9 +181,8 @@ export function createEcologyController(
 		context.selected = id
 
 		if (navigate) {
-			const item = model?.all.get(id)
-			if (item && `family` in item.source && item.source.family)
-				context.expanded.add(item.source.family.key)
+			const group = model?.all.get(id)?.familyId
+			if (group) context.expanded.add(group)
 			reveal = id
 		}
 		project()
@@ -222,7 +214,8 @@ export function createEcologyController(
 		const noticeText =
 			snapshot.truncated.nodes ||
 			snapshot.truncated.families ||
-			snapshot.truncated.relations
+			snapshot.truncated.relations ||
+			snapshot.operations?.truncated
 				? `Capture truncated: full store totals unknown. Search covers captured metadata only. Captured metadata is a bounded prefix.`
 				: `Observed snapshot ${context.capturedAt}. Paint cap: 500 nodes / 1,000 edges. Search to narrow; expand families for members.`
 		const rowIds = new Set(value.rows.map((item) => item.id))
@@ -276,13 +269,13 @@ export function createEcologyController(
 		})
 		passive()
 		commitPaint = () => {
-			const selectedFamily = familyKey(
+			const selectedFamily = familyId(
 				context.selected ? value.all.get(context.selected) : undefined,
 			)
 			const logicalFocusId = focusInList
 				? focusId
 				: focusId === context.selected ||
-					  (selectedFamily && focusId === `family:${selectedFamily}`)
+					  (selectedFamily && focusId === selectedFamily)
 					? visibleId(context.selected)
 					: visibleId(focusId)
 			if (reveal) {
@@ -418,6 +411,7 @@ export function createEcologyController(
 				maxNodes: 10_000,
 				maxFamilies: 10_000,
 				maxRelations: 50_000,
+				maxOperations: 10_000,
 			})
 		capturedNodes = new Map(
 			context.snapshot.nodes.map((node) => [node.key, node]),
@@ -518,7 +512,14 @@ export function createEcologyController(
 			}
 			for (const key of changes.states) markState(key, capturedNodes.get(key))
 			for (const key of changes.families) changedCards.add(`family:${key}`)
-			needsCapture ||= changes.states.size > 0 || changes.families.size > 0
+			needsCapture ||=
+				changes.states.size > 0 ||
+				changes.families.size > 0 ||
+				Boolean(changes.timelineFamilies?.size) ||
+				changes.timelines.size > 0 ||
+				[...changes.transactions.values()].some(
+					(change) => change.registeredAt !== undefined,
+				)
 			scheduleLive()
 		})
 	}
@@ -567,7 +568,7 @@ export function createEcologyController(
 			project()
 			return
 		}
-		const family = targetFamily ?? familyKey(selected)
+		const family = targetFamily ?? familyId(selected)
 		if (name === `expand` && family) {
 			if (context.expanded.has(family)) context.expanded.delete(family)
 			else context.expanded.add(family)
@@ -594,7 +595,7 @@ export function createEcologyController(
 		if (target.dataset[`resultId`]) {
 			if (!busy) select(target.dataset[`resultId`], true)
 		} else if (target.dataset[`graphId`]) select(target.dataset[`graphId`])
-		else action(target.dataset[`action`]!, target.dataset[`familyKey`])
+		else action(target.dataset[`action`]!, target.dataset[`familyId`])
 	}
 	const key = (event: KeyboardEvent) => {
 		if (!visible() || event.defaultPrevented || event.isComposing) return
@@ -666,7 +667,7 @@ export function createEcologyController(
 			!event.metaKey &&
 			!event.altKey &&
 			!event.shiftKey &&
-			familyKey(selected) &&
+			familyId(selected) &&
 			(id === context.selected ||
 				id === visibleId(context.selected) ||
 				target.matches(`ecology-scene`))

@@ -598,6 +598,9 @@ importers:
 
   packages/devtools:
     dependencies:
+      devalue:
+        specifier: 6.0.3
+        version: 6.0.3
       motion:
         specifier: 14.14.0
         version: 14.14.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)

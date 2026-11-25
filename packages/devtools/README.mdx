@@ -17,6 +17,8 @@ import MountEcology from "./exhibits/mount-ecology.ts" with { type: "code" };
 import RemoteDevelopment from "./exhibits/remote-development.ts" with {
   type: "code",
 };
+import StandaloneSilo from "./exhibits/standalone-silo.ts" with { type: "code" };
+import StandaloneHost from "./exhibits/standalone-host.ts" with { type: "code" };
 import WorkerMain from "./exhibits/worker/main.ts" with { type: "code" };
 import WorkerStore from "./exhibits/worker/worker.ts" with { type: "code" };
 import WorkerDemo from "./exhibits/worker/demo.sh" with { type: "code" };
@@ -56,6 +58,20 @@ Supply stores to the SPA or React component or to mountAtomIODevtools. Each targ
 A local target stays in-process. Gate the panel mount with your app's development setting if you want the local debugger available only during development.
 
 <WorkerMain />
+
+## Standalone viewer
+
+In a Node project with @atom.io/devtools installed, save an entry module that default-exports the Silo you want to inspect.
+
+<StandaloneSilo />
+
+Run pnpm exec atom-io-devtools ./devtools-entry.ts and open the printed URL. The viewer binds to 127.0.0.1 and uses an available local port by default. Pass --port to choose a port. Treat the full URL as private because it grants read access to the store.
+
+For a Node process that already owns a Silo, call serveDevtoolsStore from @atom.io/devtools/standalone. The viewer opens a separate loopback HTTP server, so a language server can keep using its existing standard streams. Call viewer.close() during shutdown.
+
+<StandaloneHost />
+
+The standalone viewer displays cached states, recorded transactions, and the Ecology graph in inspection mode. To deliberately allow inspection of a production Silo, pass productionAccess set to inspect to the Node API or --allow-production to the CLI. Choose a Silo whose values and history are appropriate to inspect locally.
 
 ## Web Worker stores
 

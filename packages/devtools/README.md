@@ -123,6 +123,45 @@ window.addEventListener(
 
 ```
 
+## Standalone viewer
+
+In a Node project with @atom.io/devtools installed, save an entry module that default-exports the Silo you want to inspect.
+
+```ts
+import { Silo } from "atom.io"
+
+const silo = new Silo({
+	name: `Example store`,
+	lifespan: `ephemeral`,
+	isProduction: false,
+})
+const counterAtom = silo.atom<number>({ key: `counter`, default: 0 })
+silo.setState(counterAtom, 1)
+
+export default silo
+
+```
+
+Run pnpm exec atom-io-devtools ./devtools-entry.ts and open the printed URL. The viewer binds to 127.0.0.1 and uses an available local port by default. Pass --port to choose a port. Treat the full URL as private because it grants read access to the store.
+
+For a Node process that already owns a Silo, call serveDevtoolsStore from @atom.io/devtools/standalone. The viewer opens a separate loopback HTTP server, so a language server can keep using its existing standard streams. Call viewer.close() during shutdown.
+
+```ts
+import { serveDevtoolsStore } from "@atom.io/devtools/standalone"
+import type { Silo } from "atom.io"
+
+export async function startDevelopmentInspector(silo: Silo) {
+	if (process.env[`NODE_ENV`] !== `development`) return
+
+	const viewer = await serveDevtoolsStore(silo)
+	console.error(`Devtools viewer`, viewer.url.href)
+	return viewer
+}
+
+```
+
+The standalone viewer displays cached states, recorded transactions, and the Ecology graph in inspection mode. To deliberately allow inspection of a production Silo, pass productionAccess set to inspect to the Node API or --allow-production to the CLI. Choose a Silo whose values and history are appropriate to inspect locally.
+
 ## Web Worker stores
 
 The worker entry adapts a dedicated MessagePort. The example enables control explicitly for an isolated demo Silo containing sample data. The worker executes edits, selector generation, family member disposal, and timeline undo and redo. Transactions retain up to 200 outcomes per transaction recorded since the connection opened. State values are transferred when structured-cloneable, and editable values must be JSON data. Full-store Ecology snapshots and updates include transaction, timeline, and timeline family metadata. The operation records are optional in protocol version 1 so either endpoint can still read frames from older versions.

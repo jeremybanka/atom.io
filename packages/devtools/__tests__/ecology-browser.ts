@@ -641,7 +641,7 @@ try {
 			`timeline_family:histories`,
 		]) {
 			const height = await editorRow(id).evaluate(
-				(row) => row.getBoundingClientRect().height,
+				(editorElement) => editorElement.getBoundingClientRect().height,
 			)
 			assert.equal(height, 23, `Collapsed editor row height for ${id}`)
 		}

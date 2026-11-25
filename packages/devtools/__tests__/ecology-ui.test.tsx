@@ -289,6 +289,50 @@ it(`searches and expands timeline families independently of state families with 
 	expect(run).not.toHaveBeenCalled()
 })
 
+it(`opens recorded transaction outcomes and timeline controls in the standalone editor`, async () => {
+	const f = setup()
+	const countAtom = f.silo.atom<number>({ key: `count`, default: 0 })
+	f.silo.getState(countAtom)
+	f.silo.timeline({ key: `count`, scope: [countAtom] })
+	const saveTransaction = f.silo.transaction({
+		key: `save`,
+		do: ({ set }, value: number) => {
+			set(countAtom, value)
+			return value
+		},
+	})
+	dispose = mountEcology(f.host, { store: f.silo.store }).dispose
+	await settle()
+	f.silo.runTransaction(saveTransaction)(4)
+	await settle()
+
+	const editor = f.host.querySelector(`ecology-editor`)!
+	expect(
+		editor.querySelector(`transaction-outcomes, timeline-history`),
+	).toBeNull()
+	await f.click(`Expand transaction save`)
+	const outcomes = editor.querySelector(`transaction-outcomes`)!
+	expect(outcomes.textContent).toContain(`params: [4]`)
+	expect(outcomes.textContent).toContain(`output: 4`)
+	await f.click(`Expand timeline count`)
+	expect(
+		editor.querySelector(`timeline-history [data-cursor]`)?.textContent,
+	).toBe(`you are here`)
+	await f.click(`undo`)
+	expect(f.silo.getState(countAtom)).toBe(0)
+	expect(
+		editor.querySelector(`timeline-history [data-cursor]`)?.nextElementSibling
+			?.localName,
+	).toBe(`event-view`)
+	await f.click(`redo`)
+	expect(f.silo.getState(countAtom)).toBe(4)
+	await f.click(`Collapse transaction save`)
+	await f.click(`Collapse timeline count`)
+	expect(
+		editor.querySelector(`transaction-outcomes, timeline-history`),
+	).toBeNull()
+})
+
 it(`updates and flashes cards from the root cache without evaluating dormant state`, async () => {
 	const f = setup()
 	const countAtom = f.silo.atom<number>({ key: `count`, default: () => 2 })

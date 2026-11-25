@@ -1,5 +1,5 @@
 import type { Accessor } from "@atom.io/spa"
-import { onCleanup, useGetter, useId, useSetter } from "@atom.io/spa"
+import { onCleanup, onMount, useGetter, useId, useSetter } from "@atom.io/spa"
 import type {
 	ReadableToken,
 	RegularAtomFamilyToken,
@@ -17,8 +17,9 @@ import {
 	setIntoStore,
 } from "atom.io/internal"
 import type { FamilyNode, IntrospectionStates } from "atom.io/introspection"
-import { attachIntrospectionStates } from "atom.io/introspection"
+import { attachIntrospectionStates, observeStore } from "atom.io/introspection"
 
+import { appendTransactionHistory } from "./history-event.ts"
 import type { RemotePanelConnection } from "./remote-connection.ts"
 
 const locals = new WeakMap<RootStore, RegularAtomFamilyToken<unknown, string>>()
@@ -29,19 +30,27 @@ export interface EditorTools {
 	expanded: RegularAtomToken<Record<string, boolean>>
 	error: RegularAtomToken<string>
 	worker?: RemotePanelConnection | undefined
+	history: OperationHistory
 	attempt(run: () => void): void
 }
 type StateToken = ReadableToken<unknown, any, any>
 export type StateTokenIndex = Map<string, StateToken | FamilyNode<StateToken>>
 export type TimelineView = Pick<Timeline<any>, `at` | `history`>
+export type TransactionHistory = readonly TransactionOutcomeEvent<
+	TransactionToken<any>
+>[]
+interface OperationHistory {
+	useTransaction(key: string): Accessor<TransactionHistory>
+	useTimeline(key: string): Accessor<TimelineView | undefined>
+}
 export interface StoreViews {
 	atomIndex: ReadableToken<StateTokenIndex>
 	selectorIndex: ReadableToken<StateTokenIndex>
 	transactionIndex: ReadableToken<TransactionToken<any>[]>
 	timelineIndex: ReadableToken<TimelineToken<any>[]>
-	transactionLog(
-		key: string,
-	): ReadableToken<readonly TransactionOutcomeEvent<TransactionToken<any>>[]>
+}
+export interface RemoteStoreViews extends StoreViews {
+	transactionLog(key: string): ReadableToken<TransactionHistory>
 	timelineLog(key: string): ReadableToken<TimelineView>
 }
 export type Tools = EditorTools & StoreViews
@@ -103,12 +112,65 @@ function getIntrospectionStates(store: RootStore): IntrospectionStates {
 	return states
 }
 function localViews(store: RootStore): StoreViews {
-	const states = getIntrospectionStates(store)
+	return getIntrospectionStates(store)
+}
+function useLocalOperationHistory(store: RootStore): OperationHistory {
+	const [readRevision, updateRevision] = useLocal(store, 0)
+	const transactions = new Map<string, TransactionHistory>()
+	const timelineViews = new Map<string, TimelineView>()
+	const empty: TransactionHistory = []
+	onMount(() => {
+		onCleanup(
+			observeStore(store, ({ transactions: changes, timelines }) => {
+				for (const [key, { registeredAt, outcomes }] of changes) {
+					if (registeredAt === undefined && !outcomes.length) continue
+					transactions.set(
+						key,
+						appendTransactionHistory(
+							transactions.get(key) ?? empty,
+							outcomes,
+							registeredAt,
+						),
+					)
+				}
+				for (const key of timelines) timelineViews.delete(key)
+				if (changes.size || timelines.size)
+					updateRevision((revision) => revision + 1)
+			}),
+		)
+	})
 	return {
-		...states,
-		transactionLog: (key) =>
-			findInStore(store, states.transactionLogSelectors, key),
-		timelineLog: (key) => findInStore(store, states.timelineSelectors, key),
+		useTransaction: (key) => () => {
+			readRevision()
+			return transactions.get(key) ?? empty
+		},
+		useTimeline: (key) => () => {
+			readRevision()
+			const cached = timelineViews.get(key)
+			if (cached) return cached
+			const timeline = store.timelines.get(key)
+			if (!timeline) return
+			const view = { at: timeline.at, history: timeline.history }
+			timelineViews.set(key, view)
+			return view
+		},
+	}
+}
+function remoteOperationHistory(
+	worker: RemotePanelConnection,
+	store: RootStore,
+): OperationHistory {
+	return {
+		useTransaction: (key) => useGetter(worker.views.transactionLog(key)),
+		useTimeline(key) {
+			const token = worker.views.timelineLog(key)
+			const read = useGetter(token)
+			const readIndex = useGetter(worker.views.timelineIndex)
+			return () => {
+				readIndex()
+				return store.atoms.has(token.key) ? read() : undefined
+			}
+		},
 	}
 }
 export function useTools(
@@ -145,6 +207,9 @@ export function useEditorTools(
 		store,
 		error,
 		worker,
+		history: worker
+			? remoteOperationHistory(worker, store)
+			: useLocalOperationHistory(store),
 		expanded: ownedAtom(store, expanded),
 		attempt(run) {
 			try {

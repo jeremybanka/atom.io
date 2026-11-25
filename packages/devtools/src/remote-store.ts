@@ -19,7 +19,7 @@ import {
 	peekStateDefinition,
 } from "atom.io/introspection"
 
-import type { RecordedEvent } from "./history-event.ts"
+import { appendTransactionHistory, type RecordedEvent } from "./history-event.ts"
 import { trackRemoteEcology } from "./remote-ecology.ts"
 import type {
 	PanelMessage,
@@ -384,12 +384,14 @@ export function exposeWholeStore(
 				for (const [key, { registeredAt, outcomes }] of changes.transactions) {
 					if (!visible(key)) continue
 					changedOperations ||= registeredAt !== undefined
-					const previous =
-						registeredAt === undefined ? (transactions.get(key) ?? []) : []
-					const history = previous
-						.concat(outcomes.slice(registeredAt))
-						.slice(-200)
-					transactions.set(key, history)
+					transactions.set(
+						key,
+						appendTransactionHistory(
+							transactions.get(key) ?? [],
+							outcomes,
+							registeredAt,
+						),
+					)
 					changedTransactions.add(key)
 				}
 				schedule()

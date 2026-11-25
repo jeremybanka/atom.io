@@ -23,7 +23,7 @@ import type {
 	RemoteStoreSnapshot,
 	RemoteStoreUpdate,
 } from "./remote-protocol.ts"
-import type { StateTokenIndex, StoreViews, TimelineView } from "./store.ts"
+import type { RemoteStoreViews, StateTokenIndex, TimelineView } from "./store.ts"
 
 type StateEntry = {
 	source: RemoteStateToken
@@ -34,7 +34,7 @@ type TransactionHistory = readonly TransactionOutcomeEvent<
 	TransactionToken<any>
 >[]
 interface RemoteProjection {
-	views: StoreViews
+	views: RemoteStoreViews
 	apply(snapshot: RemoteStoreSnapshot): void
 	update(update: RemoteStoreUpdate): void
 	updateStates(states: RemoteStoreUpdate[`states`]): void
@@ -45,6 +45,7 @@ interface RemoteProjection {
 	subscribeEcology(listener: () => void): () => void
 }
 const emptyProjectionValue = (): undefined => undefined
+const projectionKey = (key: string) => `🔍 Remote devtools ${key}`
 
 /** Keep the panel's reactive views independent of the local introspection attachments. */
 export function createRemoteProjection(silo: Silo): RemoteProjection {
@@ -61,7 +62,7 @@ export function createRemoteProjection(silo: Silo): RemoteProjection {
 	const owned = <T>(key: string, initial: T): RegularAtomToken<T> =>
 		createRegularAtom(
 			store,
-			{ key: `🔍 Remote devtools ` + key, default: () => initial },
+			{ key: projectionKey(key), default: () => initial },
 			undefined,
 		)
 	const atomIndex = owned<StateTokenIndex>(`atoms`, new Map())
@@ -246,7 +247,11 @@ export function createRemoteProjection(silo: Silo): RemoteProjection {
 			transactionIndex,
 			timelineIndex,
 			transactionLog: (key) => transactions.get(key)!,
-			timelineLog: (key) => timelines.get(key)!.view,
+			timelineLog: (key) =>
+				timelines.get(key)?.view ?? {
+					key: projectionKey(`timeline ` + key),
+					type: `atom`,
+				},
 		},
 		apply,
 		update,

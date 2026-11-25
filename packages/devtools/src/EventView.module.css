@@ -51,12 +51,6 @@ event-view.class {
 		color: var(--ink-muted);
 		background: var(--change-removed);
 	}
-	[data-cursor] {
-		background: var(--ink);
-		color: var(--bg-color);
-		text-align: center;
-		line-height: 21px;
-	}
 	&[data-search-selected="true"] > event-heading {
 		outline: 2px solid var(--accent);
 		outline-offset: -2px;

@@ -2,12 +2,12 @@
 import type { SpaElement } from "@atom.io/spa"
 import { useGetter } from "@atom.io/spa"
 import type { TimelineToken } from "atom.io"
-import { isReservedIntrospectionKey, timeTravel } from "atom.io/internal"
+import { isReservedIntrospectionKey } from "atom.io/internal"
 
-import { EventView } from "./EventView.tsx"
-import { historyIdentity } from "./history-event.ts"
 import { type Tools, useExpanded } from "./store.ts"
+import { TimelineHistory } from "./TimelineHistory.tsx"
 import css from "./TimelineIndex.module.css"
+import { TimelineTravel } from "./TimelineTravel.tsx"
 
 export function TimelineIndex(props: { tools: Tools }): SpaElement {
 	const getTimelineIndex = useGetter(props.tools.timelineIndex)
@@ -49,15 +49,7 @@ function TimelineLog(props: {
 	tools: Tools
 	token: TimelineToken<any>
 }): SpaElement {
-	const canOperate = props.tools.worker?.canControl() !== false
-	const travel = (action: `undo` | `redo`) => {
-		props.tools.attempt(() => {
-			if (props.tools.worker)
-				props.tools.worker.timeline(props.token.key, action)
-			else timeTravel(props.tools.store, action, props.token)
-		})
-	}
-	const getTimeline = useGetter(props.tools.timelineLog(props.token.key))
+	const getTimeline = props.tools.history.useTimeline(props.token.key)
 	const [getOpen, toggle] = useExpanded(props.tools, [props.token.key])
 	return (
 		<timeline-log data-testid={`timeline-${props.token.key}`}>
@@ -72,48 +64,16 @@ function TimelineLog(props: {
 				</button>
 				<h2>{props.token.family?.subKey ?? props.token.key}</h2>
 				<small>
-					({getTimeline().at}/{getTimeline().history.length})
+					({getTimeline()?.at ?? 0}/{getTimeline()?.history.length ?? 0})
 				</small>
-				<button
-					type="button"
-					disabled={!canOperate || getTimeline().at === 0}
-					onClick={() => {
-						travel(`undo`)
-					}}
-				>
-					undo
-				</button>
-				<button
-					type="button"
-					disabled={
-						!canOperate || getTimeline().at === getTimeline().history.length
-					}
-					onClick={() => {
-						travel(`redo`)
-					}}
-				>
-					redo
-				</button>
+				<TimelineTravel
+					tools={props.tools}
+					timelineKey={props.token.key}
+					timeline={getTimeline()}
+				/>
 			</node-heading>
-			{getOpen() ? (
-				<section>
-					{getTimeline().history.map((event, index) => (
-						<section key={index}>
-							{index === getTimeline().at ? (
-								<p data-cursor>you are here</p>
-							) : null}
-							<EventView
-								key={historyIdentity(event)}
-								tools={props.tools}
-								event={event}
-								index={index}
-							/>
-						</section>
-					))}
-					{getTimeline().at === getTimeline().history.length ? (
-						<p data-cursor>you are here</p>
-					) : null}
-				</section>
+			{getOpen() && getTimeline() ? (
+				<TimelineHistory tools={props.tools} timeline={getTimeline()!} />
 			) : null}
 		</timeline-log>
 	)

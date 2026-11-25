@@ -333,6 +333,8 @@ The ecology tab captures the store on entry and updates as state and observed de
 
 Transactions, timelines, and timeline families appear on a third helix. They have color-matched icons and can be searched by name or primitive type in local and remote Ecology. Timelines show their current cursor and retained step count. Timeline families include empty definitions and expand to show instantiated members.
 
+Expand a transaction or timeline in the Ecology editor to inspect the same outcomes and events shown in the Transactions and Timelines tabs. Transaction history retains up to 200 outcomes per transaction from when the local debugger or standalone explorer mounts, or from when a remote connection opens. Timeline histories show the current cursor and offer undo and redo. Remote inspection mode disables those controls.
+
 Dashed lines link transactions to atoms they changed in committed runs, including writes from nested transactions. Dotted lines link timelines and timeline families to their registered scopes. Solid arrows show selector dependencies. Selecting either end of a dashed or dotted line highlights the relationship and puts the other end in the related nodes section.
 
 A digest of each family or singleton key supplies its border and outgoing arrows with a stable color, exposed through the card’s --ecology-color CSS variable and inherited by its SVG arrows. Members inherit their family’s color. Atom hues range from warm yellow to red (50° to 0°), selectors from cyan through blue to indigo (182° to 252°), transactions from turquoise through green to lime (169° to 68°), and timelines from magenta to violet (315° to 265°). Saturation is 75%, with lightness balanced for both themes. Dashed cards identify families, including empty definitions. Clustered members have small, stable offsets around their family’s center, with individual cards hidden. Separate curved arrows form connection bands with a darker core and lighter fringe. Expansion spreads members along the cylinder’s tangent, joined by a faint, arrowless line in the family’s color. Member cards show their subkey under a smaller colored family key, while retaining cached previews and full keys in accessible names and tooltips. Expanding and collapsing a family springs its member cards between their cluster and tangent positions while fading them in or out; arrows follow the moving endpoints. Reversing a transition keeps the same cards and spring progress. Exiting cards are inert. Reduced-motion preferences skip the movement and fading.
@@ -404,7 +406,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                        | Entry                         | Minified JS |   Gzip JS |
 | ----------------------------- | ----------------------------- | ----------: | --------: |
-| Interactive app with debugger | `tonnage-recipes/debugger.ts` | 1,015,001 B | 302,359 B |
+| Interactive app with debugger | `tonnage-recipes/debugger.ts` | 1,017,589 B | 303,033 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

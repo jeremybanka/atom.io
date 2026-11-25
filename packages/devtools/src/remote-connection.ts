@@ -12,14 +12,14 @@ import type {
 	RemoteState,
 } from "./remote-protocol.ts"
 import { REMOTE_PROTOCOL_VERSION } from "./remote-protocol.ts"
-import type { StoreViews } from "./store.ts"
+import type { RemoteStoreViews } from "./store.ts"
 import {
 	closeDevtoolsTransport,
 	type DevtoolsPanelTransport,
 } from "./transport.ts"
 
 export interface RemotePanelConnection {
-	views: StoreViews
+	views: RemoteStoreViews
 	canGenerate(): boolean
 	error: RegularAtomToken<string>
 	ready: RegularAtomToken<boolean>

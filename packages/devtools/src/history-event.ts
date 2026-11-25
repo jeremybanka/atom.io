@@ -3,6 +3,16 @@ import type { AtomToken, TimelineEvent, TransactionSubEvent } from "atom.io"
 export type RecordedEvent =
 	| TransactionSubEvent
 	| TimelineEvent<AtomToken<unknown>>
+
+export function appendTransactionHistory<Event>(
+	previous: readonly Event[],
+	outcomes: readonly Event[],
+	registeredAt: number | undefined,
+): Event[] {
+	return (registeredAt === undefined ? previous : [])
+		.concat(outcomes.slice(registeredAt))
+		.slice(-200)
+}
 const identities = new WeakMap<object, string>()
 let identity = 0
 /** Identity survives appends and cannot accidentally select an event after history is culled. */

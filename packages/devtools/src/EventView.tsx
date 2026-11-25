@@ -9,10 +9,10 @@ import {
 	historyValue,
 	type RecordedEvent,
 } from "./history-event.ts"
-import { type Tools, useExpanded } from "./store.ts"
+import { type EditorTools, useExpanded } from "./store.ts"
 
 export function EventView(props: {
-	tools: Tools
+	tools: EditorTools
 	event: RecordedEvent
 	index: number
 	depth?: number

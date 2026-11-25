@@ -3,11 +3,11 @@ import { onCleanup, type SpaElement } from "@atom.io/spa"
 import { deposit } from "atom.io/internal"
 import { peekStateDefinition } from "atom.io/introspection"
 
-import { ecologyOperationLabels, ecologyTimelinePosition } from "./ecology.ts"
 import type { GraphItem } from "./ecology-graph.ts"
 import { EDITOR_SPRING } from "./ecology-motion.ts"
 import css from "./EcologyEditorRow.module.css"
 import { EcologyNodeName } from "./EcologyNodeName.tsx"
+import { EcologyOperationHistory } from "./EcologyOperationHistory.tsx"
 import { EcologyPrimitiveIcon } from "./EcologyPrimitiveIcon.tsx"
 import type { EcologyPresentation } from "./EcologyView.tsx"
 import { EditorIcon } from "./EditorIcon.tsx"
@@ -45,12 +45,9 @@ export function EcologyEditorRow(props: {
 	}
 	const family = () =>
 		`memberKeys` in props.item.source ? props.item.source : undefined
-	const operationDetail = () => {
+	const operation = () => {
 		const source = props.item.source
-		if (`kind` in source || `memberKeys` in source) return undefined
-		return source.type === `transaction`
-			? ecologyOperationLabels.transaction
-			: ecologyTimelinePosition(source)
+		return `kind` in source || `memberKeys` in source ? undefined : source
 	}
 	const expanded = () => props.state.expanded.has(props.item.id)
 	const label = () => (
@@ -75,7 +72,7 @@ export function EcologyEditorRow(props: {
 		>
 			<EcologyPrimitiveIcon
 				source={props.item.source}
-				placement={family() ? `heading` : `row`}
+				placement={family() || operation() ? `heading` : `row`}
 			/>
 			{family() ? (
 				<node-heading>
@@ -91,11 +88,12 @@ export function EcologyEditorRow(props: {
 					{label()}
 					<small>{`${family()!.memberCount}${family()!.countComplete ? `` : `+`} members`}</small>
 				</node-heading>
-			) : operationDetail() ? (
-				<node-heading>
-					{label()}
-					<small>{operationDetail()}</small>
-				</node-heading>
+			) : operation() ? (
+				<EcologyOperationHistory
+					tools={props.tools}
+					operation={operation()!}
+					label={label()}
+				/>
 			) : definition() ? (
 				<StateLeaf
 					key={identity()}

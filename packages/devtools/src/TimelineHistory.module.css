@@ -1,0 +1,9 @@
+timeline-history.class {
+	display: block;
+	[data-cursor] {
+		background: var(--ink);
+		color: var(--bg-color);
+		text-align: center;
+		line-height: 21px;
+	}
+}

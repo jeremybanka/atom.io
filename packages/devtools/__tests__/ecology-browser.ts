@@ -693,6 +693,30 @@ try {
 			),
 			`none`,
 		)
+		await operations
+			.getByRole(`button`, { name: `Expand transaction save` })
+			.click()
+		assert.equal(
+			await operations
+				.locator(`ecology-editor transaction-outcomes`)
+				.textContent(),
+			`No recorded outcomes`,
+		)
+		await operations
+			.getByRole(`button`, { name: `Expand timeline price history` })
+			.click()
+		assert.equal(
+			await operations
+				.locator(`ecology-editor timeline-history [data-cursor]`)
+				.textContent(),
+			`you are here`,
+		)
+		assert.equal(
+			await operations
+				.locator(`ecology-editor timeline-travel button:disabled`)
+				.count(),
+			2,
+		)
 	} finally {
 		await operations.close()
 	}

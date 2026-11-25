@@ -1,0 +1,9 @@
+transaction-outcomes.class {
+	display: block;
+	margin-left: 12px;
+	border-left: 1px solid var(--ink-muted);
+	> p {
+		padding: 3px 6px;
+		color: var(--ink-muted);
+	}
+}

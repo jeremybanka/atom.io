@@ -274,6 +274,21 @@ it(`ships initial and incremental Ecology operations over the remote protocol`, 
 				`1/1 steps`,
 			)
 		})
+		for (const label of [`Expand transaction save`, `Expand timeline count`])
+			host.querySelector<HTMLButtonElement>(`[aria-label="${label}"]`)!.click()
+		await vi.waitFor(() => {
+			expect(
+				host.querySelector(`ecology-editor transaction-outcomes event-view`)
+					?.textContent,
+			).toContain(`save`)
+			expect(
+				host.querySelector(`ecology-editor timeline-history [data-cursor]`)
+					?.textContent,
+			).toBe(`you are here`)
+			expect(
+				host.querySelectorAll(`ecology-editor timeline-travel button:disabled`),
+			).toHaveLength(2)
+		})
 		const member = silo.findTimeline(draftTimelines, `first`)
 		await vi.waitFor(() => {
 			expect(
@@ -288,12 +303,22 @@ it(`ships initial and incremental Ecology operations over the remote protocol`, 
 		await vi.waitFor(() => {
 			expect(card(`timeline:${member.key}`)?.textContent).toContain(`0/0 steps`)
 		})
+		const memberRow = host.querySelector(
+			`[data-row-id='timeline:${member.key}']`,
+		)!
+		memberRow
+			.querySelector<HTMLButtonElement>(`button[aria-expanded="false"]`)!
+			.click()
+		await vi.waitFor(() => {
+			expect(memberRow.querySelector(`timeline-history`)).not.toBeNull()
+		})
 		silo.disposeTimeline(member)
 		await vi.waitFor(() => {
 			expect(
 				card(`timeline_family:${draftTimelines.key}`)?.textContent,
 			).toContain(`0 members`)
 			expect(card(`timeline:${member.key}`)).toBeNull()
+			expect(memberRow.isConnected).toBe(false)
 		})
 		const updates = store.transport.send.mock.calls.flatMap(([message]) =>
 			message.type === `store-update`

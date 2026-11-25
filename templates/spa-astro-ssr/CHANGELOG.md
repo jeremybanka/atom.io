@@ -1,5 +1,14 @@
 # @atom.io/template-spa-astro-ssr
 
+## 0.0.17
+
+### Patch Changes
+
+- Updated dependencies [0d76b55]
+  - atom.io@0.54.14
+  - resumability@0.0.3
+  - @atom.io/spa@0.0.12
+
 ## 0.0.16
 
 ### Patch Changes

@@ -51,7 +51,11 @@ export function EcologyEditorRow(props: {
 	}
 	const expanded = () => props.state.expanded.has(props.item.id)
 	const label = () => (
-		<EcologyNodeName item={props.item} selected={props.section === `selected`} />
+		<EcologyNodeName
+			item={props.item}
+			selected={props.section === `selected`}
+			expanded={operation() ? expanded() : undefined}
+		/>
 	)
 	return (
 		<ecology-editor-row
@@ -92,6 +96,8 @@ export function EcologyEditorRow(props: {
 				<EcologyOperationHistory
 					tools={props.tools}
 					operation={operation()!}
+					id={props.item.id}
+					expanded={expanded()}
 					label={label()}
 				/>
 			) : definition() ? (

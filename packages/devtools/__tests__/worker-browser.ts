@@ -125,6 +125,7 @@ if (process.argv.includes(`--serve`)) {
 		await search.locator(`[data-result-id="timeline:count"]`).waitFor()
 		await search.getByRole(`searchbox`).fill(`increment`)
 		await search.locator(`[data-result-id="transaction:increment"]`).waitFor()
+		await search.getByRole(`searchbox`).fill(``)
 		await search.getByRole(`button`, { name: `Close search` }).click()
 		await atoms.click()
 		await expectValue(`count`, `2`)
@@ -229,6 +230,41 @@ if (process.argv.includes(`--serve`)) {
 				)
 				.waitFor({ state: `attached` })
 		}
+		const scene = ecology.locator(`ecology-scene`)
+		const operationCard = (id: string) =>
+			scene.locator(`button[data-graph-id="${id}"]`)
+		const transactionCard = operationCard(`transaction:increment`)
+		await transactionCard.press(`Enter`)
+		await scene.locator(`[data-history="outcome"]`).first().waitFor()
+		await ecology.locator(`transaction-outcomes event-view`).first().waitFor()
+
+		const timelineCard = operationCard(`timeline:count`)
+		await timelineCard.press(`Enter`)
+		await scene.locator(`[data-history="past"]`).first().waitFor()
+		await ecology
+			.locator(`ecology-scene[data-history-connections="2"]`)
+			.waitFor()
+		const travel = ecology.locator(`node-heading > timeline-travel`)
+		const undo = travel.getByRole(`button`, { name: `undo` })
+		await undo.locator(`[data-editor-icon="undo"]`).waitFor()
+		await undo.click()
+		await expectWorker(18, 36)
+		const futureEvent = scene.locator(`[data-history="future"]`).first()
+		await futureEvent.waitFor()
+		const position = (node: Element) =>
+			Number(node.getAttribute(`data-position`)!.split(`,`)[1])
+		assert.ok(
+			(await futureEvent.evaluate(position)) <
+				(await timelineCard.locator(`..`).evaluate(position)),
+		)
+		await travel.getByRole(`button`, { name: `redo` }).click()
+		await expectWorker(25, 50)
+		await futureEvent.waitFor({ state: `detached` })
+		await timelineCard.press(`Enter`)
+		await transactionCard.press(`Enter`)
+		await ecology
+			.locator(`ecology-scene[data-history-connections="0"]`)
+			.waitFor()
 		assert.deepEqual(errors, [])
 		const screenshot = process.env[`SPA_DEVTOOLS_WORKER_SCREENSHOT`]
 		await picker.click()

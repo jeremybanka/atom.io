@@ -308,6 +308,7 @@ it(`opens recorded transaction outcomes and timeline controls in the standalone 
 		`No recorded outcomes`,
 	)
 	await f.click(`Collapse transaction save`)
+	f.silo.runTransaction(saveTransaction)(2)
 	f.silo.runTransaction(saveTransaction)(4)
 	await settle()
 
@@ -315,31 +316,92 @@ it(`opens recorded transaction outcomes and timeline controls in the standalone 
 	expect(
 		editor.querySelector(`transaction-outcomes, timeline-history`),
 	).toBeNull()
-	await f.click(`Expand transaction save`)
+	await f.select(`transaction:save`, `Enter`)
 	const outcomes = editor.querySelector(`transaction-outcomes`)!
 	expect(outcomes.textContent).toContain(`params: [4]`)
 	expect(outcomes.textContent).toContain(`output: 4`)
-	await f.click(`Expand timeline count`)
+	const scene = f.host.querySelector(`ecology-scene`)!
+	const axis = (control: Element) =>
+		control
+			.closest(`ecology-node-card`)!
+			.getAttribute(`data-position`)!
+			.split(`,`)
+			.map(Number)
+	const node = (id: string) =>
+		scene.querySelector(`button[data-graph-id="${id}"]`)!
+	const outcomeCards = [
+		...scene.querySelectorAll<HTMLButtonElement>(
+			`[data-history="outcome"] > button`,
+		),
+	]
+	const [transactionX, transactionY, transactionZ] = axis(
+		node(`transaction:save`),
+	)
+	expect(
+		outcomeCards.map((card) => card.querySelector(`strong`)?.textContent),
+	).toEqual([`Outcome 1`, `Outcome 2`])
+	expect(axis(outcomeCards[0])).toEqual([
+		transactionX,
+		expect.any(Number),
+		transactionZ,
+	])
+	expect(transactionY).toBeGreaterThan(axis(outcomeCards[0])[1])
+	expect(axis(outcomeCards[0])[1]).toBeGreaterThan(axis(outcomeCards[1])[1])
+	outcomeCards[0].focus()
+	await f.select(outcomeCards[0].getAttribute(`data-graph-id`)!)
+	expect(document.activeElement?.closest(`transaction-outcomes`)).not.toBeNull()
+	await f.select(`timeline:count`, `Enter`)
+	const heading = editor.querySelector(
+		`ecology-operation-history > node-heading:has(timeline-travel)`,
+	)!
+	expect(heading.lastElementChild?.localName).toBe(`timeline-travel`)
 	const disabledRedo = editor.querySelector<HTMLButtonElement>(
 		`timeline-travel button:disabled`,
 	)!
-	expect(disabledRedo.textContent).toBe(`redo`)
+	expect(disabledRedo.getAttribute(`aria-label`)).toBe(`redo`)
+	expect(disabledRedo.querySelector(`[data-editor-icon="redo"]`)).not.toBeNull()
+	expect(outcomes.querySelector(`[data-editor-icon="arrow"]`)).not.toBeNull()
+	expect(
+		outcomes.querySelector(`event-heading button [data-editor-icon="collapse"]`),
+	).not.toBeNull()
+	expect(scene.getAttribute(`data-history-connections`)).toBe(`2`)
 	expect(
 		editor.querySelector(`timeline-history [data-cursor]`)?.textContent,
 	).toBe(`you are here`)
 	await f.click(`undo`)
-	expect(f.silo.getState(countAtom)).toBe(0)
+	expect(f.silo.getState(countAtom)).toBe(2)
+	const past = scene.querySelector(`[data-history="past"] > button`)!
+	const future = scene.querySelector(`[data-history="future"] > button`)!
+	const [timelineX, timelineY, timelineZ] = axis(node(`timeline:count`))
+	expect(axis(past)).toEqual([timelineX, expect.any(Number), timelineZ])
+	expect(axis(future)).toEqual([timelineX, expect.any(Number), timelineZ])
+	expect(axis(past)[1]).toBeGreaterThan(timelineY)
+	expect(axis(future)[1]).toBeLessThan(timelineY)
+	const futureId = future.getAttribute(`data-history-event`)
+	await f.select(future.getAttribute(`data-graph-id`)!, `Enter`)
+	expect(
+		document.activeElement
+			?.closest(`[data-history-event]`)
+			?.getAttribute(`data-history-event`),
+	).toBe(futureId)
 	expect(
 		editor.querySelector(`timeline-history [data-cursor]`)?.nextElementSibling
 			?.localName,
 	).toBe(`event-view`)
 	await f.click(`redo`)
 	expect(f.silo.getState(countAtom)).toBe(4)
-	await f.click(`Collapse transaction save`)
-	await f.click(`Collapse timeline count`)
+	outcomeCards[0].focus()
+	await f.select(`transaction:save`, `Enter`)
+	expect(document.activeElement).toBe(node(`transaction:save`))
+	await f.select(`timeline:count`, `Enter`)
+	node(`timeline:count`).dispatchEvent(
+		new KeyboardEvent(`keydown`, { key: `Enter`, bubbles: true, repeat: true }),
+	)
+	await settle()
 	expect(
 		editor.querySelector(`transaction-outcomes, timeline-history`),
 	).toBeNull()
+	expect(scene.getAttribute(`data-history-connections`)).toBe(`0`)
 })
 
 it(`updates and flashes cards from the root cache without evaluating dormant state`, async () => {

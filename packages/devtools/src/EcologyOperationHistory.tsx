@@ -4,7 +4,7 @@ import type { SpaElement } from "@atom.io/spa"
 import { type EcologyOperation, ecologyTimelinePosition } from "./ecology.ts"
 import css from "./EcologyOperationHistory.module.css"
 import { EditorIcon } from "./EditorIcon.tsx"
-import { type EditorTools, useExpanded } from "./store.ts"
+import type { EditorTools } from "./store.ts"
 import { TimelineHistory } from "./TimelineHistory.tsx"
 import { TimelineTravel } from "./TimelineTravel.tsx"
 import { TransactionOutcomes } from "./TransactionOutcomes.tsx"
@@ -12,14 +12,11 @@ import { TransactionOutcomes } from "./TransactionOutcomes.tsx"
 export function EcologyOperationHistory(props: {
 	tools: EditorTools
 	operation: Exclude<EcologyOperation, { type: `timeline_family` }>
+	id: string
+	expanded: boolean
 	label: SpaElement
 }): SpaElement {
 	const { key, type } = props.operation
-	const [expanded, toggle] = useExpanded(props.tools, [
-		`ecology-history`,
-		type,
-		key,
-	])
 	const transactions =
 		type === `transaction` ? props.tools.history.useTransaction(key) : undefined
 	const timeline =
@@ -35,30 +32,30 @@ export function EcologyOperationHistory(props: {
 			<node-heading>
 				<button
 					type="button"
-					aria-label={`${expanded() ? `Collapse` : `Expand`} ${type} ${key}`}
-					aria-expanded={expanded()}
-					onClick={toggle}
+					data-action="expand"
+					data-family-id={props.id}
+					aria-label={`${props.expanded ? `Collapse` : `Expand`} ${type} ${key}`}
+					aria-expanded={props.expanded}
 				>
-					<EditorIcon name={expanded() ? `collapse` : `expand`} />
+					<EditorIcon name={props.expanded ? `collapse` : `expand`} />
 				</button>
 				{props.label}
 				<small>{summary()}</small>
+				{props.expanded && timeline?.() && (
+					<TimelineTravel
+						tools={props.tools}
+						timelineKey={key}
+						timeline={timeline()}
+						icons
+					/>
+				)}
 			</node-heading>
-			{expanded() &&
+			{props.expanded &&
 				(transactions ? (
 					<TransactionOutcomes tools={props.tools} history={transactions()} />
 				) : (
 					timeline?.() && (
-						<>
-							<node-heading>
-								<TimelineTravel
-									tools={props.tools}
-									timelineKey={key}
-									timeline={timeline()}
-								/>
-							</node-heading>
-							<TimelineHistory tools={props.tools} timeline={timeline()!} />
-						</>
+						<TimelineHistory tools={props.tools} timeline={timeline()!} />
 					)
 				))}
 		</ecology-operation-history>

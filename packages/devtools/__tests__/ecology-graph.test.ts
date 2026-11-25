@@ -3,6 +3,7 @@ import { afterEach, expect, it, vi } from "vitest"
 import type { EcologyNode, EcologySnapshot } from "../src/ecology.ts"
 import {
 	createGraphContext,
+	type GraphHistory,
 	projectEcology,
 	scheduleGraph,
 } from "../src/ecology-graph.ts"
@@ -524,6 +525,117 @@ it(`caps paint at500 nodes/1000 edges while reporting exact captured totals and 
 	expect(
 		drain(projectEcology(snapshot(nodes, edges), context, new Set())).rows,
 	).toEqual([])
+})
+
+it(`shares the paint cap with live history and keeps both sides of the timeline cursor`, () => {
+	const data: EcologySnapshot = {
+		...snapshot([node(`a`)]),
+		operations: {
+			records: [
+				{
+					type: `timeline`,
+					key: `a`,
+					family: null,
+					at: 300,
+					historyLength: 600,
+					targets: [{ kind: `state`, key: `a` }],
+				},
+				{ type: `transaction`, key: `save` },
+			],
+			work: 2,
+			truncated: false,
+		},
+	}
+	const events = Array.from({ length: 600 }, (_, index) => ({
+		type: `molecule_creation` as const,
+		key: index,
+		provenance: `root`,
+		timestamp: index,
+	}))
+	const histories = new Map<string, GraphHistory>([
+		[`timeline:a`, { events, at: 300 }],
+		[`transaction:save`, { events }],
+	])
+	const context = createGraphContext()
+	context.selected = `timeline:a`
+	context.expanded.add(`transaction:save`)
+	context.expanded.add(`timeline:a`)
+	const matches = new Set([`timeline:a`, `transaction:save`])
+	const model = drain(
+		projectEcology(data, context, matches, undefined, histories),
+	)
+	expect(model.items).toHaveLength(500)
+	expect(model.edges).toMatchObject([{ from: `timeline:a`, to: `state:a` }])
+	expect(
+		model.items.filter((item) => item.history?.direction === `past`),
+	).toHaveLength(249)
+	expect(
+		model.items.filter((item) => item.history?.direction === `future`),
+	).toHaveLength(248)
+	expect(model.historyConnections).toMatchObject([
+		{
+			family: `timeline:a`,
+			from: { label: `molecule creation`, history: { direction: `future` } },
+			to: { history: { direction: `past` } },
+		},
+	])
+	context.expanded.delete(`timeline:a`)
+	const outcomes = drain(
+		projectEcology(data, context, matches, model, histories),
+	)
+	expect(outcomes.items).toHaveLength(500)
+	expect(outcomes.items[3].label).toBe(`Outcome 104`)
+	expect(outcomes.items.at(-1)?.label).toBe(`Outcome 600`)
+	expect(outcomes.historyConnections).toMatchObject([
+		{
+			family: `transaction:save`,
+			from: { label: `Outcome 600` },
+			to: { id: `transaction:save` },
+		},
+	])
+	context.expanded.add(`timeline:a`)
+	const atStart = drain(
+		projectEcology(
+			data,
+			context,
+			matches,
+			outcomes,
+			new Map([
+				[`timeline:a`, { events: events.slice(0, 2), at: 0 }],
+				[`transaction:save`, { events: [] }],
+			]),
+		),
+	)
+	expect(atStart.items.filter((item) => item.history)).toHaveLength(2)
+	expect(atStart.historyConnections).toMatchObject([
+		{
+			family: `timeline:a`,
+			from: { history: { direction: `future` } },
+			to: { id: `timeline:a` },
+		},
+	])
+})
+
+it(`preserves the selected anchor when expanded operations fill the paint cap`, () => {
+	const records = Array.from({ length: 501 }, (_, index) => ({
+		type: `transaction` as const,
+		key: String(index),
+	}))
+	const context = createGraphContext()
+	context.selected = `transaction:500`
+	for (const record of records) context.expanded.add(`transaction:${record.key}`)
+	const model = drain(
+		projectEcology(
+			{
+				...snapshot(),
+				operations: { records, work: records.length, truncated: false },
+			},
+			context,
+		),
+	)
+	expect(model.items).toHaveLength(500)
+	expect(model.items.at(-1)?.id).toBe(context.selected)
+	expect(model.historyConnections).toEqual([])
 })
 
 it(`never invents a missing family group, handles lower-bound counts and terminates on cycles`, () => {

@@ -3,10 +3,16 @@ ecology-operation-history.class {
 	min-width: 0;
 	> node-heading {
 		display: grid;
-		grid-template-columns: auto minmax(0, 1fr) auto;
+		grid-template-columns: auto minmax(0, 1fr) auto auto;
 		align-items: center;
 		min-height: 26px;
 		background: var(--surface-inactive);
+	}
+	> node-heading > button {
+		display: grid;
+		place-items: center;
+		width: 24px;
+		height: 24px;
 	}
 	> node-heading > small {
 		padding: 0 4px;

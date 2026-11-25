@@ -8,10 +8,11 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js"
 // eslint-disable-next-line import/extensions -- Three addon exports require the .js suffix.
 import { CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js"
 
-import type {
-	FamilyConnection,
-	GraphContext,
-	GraphItem,
+import {
+	type FamilyConnection,
+	type GraphContext,
+	type GraphItem,
+	isHistoryOwner,
 } from "./ecology-graph.ts"
 import {
 	createEdgeProjector,
@@ -48,6 +49,8 @@ export function EcologyScene(props: {
 	activity?: ReadonlyMap<string, EcologyActivity>
 	edges: EcologyLine[]
 	familyConnections?: readonly FamilyConnection[] | undefined
+	historyConnections?: readonly FamilyConnection[] | undefined
+	expanded?: ReadonlySet<string> | undefined
 	selected?: string | undefined
 	selectedFamily?: string | undefined
 	selectedIds?: ReadonlySet<string> | undefined
@@ -88,7 +91,7 @@ export function EcologyScene(props: {
 		const family = props.selectedFamily
 		return (
 			focused !== undefined &&
-			!focused.has(item.id) &&
+			!focused.has(item.history ? item.familyId! : item.id) &&
 			(family === undefined || item.familyId !== family)
 		)
 	}
@@ -96,7 +99,7 @@ export function EcologyScene(props: {
 		props.selected === item.id || (props.selectedIds?.has(item.id) ?? false)
 	const collapsed = (item: GraphItem) => {
 		const matches = props.matches
-		return matches !== undefined && !matches.has(item.id)
+		return !item.history && matches !== undefined && !matches.has(item.id)
 	}
 	const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100_000)
 	const edgeLayers = new Set<
@@ -252,6 +255,7 @@ export function EcologyScene(props: {
 			},
 		)
 		bindScene(() => props.familyConnections, invalidate)
+		bindScene(() => props.historyConnections, invalidate)
 		bindScene(() => props.items, invalidate)
 		bindScene(() => props.matches, invalidate)
 		bindScene(() => [props.selected, props.selectedFamily], invalidate)
@@ -271,7 +275,10 @@ export function EcologyScene(props: {
 	})
 	const drawFamilySpines = (moving: boolean) => {
 		const family = props.selectedFamily
-		const connections = props.familyConnections ?? []
+		const connections = [
+			...(props.familyConnections ?? []),
+			...(props.historyConnections ?? []),
+		]
 		const positioned = moving
 			? connections.map((connection) => ({
 					...connection,
@@ -280,20 +287,14 @@ export function EcologyScene(props: {
 				}))
 			: connections
 		familySpine.material.opacity = props.selected ? 0.28 : FAMILY_SPINE_OPACITY
+		const emphasized = (link: FamilyConnection) =>
+			link.family === family || link.family === props.selected
 		writeFamilySpine(
 			familySpine,
-			family === undefined
-				? positioned
-				: positioned.filter((link) => link.family !== family),
+			positioned.filter((link) => !emphasized(link)),
 			scale,
 		)
-		writeFamilySpine(
-			selectedSpine,
-			family === undefined
-				? []
-				: positioned.filter((link) => link.family === family),
-			scale,
-		)
+		writeFamilySpine(selectedSpine, positioned.filter(emphasized), scale)
 	}
 	const draw = () => {
 		const sceneChanged = dirty
@@ -351,6 +352,9 @@ export function EcologyScene(props: {
 				<EcologyNodeCard
 					key={item.id}
 					item={item}
+					expanded={
+						isHistoryOwner(item) ? props.expanded?.has(item.id) : undefined
+					}
 					store={props.tools.store}
 					activity={props.activity?.get(item.id)}
 					completedLoads={props.context.completedLoads}
@@ -389,6 +393,7 @@ export function EcologyScene(props: {
 			data-unavailable={failed()}
 			data-cylinder={`${cylinder().diameter},${cylinder().height}`}
 			data-family-connections={props.familyConnections?.length ?? 0}
+			data-history-connections={props.historyConnections?.length ?? 0}
 		>
 			{/* Start with the first populated capture; retain the renderer across subsequent empty filters and captures. */}
 			{(props.items.length > 0 || controls !== undefined) && !failed() && (

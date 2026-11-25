@@ -7,6 +7,7 @@ import {
 	ecologyTimelinePosition,
 } from "./ecology.ts"
 import { ecologyColor } from "./ecology-color.ts"
+import { historyIdentity, type RecordedEvent } from "./history-event.ts"
 import { scheduleTask } from "./task.ts"
 
 export interface GraphPosition {
@@ -18,6 +19,12 @@ export type EcologySource = EcologyNode | EcologyFamily | EcologyOperation
 type GraphLane = `atom` | `selector` | `operation`
 export type OperationRelation = `transaction` | `timeline`
 const edgeLimit = 1_000
+const cardLimit = 500
+
+export interface GraphHistory {
+	events: readonly RecordedEvent[]
+	at?: number
+}
 
 export interface GraphItem extends GraphPosition {
 	id: string
@@ -27,6 +34,7 @@ export interface GraphItem extends GraphPosition {
 	familyLabel?: string | undefined
 	familyId?: string | undefined
 	cluster?: GraphPosition | undefined
+	history?: { identity: string; direction: `outcome` | `past` | `future` }
 	detail: string
 	color: string
 	source: EcologySource
@@ -102,6 +110,7 @@ export interface GraphModel {
 	matches: ReadonlySet<string> | undefined
 	edges: GraphEdge[]
 	familyConnections: FamilyConnection[]
+	historyConnections: FamilyConnection[]
 	all: GraphRegistry
 	matching: number
 	atoms: number
@@ -110,6 +119,18 @@ export interface GraphModel {
 	newPositions: number
 	selection: GraphSelection | undefined
 	cylinderHeight: number
+}
+export function isHistoryOwner(
+	item: GraphItem | undefined,
+): item is GraphItem & {
+	kind: `transaction` | `timeline`
+	history?: undefined
+} {
+	return Boolean(
+		item &&
+		!item.history &&
+		(item.kind === `timeline` || item.kind === `transaction`),
+	)
 }
 interface GraphSelection {
 	id: string
@@ -428,12 +449,87 @@ function createRegistry(
 	}
 }
 
+/** Keep the latest transaction outcomes and timeline events closest to the cursor. */
+function* projectHistory(
+	owner: GraphItem,
+	{ events, at }: GraphHistory,
+	height: number,
+	limit: number,
+	items: GraphItem[],
+	connections: FamilyConnection[],
+): Generator<void> {
+	let low = owner,
+		high = owner
+	const append = (
+		index: number,
+		offset: number,
+		direction: NonNullable<GraphItem[`history`]>[`direction`],
+	) => {
+		const event = events[index]
+		const identity = historyIdentity(event)
+		const item: GraphItem = {
+			...owner,
+			id: `history:${owner.id}:${identity}`,
+			familyId: owner.id,
+			familyLabel: undefined,
+			history: { identity, direction },
+			cluster: owner,
+			y: owner.y + (offset * height) / 2,
+			label:
+				direction === `outcome`
+					? `Outcome ${index + 1}`
+					: `token` in event
+						? event.token.key
+						: event.type.replaceAll(`_`, ` `),
+			detail:
+				direction === `outcome`
+					? `Transaction outcome`
+					: `${direction === `past` ? `Past` : `Future`} · ${event.type.replaceAll(`_`, ` `)}`,
+		}
+		items.push(item)
+		if (item.y < low.y) low = item
+		if (item.y > high.y) high = item
+	}
+	if (at === undefined) {
+		const start = Math.max(0, events.length - limit)
+		for (let index = start; index < events.length; index++) {
+			append(index, start - index - 1, `outcome`)
+			yield
+		}
+	} else {
+		for (
+			let distance = 1;
+			limit > 0 && distance <= Math.max(at, events.length - at);
+			distance++
+		) {
+			if (distance <= at) {
+				append(at - distance, distance, `past`)
+				limit--
+				yield
+			}
+			if (limit && at + distance <= events.length) {
+				append(at + distance - 1, -distance, `future`)
+				limit--
+				yield
+			}
+		}
+	}
+	if (low !== high)
+		connections.push({
+			family: owner.id,
+			from: low,
+			to: high,
+			color: owner.color,
+		})
+}
+
 /** Project admitted records, retaining capture order and raw parallel edges. Nothing publishes before completion. */
 export function* projectEcology(
 	snapshot: EcologySnapshot,
 	context: GraphContext,
 	matchedIds?: ReadonlySet<string>,
 	previous?: GraphModel,
+	histories?: ReadonlyMap<string, GraphHistory>,
 ): Generator<void, GraphModel> {
 	if (previous?.snapshot !== snapshot) previous = undefined
 	const layout = previous?.all.layout ?? (yield* indexGraph(snapshot))
@@ -464,21 +560,57 @@ export function* projectEcology(
 			: yield* traceSelection(snapshot, layout, selected)
 		: undefined
 	const admittedSet = new Set<GraphRecord>()
+	const historyOwners: GraphRecord[] = []
+	const historyItems: GraphItem[] = []
+	const historyConnections: FamilyConnection[] = []
 	function* admit(records: Iterable<GraphRecord>): Generator<void> {
 		for (const record of records) {
-			if (admittedSet.size === 500) break
+			if (admittedSet.size + historyItems.length === cardLimit) break
 			admittedSet.add(visibleRecord(record))
 			yield
 		}
 	}
 	if (selected) admittedSet.add(visibleRecord(selected))
-	if (matchedIds) yield* admit(ordered)
+	for (const id of all.expanded) {
+		const record = resolveRecord(layout, id)
+		if (
+			record?.lane === `operation` &&
+			!(`memberKeys` in record.source) &&
+			visibleRecord(record) === record
+		) {
+			if (admittedSet.size === cardLimit) break
+			admittedSet.add(record)
+			historyOwners.push(record)
+		}
+		yield
+	}
+	// Keep the selected owner's graph relationships in view while admitting its history.
+	if (matchedIds && !historyOwners.length) yield* admit(ordered)
 	if (selection) {
 		for (const { from, to } of selection.links) {
-			if (admittedSet.size === 500) break
+			if (admittedSet.size === cardLimit) break
 			yield* admit([from, to])
 		}
 	}
+	if (selected && historyOwners.includes(selected)) {
+		historyOwners.splice(historyOwners.indexOf(selected), 1)
+		historyOwners.unshift(selected)
+	}
+	for (const owner of historyOwners) {
+		const history = histories?.get(owner.id)
+		const room = cardLimit - admittedSet.size - historyItems.length
+		if (history && room > 0)
+			yield* projectHistory(
+				all.get(owner.id)!,
+				history,
+				layout.height,
+				room,
+				historyItems,
+				historyConnections,
+			)
+		yield
+	}
+	if (matchedIds && historyOwners.length) yield* admit(ordered)
 	yield* admit(all.visible)
 	// Priority affects admission while retained cards keep their DOM slots.
 	const admitted = [...admittedSet].sort((a, b) => a.order - b.order)
@@ -653,7 +785,7 @@ export function* projectEcology(
 	}
 	return {
 		snapshot,
-		items,
+		items: items.concat(historyItems),
 		rows,
 		rowCount: rowOrder.length,
 		matches: matchedIds
@@ -661,6 +793,7 @@ export function* projectEcology(
 			: undefined,
 		edges,
 		familyConnections,
+		historyConnections,
 		all,
 		matching: ordered.length,
 		atoms: layout.atoms,

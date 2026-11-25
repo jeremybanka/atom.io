@@ -1,6 +1,7 @@
 /** @jsxImportSource @atom.io/spa */
 import type { SpaElement } from "@atom.io/spa"
 
+import { EditorIcon } from "./EditorIcon.tsx"
 import css from "./EventView.module.css"
 import {
 	historyEventPreview,
@@ -41,11 +42,17 @@ export function EventView(props: {
 	return (
 		<event-view
 			class={css.class}
+			data-history-event={historyIdentity(event)}
 			data-testid={`${event.type === `transaction_outcome` ? `transaction` : `timeline`}-update-${token?.key}-${props.index}`}
 		>
 			<event-heading>
-				<button type="button" aria-expanded={getOpen()} onClick={toggle}>
-					{getOpen() ? `▾` : `▸`}
+				<button
+					type="button"
+					aria-label={getOpen() ? `Collapse event` : `Expand event`}
+					aria-expanded={getOpen()}
+					onClick={toggle}
+				>
+					<EditorIcon name={getOpen() ? `collapse` : `expand`} />
 				</button>
 				<strong>{token?.key}</strong>
 				<small>{event.type}</small>
@@ -62,11 +69,13 @@ export function EventView(props: {
 						<event-impact>{nested()}</event-impact>
 					</>
 				) : `update` in event ? (
-					<p>
+					<p data-change>
 						<del data-kind={typeof event.update.oldValue}>
 							{historyValue(event.update.oldValue) ?? `[opaque]`}
 						</del>
-						{` `}→{` `}
+						<span role="img" aria-label="changed to">
+							<EditorIcon name="arrow" />
+						</span>
 						<ins data-kind={typeof event.update.newValue}>
 							{historyValue(event.update.newValue) ?? `[opaque]`}
 						</ins>

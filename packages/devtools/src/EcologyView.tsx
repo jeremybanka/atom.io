@@ -5,7 +5,13 @@ import type { FutureActivity } from "atom.io/introspection"
 import { animate } from "motion"
 
 import { createEcologyController } from "./ecology-controller.ts"
-import type { GraphContext, GraphModel } from "./ecology-graph.ts"
+import {
+	type GraphContext,
+	type GraphHistory,
+	type GraphItem,
+	type GraphModel,
+	isHistoryOwner,
+} from "./ecology-graph.ts"
 import type { EcologyLine } from "./ecology-lines.ts"
 import { EcologyEditor } from "./EcologyEditor.tsx"
 import { EcologyGuide } from "./EcologyGuide.tsx"
@@ -32,10 +38,10 @@ export interface EcologyPresentation {
 	matches: ReadonlySet<string> | undefined
 	edges: EcologyLine[]
 	familyConnections: GraphModel[`familyConnections`]
+	historyConnections: GraphModel[`historyConnections`]
 	selected?: GraphModel[`items`][number] | undefined
 	selectedCard?: string | undefined
-	familyExpanded: boolean
-	hasSelectedFamily: boolean
+	expansion: { kind: `family` | `history`; expanded: boolean } | undefined
 	hasSelection: boolean
 	selectedIds: ReadonlySet<string>
 	selectionOutside: boolean
@@ -55,6 +61,30 @@ export interface EcologyPresentation {
 	generation: number
 	activity: ReadonlyMap<string, EcologyActivity>
 	pinnedKey: string | undefined
+}
+
+function ObserveHistory(props: {
+	tools: EditorTools
+	item: GraphItem
+	onChange(id: string, history?: GraphHistory): void
+}): null {
+	const { id, key, kind } = props.item
+	if (kind === `transaction`) {
+		onCommit(props.tools.history.useTransaction(key), (events) => {
+			props.onChange(id, { events })
+		})
+	} else {
+		onCommit(props.tools.history.useTimeline(key), (timeline) => {
+			props.onChange(
+				id,
+				timeline && { events: timeline.history, at: timeline.at },
+			)
+		})
+	}
+	onCleanup(() => {
+		props.onChange(id)
+	})
+	return null
 }
 
 function ViewportAction(props: {
@@ -157,10 +187,10 @@ export function EcologyView(props: {
 		matches: undefined,
 		edges: [],
 		familyConnections: [],
+		historyConnections: [],
 		selected: undefined,
 		selectedCard: undefined,
-		familyExpanded: false,
-		hasSelectedFamily: false,
+		expansion: undefined,
 		hasSelection: false,
 		selectedIds: new Set(),
 		query: props.context.query,
@@ -191,6 +221,17 @@ export function EcologyView(props: {
 		const selected = state().selected
 		return selected?.kind === `family` ? selected.id : selected?.familyId
 	}
+	const expansion = () => state().expansion
+	const expansionIcon = (): EditorIconName =>
+		expansion()?.kind === `history`
+			? expansion()?.expanded
+				? `collapseHistory`
+				: `expandHistory`
+			: expansion()?.expanded
+				? `collapseFamily`
+				: `expandFamily`
+	const expansionLabel = () =>
+		`${expansion()?.expanded ? `Collapse` : `Expand`} ${expansion()?.kind === `history` ? `history` : `family`}`
 	const hover = (event: PointerEvent) => {
 		const target =
 			event.type === `pointerout` ? event.relatedTarget : event.target
@@ -231,6 +272,19 @@ export function EcologyView(props: {
 			}}
 		>
 			<EcologyToolbar marker={marker} state={state()} />
+			{state().expanded.size > 0 &&
+				state()
+					.cards.filter(
+						(item) => isHistoryOwner(item) && state().expanded.has(item.id),
+					)
+					.map((item) => (
+						<ObserveHistory
+							key={item.id}
+							tools={props.tools}
+							item={item}
+							onChange={(id, history) => controller?.setHistory(id, history)}
+						/>
+					))}
 			<ecology-body>
 				<ecology-map>
 					<EcologyViewport
@@ -242,6 +296,8 @@ export function EcologyView(props: {
 						activity={state().activity}
 						edges={state().edges}
 						familyConnections={state().familyConnections}
+						historyConnections={state().historyConnections}
+						expanded={state().expanded}
 						selected={state().selectedCard}
 						selectedFamily={selectedFamily()}
 						selectedIds={state().selectedIds}
@@ -254,17 +310,15 @@ export function EcologyView(props: {
 					<ecology-map-actions>
 						<ViewportAction
 							action="expand"
-							available={state().hasSelectedFamily}
-							label={
-								state().familyExpanded ? `Collapse family` : `Expand family`
-							}
-							icon={state().familyExpanded ? `collapseFamily` : `expandFamily`}
-							expanded={state().familyExpanded}
+							available={expansion() !== undefined}
+							label={expansionLabel()}
+							icon={expansionIcon()}
+							expanded={expansion()?.expanded}
 						/>
 						<ViewportAction
 							action="clear"
 							available={state().hasSelection}
-							precedingAvailable={state().hasSelectedFamily}
+							precedingAvailable={expansion() !== undefined}
 							label="Clear selection"
 							icon="clearSelection"
 						/>

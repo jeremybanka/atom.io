@@ -9,6 +9,17 @@ ecology-node-card.class {
 	&[data-dimmed="true"] > button {
 		opacity: 0.5;
 	}
+	&[data-history] {
+		width: 152px;
+		height: 38px;
+		> button {
+			padding: 3px 8px;
+			border-radius: 3px;
+			> strong, > small {
+				line-height: 14px;
+			}
+		}
+	}
 	&[data-collapsed="true"] {
 		width: 80px;
 		height: 24px;

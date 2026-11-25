@@ -30,6 +30,7 @@ export function EcologyNodeCard(props: {
 		paint: (paths: ReadonlyMap<string, readonly ProjectedEdge[]>) => void,
 	): () => void
 	item: GraphItem
+	expanded?: boolean | undefined
 	store: RootStore
 	activity?: EcologyActivity | undefined
 	completedLoads: WeakSet<object>
@@ -60,6 +61,7 @@ export function EcologyNodeCard(props: {
 		return text
 	}
 	const detail = (source: GraphItem[`source`]) => {
+		if (props.item.history) return props.item.detail
 		if (`memberKeys` in source) {
 			const label =
 				source.type === `timeline_family`
@@ -77,10 +79,11 @@ export function EcologyNodeCard(props: {
 	}
 	const description = () => {
 		const item = props.item
-		return `${item.key} · ${detail(item.source)}`
+		return `${item.history ? item.label : item.key} · ${detail(item.source)}`
 	}
 	const title = () => {
 		const item = props.item
+		if (item.history) return description()
 		return `${item.key}\n${item.source.type}\n${item.detail}`
 	}
 	const position = () => {
@@ -120,26 +123,27 @@ export function EcologyNodeCard(props: {
 		const label = new CSS2DObject(element!)
 		label.name = props.item.id
 		props.scene.add(label)
-		onCleanup(
-			props.registerEdges((layers) => {
-				const next = layers.get(id) ?? empty
-				if (
-					next.length !== outgoing.length ||
-					next.some((path, index) => path !== outgoing[index])
-				) {
-					const resized = next.length !== outgoing.length
-					// Exiting SPA subtrees freeze reconciliation; clear retired geometry now.
-					for (const [index, node] of paths)
-						if (index >= next.length) node.setAttribute(`d`, ``)
-					for (let index = 0; index < next.length; index++) {
-						const node = paths.get(index)
-						if (node) paintPath(node, next[index], outgoing[index])
+		if (!props.item.history)
+			onCleanup(
+				props.registerEdges((layers) => {
+					const next = layers.get(id) ?? empty
+					if (
+						next.length !== outgoing.length ||
+						next.some((path, index) => path !== outgoing[index])
+					) {
+						const resized = next.length !== outgoing.length
+						// Exiting SPA subtrees freeze reconciliation; clear retired geometry now.
+						for (const [index, node] of paths)
+							if (index >= next.length) node.setAttribute(`d`, ``)
+						for (let index = 0; index < next.length; index++) {
+							const node = paths.get(index)
+							if (node) paintPath(node, next[index], outgoing[index])
+						}
+						outgoing = next
+						if (resized) setPathCount(next.length)
 					}
-					outgoing = next
-					if (resized) setPathCount(next.length)
-				}
-			}),
-		)
+				}),
+			)
 		bindScene(
 			() => ({
 				item: props.item,
@@ -237,6 +241,7 @@ export function EcologyNodeCard(props: {
 				element = node
 			}}
 			data-kind={props.item.kind}
+			data-history={props.item.history?.direction}
 			data-type={props.item.source.type}
 			data-family={props.item.familyLabel}
 			data-traced={props.traced}
@@ -274,8 +279,11 @@ export function EcologyNodeCard(props: {
 				type="button"
 				data-node
 				data-graph-id={props.item.id}
+				data-history-owner={props.item.history ? props.item.familyId : undefined}
+				data-history-event={props.item.history?.identity}
 				aria-label={description()}
-				aria-pressed={props.selected}
+				aria-pressed={props.item.history ? undefined : props.selected}
+				aria-expanded={props.expanded}
 				onPointerDown={(event) => {
 					event.stopPropagation()
 				}}

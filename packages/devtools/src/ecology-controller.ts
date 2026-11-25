@@ -11,8 +11,15 @@ import {
 	type EcologyNode,
 	ecologyValue,
 } from "./ecology.ts"
-import type { GraphContext, GraphItem, GraphModel } from "./ecology-graph.ts"
-import { projectEcology, scheduleGraph } from "./ecology-graph.ts"
+import {
+	type GraphContext,
+	type GraphHistory,
+	type GraphItem,
+	type GraphModel,
+	isHistoryOwner,
+	projectEcology,
+	scheduleGraph,
+} from "./ecology-graph.ts"
 import { indexEcologySearch } from "./ecology-search.ts"
 import type { EcologyPresentation } from "./EcologyView.tsx"
 import type { RemotePanelConnection } from "./remote-connection.ts"
@@ -30,7 +37,12 @@ export function createEcologyController(
 	update: (patch: Partial<EcologyPresentation>) => void,
 	marker: string,
 	worker?: RemotePanelConnection,
-): { dispose(): void; committed(): void; refresh(generatedKey?: string): void } {
+): {
+	dispose(): void
+	committed(): void
+	refresh(generatedKey?: string): void
+	setHistory(id: string, history?: GraphHistory): void
+} {
 	const document = host.ownerDocument
 	const input = host.querySelector(`input`)!
 	const searchDialog =
@@ -45,6 +57,7 @@ export function createEcologyController(
 	)!
 	let origin: HTMLElement | null = null
 	let reveal: string | undefined
+	let revealHistory: { owner: string; event: string } | undefined
 	let generatedKey: string | undefined
 	let disposed = false,
 		preparing = false,
@@ -67,6 +80,8 @@ export function createEcologyController(
 		jobs = 0
 	let capturedNodes = new Map<string, EcologyNode>()
 	let needsCapture = false
+	let needsHistory = false
+	const histories = new Map<string, GraphHistory>()
 	let activityRevision = 0
 	const changedCards = new Set<string>()
 	const futureChanges = new Map<string, Set<FutureActivity>>()
@@ -153,19 +168,24 @@ export function createEcologyController(
 		const family = familyId(model?.all.get(id))
 		return family && !context.expanded.has(family) ? family : id
 	}
+	const expansionTarget = (item: GraphItem | undefined) => {
+		if (isHistoryOwner(item) && visibleId(item.id) === item.id) return item
+		const family = familyId(item)
+		return family === undefined ? undefined : model?.all.get(family)
+	}
 	const passive = () => {
 		const selected = context.selected
 			? model?.all.get(context.selected)
 			: undefined
 		const selectedCard = visibleId(context.selected)
-		const family = familyId(selected)
+		const expansion = expansionTarget(selected)
 		update({
 			selected,
 			selectedCard,
-			hasSelectedFamily: family !== undefined,
-			...(family === undefined
-				? {}
-				: { familyExpanded: context.expanded.has(family) }),
+			expansion: expansion && {
+				kind: expansion.kind === `family` ? `family` : `history`,
+				expanded: context.expanded.has(expansion.id),
+			},
 			hasSelection: Boolean(context.selected),
 			selectedIds: model?.selection?.selectedIds ?? new Set(),
 			selectionOutside:
@@ -176,9 +196,10 @@ export function createEcologyController(
 			focused: model?.selection?.items,
 		})
 	}
-	const select = (id: string, navigate = false) => {
+	const select = (id: string, navigate = false, historyEvent?: string) => {
 		if (modal === searchDialog) closeDialog(false)
 		context.selected = id
+		revealHistory = historyEvent ? { owner: id, event: historyEvent } : undefined
 
 		if (navigate) {
 			const group = model?.all.get(id)?.familyId
@@ -198,6 +219,7 @@ export function createEcologyController(
 		const hadFocus = host.contains(focused)
 		const focusId = focused.getAttribute(`data-graph-id`),
 			focusAction = focused.getAttribute(`data-action`)
+		const focusHistoryOwner = focused.dataset[`historyOwner`]
 		const focusInList = list.contains(focused)
 		const focusInMapActions = hadFocus && focused.closest(`ecology-map-actions`)
 		model = value
@@ -210,7 +232,8 @@ export function createEcologyController(
 		host.dataset[`maxChunkMs`] = String(Math.max(...chunks))
 		const snapshot = context.snapshot!
 		const links = value.edges.filter((edge) => edge.relation).length
-		const countsText = `${value.atoms} atoms · ${value.selectors} selectors · ${snapshot.families.length} families / ${value.members} members · showing ${value.items.length} of ${value.all.visible.length} groups/instances · ${value.matching}${approximationLimited ? `+` : ``} matching groups/instances · ${value.rows.length} of ${value.rowCount} editor rows · ${value.edges.length - links} of ${snapshot.edges.length} captured edges${links ? ` · ${links} operation links` : ``}`
+		const historyCount = value.items.filter((item) => item.history).length
+		const countsText = `${value.atoms} atoms · ${value.selectors} selectors · ${snapshot.families.length} families / ${value.members} members · showing ${value.items.length - historyCount} of ${value.all.visible.length} groups/instances${historyCount ? ` · ${historyCount} history events` : ``} · ${value.matching}${approximationLimited ? `+` : ``} matching groups/instances · ${value.rows.length} of ${value.rowCount} editor rows · ${value.edges.length - links} of ${snapshot.edges.length} captured edges${links ? ` · ${links} operation links` : ``}`
 		host.dataset[`counts`] = countsText
 		const noticeText =
 			snapshot.truncated.nodes ||
@@ -262,6 +285,7 @@ export function createEcologyController(
 			pinnedKey,
 			edges,
 			familyConnections: value.familyConnections,
+			historyConnections: value.historyConnections,
 			generation,
 			filtered: matchedIds !== undefined,
 			notice: noticeText,
@@ -277,11 +301,24 @@ export function createEcologyController(
 			)
 			const logicalFocusId = focusInList
 				? focusId
-				: focusId === context.selected ||
-					  (selectedFamily && focusId === selectedFamily)
-					? visibleId(context.selected)
-					: visibleId(focusId)
-			if (reveal) {
+				: focusHistoryOwner && !value.items.some((item) => item.id === focusId)
+					? visibleId(focusHistoryOwner)
+					: focusId === context.selected ||
+						  (selectedFamily && focusId === selectedFamily)
+						? visibleId(context.selected)
+						: visibleId(focusId)
+			if (revealHistory) {
+				const { owner, event } = revealHistory
+				revealHistory = undefined
+				const row = [
+					...list.querySelectorAll<HTMLElement>(`[data-row-id]`),
+				].find((entry) => entry.dataset[`rowId`] === owner)
+				const target = row?.querySelector<HTMLElement>(
+					`[data-history-event="${event}"] > event-heading > button`,
+				)
+				target?.focus()
+				target?.scrollIntoView?.({ block: `nearest` })
+			} else if (reveal) {
 				camera(`focus`, reveal)
 				const target = [
 					...list.querySelectorAll<HTMLButtonElement>(`button[data-graph-id]`),
@@ -332,9 +369,16 @@ export function createEcologyController(
 	const project = () => {
 		cancel()
 		if (!visible() || !context.snapshot) return
+		needsHistory = false
 		host.dataset[`ready`] = `false`
 		cancel = scheduleGraph(
-			projectEcology(context.snapshot, context, matchedIds, model),
+			projectEcology(
+				context.snapshot,
+				context,
+				matchedIds,
+				model,
+				new Map(histories),
+			),
 			paint,
 			undefined,
 			undefined,
@@ -438,7 +482,7 @@ export function createEcologyController(
 		if (
 			cancelLive ||
 			!visible() ||
-			(!changedCards.size && (!needsCapture || busy))
+			(!changedCards.size && ((!needsCapture && !needsHistory) || busy))
 		)
 			return
 		cancelLive = scheduleTask(() => {
@@ -458,6 +502,7 @@ export function createEcologyController(
 				futureChanges.clear()
 			}
 			if (needsCapture && !busy) refresh()
+			else if (needsHistory && !busy) project()
 		})
 	}
 	const startObserving = () => {
@@ -536,7 +581,7 @@ export function createEcologyController(
 		futureChanges.clear()
 	}
 
-	const action = (name: string, targetFamily?: string) => {
+	const action = (name: string, targetGroup?: string) => {
 		const selected = context.selected
 			? model?.all.get(context.selected)
 			: undefined
@@ -572,10 +617,16 @@ export function createEcologyController(
 			project()
 			return
 		}
-		const family = targetFamily ?? familyId(selected)
-		if (name === `expand` && family) {
-			if (context.expanded.has(family)) context.expanded.delete(family)
-			else context.expanded.add(family)
+		const target = targetGroup
+			? model?.all.get(targetGroup)
+			: expansionTarget(selected)
+		if (name === `expand` && target) {
+			if (context.expanded.has(target.id)) context.expanded.delete(target.id)
+			else {
+				context.expanded.add(target.id)
+				if (isHistoryOwner(target) && target.familyId)
+					context.expanded.add(target.familyId)
+			}
 			project()
 		}
 	}
@@ -598,7 +649,13 @@ export function createEcologyController(
 		if (!target) return
 		if (target.dataset[`resultId`]) {
 			if (!busy) select(target.dataset[`resultId`], true)
-		} else if (target.dataset[`graphId`]) select(target.dataset[`graphId`])
+		} else if (target.dataset[`historyOwner`])
+			select(
+				target.dataset[`historyOwner`],
+				false,
+				target.dataset[`historyEvent`],
+			)
+		else if (target.dataset[`graphId`]) select(target.dataset[`graphId`])
 		else action(target.dataset[`action`]!, target.dataset[`familyId`])
 	}
 	const key = (event: KeyboardEvent) => {
@@ -662,6 +719,7 @@ export function createEcologyController(
 			return
 		}
 		const id = target.closest<HTMLElement>(`[data-graph-id]`)?.dataset[`graphId`]
+		const focusedItem = id ? model?.all.get(id) : undefined
 		const selected = context.selected
 			? model?.all.get(context.selected)
 			: undefined
@@ -671,18 +729,29 @@ export function createEcologyController(
 			!event.metaKey &&
 			!event.altKey &&
 			!event.shiftKey &&
-			familyId(selected) &&
-			(id === context.selected ||
-				id === visibleId(context.selected) ||
-				target.matches(`ecology-scene`))
+			(isHistoryOwner(focusedItem) ||
+				(expansionTarget(selected) &&
+					(id === context.selected ||
+						id === visibleId(context.selected) ||
+						target.matches(`ecology-scene`))))
 		) {
 			event.preventDefault()
-			action(`expand`)
+			if (!event.repeat) {
+				if (isHistoryOwner(focusedItem)) context.selected = focusedItem.id
+				action(
+					`expand`,
+					isHistoryOwner(focusedItem) ? focusedItem.id : undefined,
+				)
+			}
 			return
 		}
 		if (id && (event.key === `Enter` || event.key === ` `)) {
 			event.preventDefault()
-			select(id)
+			select(
+				target.dataset[`historyOwner`] ?? id,
+				false,
+				target.dataset[`historyEvent`],
+			)
 		}
 	}
 	const inputChange = (event: Event) => {
@@ -732,6 +801,14 @@ export function createEcologyController(
 	})
 	return {
 		refresh,
+		setHistory(id, history) {
+			if (history?.events.length) histories.set(id, history)
+			else if (!histories.delete(id)) return
+			if (context.expanded.has(id)) {
+				needsHistory = true
+				scheduleLive()
+			}
+		},
 		committed() {
 			const commit = commitPaint
 			commitPaint = undefined

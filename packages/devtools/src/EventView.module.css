@@ -1,39 +1,40 @@
 event-view.class {
 	display: block;
-	event-heading {
+	border-top: 1px solid var(--line);
+	& > event-heading {
 		display: flex;
 		align-items: center;
-	}
-	event-impact {
-		display: block;
-	}
-
-	& > event-heading {
 		height: 22px;
 		background: var(--surface-inactive);
 		white-space: nowrap;
 		overflow: hidden;
 	}
-	[data-kind="number"] {
+	& > event-heading > button {
+		display: grid;
+		place-items: center;
+		width: 22px;
+		height: 22px;
+		padding: 0;
+		flex-shrink: 0;
+	}
+	& > p[data-change] > [data-kind="number"] {
 		display: inline-block;
 		min-width: 3ch;
 		text-align: right;
 		font-variant-numeric: tabular-nums;
 	}
-	event-impact {
+	& > event-impact {
+		display: block;
 		margin-left: 9px;
 		border-left: 1px solid var(--ink-muted);
 	}
-	& {
-		border-top: 1px solid var(--line);
-	}
-	& > event-heading strong {
+	& > event-heading > strong {
 		min-width: 0;
 		padding-right: 6px;
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
-	& > event-heading small {
+	& > event-heading > small {
 		font-size: 11px;
 	}
 	& > p, & > code {
@@ -42,12 +43,22 @@ event-view.class {
 		line-height: 18px;
 		overflow-wrap: anywhere;
 	}
-	ins {
+	& > p[data-change] {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 4px;
+	}
+	& > p[data-change] > span {
+		display: inline-flex;
+		color: var(--ink-muted);
+	}
+	& > p[data-change] > ins {
 		color: var(--ink);
 		text-decoration: none;
 		background: var(--change-added);
 	}
-	del {
+	& > p[data-change] > del {
 		color: var(--ink-muted);
 		background: var(--change-removed);
 	}

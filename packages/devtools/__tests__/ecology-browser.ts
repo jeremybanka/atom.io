@@ -630,6 +630,21 @@ try {
 		await operations.goto(
 			`http://127.0.0.1:${(server.address() as AddressInfo).port}/?inline&operations`,
 		)
+		const editorRow = (id: string) =>
+			operations.locator(`ecology-editor-row[data-row-id="${id}"]`)
+		for (const id of [
+			`state:price`,
+			`state:total`,
+			`family:items`,
+			`transaction:save`,
+			`timeline:price history`,
+			`timeline_family:histories`,
+		]) {
+			const height = await editorRow(id).evaluate(
+				(row) => row.getBoundingClientRect().height,
+			)
+			assert.equal(height, 23, `Collapsed editor row height for ${id}`)
+		}
 		for (const colorScheme of [`light`, `dark`] as const) {
 			await operations.emulateMedia({ colorScheme })
 			for (const [id, kind, detail] of [
@@ -651,8 +666,8 @@ try {
 						.getAttribute(`data-primitive`),
 					kind,
 				)
-				const editorIcon = operations.locator(
-					`ecology-editor-row[data-row-id="${id}"] > ecology-primitive-icon`,
+				const editorIcon = editorRow(id).locator(
+					`:scope > ecology-primitive-icon`,
 				)
 				assert.equal(await editorIcon.getAttribute(`data-primitive`), kind)
 				const [cardColors, editorColors] = await Promise.all([
@@ -755,11 +770,19 @@ try {
 				.textContent(),
 			`you are here`,
 		)
-		assert.equal(
+		assert.deepEqual(
 			await operations
 				.locator(`ecology-editor timeline-travel button:disabled`)
-				.count(),
-			2,
+				.evaluateAll((buttons) =>
+					buttons.map((button) => button.getBoundingClientRect().height),
+				),
+			[22, 22],
+		)
+		assert.equal(
+			await editorRow(`timeline:price history`)
+				.locator(`ecology-operation-history > node-heading`)
+				.evaluate((heading) => heading.getBoundingClientRect().height),
+			22,
 		)
 	} finally {
 		await operations.close()

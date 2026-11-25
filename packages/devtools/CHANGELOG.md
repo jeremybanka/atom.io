@@ -1,5 +1,16 @@
 # @atom.io/devtools
 
+## 0.2.0
+
+### Minor Changes
+
+- 0d76b55: Require atom.io 0.54.14 or newer in the 0.54 series for the new introspection APIs. The remote panel and store owner must use the same devtools protocol version.
+
+### Patch Changes
+
+- 801ed80: Fix Reset view in Ecology so it restores the default camera framing. Remove Fit and manual Refresh from the toolbar. Ecology continues to update automatically as the store changes.
+- 0d76b55: Inspect multiple local and remote stores in the SPA debugger with a responsive store popover that groups targets under Local and Remote. Remote stores support browser MessagePort and custom transports for state, transactions, timelines, and the observed dependency graph. Connections send one initial snapshot and then incremental updates. Exposure is off by default, with explicit inspection and control modes and a separate opt-in for production. Development-only recipes for imperative and React mounting keep the debugger and its assets out of production browser builds.
+
 ## 0.1.2
 
 ### Patch Changes

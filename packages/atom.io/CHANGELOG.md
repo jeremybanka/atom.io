@@ -1,5 +1,11 @@
 # atom.io
 
+## 0.54.14
+
+### Patch Changes
+
+- 0d76b55: Extend store observation batches with timeline changes and committed transaction outcomes, including transaction registrations and replacements. Add passive definition and dependency reads to atom.io/introspection.
+
 ## 0.54.13
 
 ### Patch Changes

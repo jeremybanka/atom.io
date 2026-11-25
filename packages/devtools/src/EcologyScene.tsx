@@ -132,9 +132,9 @@ export function EcologyScene(props: {
 	const projectEdges = createEdgeProjector(routes)
 	onCleanup(motion.dispose)
 	onCleanup(routes.dispose)
-	const resetCamera = (controls: OrbitControls) => {
+	const resetCamera = (target: THREE.Vector3) => {
 		camera.position.copy(START_POSITION)
-		controls.target.set(0, 0, 0)
+		target.set(0, 0, 0)
 		if (!props.items.length) return
 		const box = new THREE.Box3().setFromPoints(props.items.map(point))
 		const center = box.getCenter(new THREE.Vector3())
@@ -158,7 +158,7 @@ export function EcologyScene(props: {
 			)
 		}
 		if (distance > 90) center.copy(point(props.items[0]))
-		controls.target.copy(center)
+		target.copy(center)
 		camera.position
 			.copy(center)
 			.addScaledVector(direction, Math.min(distance, 90))
@@ -183,7 +183,7 @@ export function EcologyScene(props: {
 	const command = (next: CameraCommand | undefined) => {
 		if (!controls || !next) return
 		const { action, target } = next
-		if (action === `reset`) resetCamera(controls)
+		if (action === `reset`) resetCamera(controls.target)
 		if (action === `left`) pan(-80, 0)
 		if (action === `right`) pan(80, 0)
 		if (action === `up`) pan(0, -80)
@@ -416,7 +416,7 @@ export function EcologyScene(props: {
 							camera.position.fromArray(saved.position)
 							controls.target.fromArray(saved.target)
 							retarget(saved.aspect ?? camera.aspect, camera.aspect)
-						} else resetCamera(controls)
+						} else resetCamera(controls.target)
 						controls.update()
 						command(props.command)
 						invalidate()

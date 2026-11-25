@@ -50,10 +50,6 @@ function orderTools({ canvas, canvasElement, userEvent }: Context) {
 		await waitFor(() => expect(graph.dataset[`jobs`]).not.toBe(previous))
 		await ready()
 	}
-	const refresh = () =>
-		project(() =>
-			userEvent.click(canvas.getByRole(`button`, { name: `Refresh` })),
-		)
 	const search = async () => {
 		const graph = canvas.getByTestId(`ecology-view`)
 		const input = graph.querySelector<HTMLInputElement>(`input[type="search"]`)!
@@ -114,7 +110,6 @@ function orderTools({ canvas, canvasElement, userEvent }: Context) {
 		ecology,
 		ready,
 		project,
-		refresh,
 		choose,
 		search,
 		inspector,
@@ -199,7 +194,7 @@ export const playOrderRoots: Play = async (context) => {
 			await expect(tools.related(`pickupStore`)).toBeNull()
 			await tools.action(`Use pickup`)
 			await waitFor(() => expect(tools.summary()).toHaveTextContent(`pickup`))
-			await tools.refresh()
+			await tools.ecology()
 			await expect(tools.related(`pickupStore`)).not.toBeNull()
 			await expect(tools.related(`deliveryRegion`)).toBeNull()
 		},
@@ -220,7 +215,7 @@ export const playOrderRoots: Play = async (context) => {
 				tools.related(`stockByWarehouseSku(["north","tea-green"])`),
 			).not.toBeNull()
 			await tools.action(`Use south warehouse`)
-			await tools.refresh()
+			await tools.ecology()
 			await expect(
 				tools.related(`stockByWarehouseSku(["south","tea-green"])`),
 			).not.toBeNull()
@@ -260,11 +255,11 @@ export const playOrderActions: Play = async (context) => {
 		await tools.ecology()
 		await tools.action(`Use south warehouse`)
 		await tools.action(`Add tea oolong`)
-		await tools.refresh()
+		await tools.ecology()
 		await tools.choose(`cartQuantityBySku`, true)
 		await expect(tools.inspector()).toHaveTextContent(`7 members`)
 		await tools.action(`Remove tea oolong`)
-		await tools.refresh()
+		await tools.ecology()
 		await expect(tools.inspector()).toHaveTextContent(`6 members`)
 	})
 	await step(

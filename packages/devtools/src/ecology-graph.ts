@@ -43,8 +43,8 @@ export interface GraphItem extends GraphPosition {
 }
 export interface FamilyConnection {
 	family: string
-	from: GraphItem
-	to: GraphItem
+	from: GraphPosition
+	to: GraphPosition
 	color: string
 }
 interface GraphEdge {

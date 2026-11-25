@@ -1,6 +1,10 @@
 import { animate, type MotionValue, motionValue } from "motion"
 
-import type { GraphItem, GraphPosition } from "./ecology-graph.ts"
+import type {
+	FamilyConnection,
+	GraphItem,
+	GraphPosition,
+} from "./ecology-graph.ts"
 import type { EcologyLine } from "./ecology-lines.ts"
 
 export const FAMILY_SPRING = {
@@ -151,7 +155,7 @@ interface MemberMotion {
 	item: GraphItem
 	value: MotionValue<number>
 	point: GraphPosition
-	goal: 0 | 1
+	goal: number
 	entering: boolean
 	retiring: boolean
 }
@@ -166,6 +170,7 @@ interface EcologyMotion {
 	position(id: string): GraphPosition | undefined
 	readonly active: boolean
 	point(position: GraphPosition): GraphPosition
+	historySpines(): FamilyConnection[]
 	edge(edge: EcologyLine): EcologyLine
 	release(id: string): void
 	dispose(): void
@@ -181,22 +186,29 @@ export function createEcologyMotion(
 	let previousExpanded = new Set<string>(),
 		generation: number | undefined
 	const updatePoint = (member: MemberMotion) => {
-		const amount = member.value.get(),
-			item = member.item,
-			cluster = item.cluster!
-		member.point =
-			amount === 1
-				? item
-				: amount === 0
-					? cluster
-					: {
-							x: cluster.x + (item.x - cluster.x) * amount,
-							y: cluster.y + (item.y - cluster.y) * amount,
-							z: cluster.z + (item.z - cluster.z) * amount,
-						}
+		const { item } = member
+		if (!item.history) {
+			const amount = member.value.get(),
+				cluster = item.cluster!
+			member.point =
+				amount === 1
+					? item
+					: amount === 0
+						? cluster
+						: {
+								x: cluster.x + (item.x - cluster.x) * amount,
+								y: cluster.y + (item.y - cluster.y) * amount,
+								z: cluster.z + (item.z - cluster.z) * amount,
+							}
+		}
 		invalidate()
 	}
-	const target = (member: MemberMotion, goal: 0 | 1) => {
+	const target = (member: MemberMotion, goal: number, immediate = false) => {
+		if (immediate) {
+			member.goal = goal
+			member.value.jump(goal)
+			return
+		}
 		if (member.goal === goal) return
 		member.goal = goal
 		if (preference.matches) member.value.jump(goal)
@@ -211,16 +223,28 @@ export function createEcologyMotion(
 			for (const member of members.values()) member.value.jump(member.goal)
 	}
 	preference.addEventListener(`change`, reduce)
-	const point = (position: GraphPosition) =>
-		`id` in position
-			? (members.get(String(position.id))?.point ?? position)
-			: position
-	const port = (position: GraphPosition, card: GraphPosition | undefined) => {
+	// History springs animate a vertical offset relative to the timeline, even while the timeline itself is moving.
+	const historyAnchor = (item: GraphItem) =>
+		members.get(item.familyId!)?.point ?? item.cluster!
+	const historyPoint = (member: MemberMotion, anchor: GraphPosition) => ({
+		x: anchor.x,
+		y: anchor.y + member.value.get(),
+		z: anchor.z,
+	})
+	const position = (id: string): GraphPosition | undefined => {
+		const member = members.get(id)
+		return member?.item.history
+			? historyPoint(member, historyAnchor(member.item))
+			: member?.point
+	}
+	const point = (item: GraphPosition) =>
+		`id` in item ? (position(String(item.id)) ?? item) : item
+	const port = (endpoint: GraphPosition, card: GraphPosition | undefined) => {
 		const member =
-			`id` in position ? members.get(String(position.id)) : undefined
+			`id` in endpoint ? members.get(String(endpoint.id)) : undefined
 		return member?.retiring && member.value.get() > 0
 			? member.point
-			: point(card ?? position)
+			: point(card ?? endpoint)
 	}
 	return {
 		sync(
@@ -232,13 +256,18 @@ export function createEcologyMotion(
 			const incoming = new Map(items.map((item) => [item.id, item]))
 			for (const [id, member] of members) {
 				const item = incoming.get(id)
+				const group = member.item.familyId!
 				if (item?.cluster) {
 					member.item = item
 					member.retiring = false
-					target(member, 1)
-					if (fresh) member.value.jump(1)
+					target(member, item.history ? item.y - item.cluster.y : 1, fresh)
 					updatePoint(member)
-				} else if (!fresh && !expanded.has(member.item.familyId!)) {
+				} else if (
+					!fresh &&
+					(!expanded.has(group) ||
+						(member.item.history &&
+							(incoming.has(group) || members.get(group)?.retiring)))
+				) {
 					member.retiring = true
 					target(member, 0)
 				} else release(id)
@@ -246,13 +275,17 @@ export function createEcologyMotion(
 			for (const item of items) {
 				if (!item.cluster || members.has(item.id)) continue
 				const entering =
-					!fresh && !preference.matches && !previousExpanded.has(item.familyId!)
-				const value = motionValue(entering ? 0 : 1)
+					!fresh &&
+					!preference.matches &&
+					(item.history !== undefined || !previousExpanded.has(item.familyId!))
+				const destination = item.history ? item.y - item.cluster.y : 1
+				const initial = entering ? 0 : destination
+				const value = motionValue(initial)
 				const member: MemberMotion = {
 					item,
 					value,
 					point: item,
-					goal: entering ? 0 : 1,
+					goal: initial,
 					entering,
 					retiring: false,
 				}
@@ -261,7 +294,7 @@ export function createEcologyMotion(
 					updatePoint(member)
 				})
 				updatePoint(member)
-				target(member, 1)
+				target(member, destination)
 			}
 			previousExpanded = new Set(expanded)
 			generation = nextGeneration
@@ -269,13 +302,31 @@ export function createEcologyMotion(
 		entering: (id: string) => members.get(id)?.entering ?? false,
 		exiting: (id: string) =>
 			!preference.matches && (members.get(id)?.retiring ?? false),
-		position: (id: string) => members.get(id)?.point,
+		position,
 		get active() {
 			return [...members.values()].some(
 				(member) => member.value.get() !== member.goal,
 			)
 		},
 		point,
+		historySpines() {
+			const spans = new Map<string, FamilyConnection>()
+			for (const member of members.values()) {
+				const { item } = member
+				if (!item.history) continue
+				const family = item.familyId!
+				const anchor = historyAnchor(item)
+				let span = spans.get(family)
+				if (!span) {
+					span = { family, from: anchor, to: anchor, color: item.color }
+					spans.set(family, span)
+				}
+				const event = historyPoint(member, anchor)
+				if (event.y < span.from.y) span.from = event
+				if (event.y > span.to.y) span.to = event
+			}
+			return [...spans.values()].filter(({ from, to }) => from !== to)
+		},
 		edge(edge: EcologyLine): EcologyLine {
 			return {
 				...edge,

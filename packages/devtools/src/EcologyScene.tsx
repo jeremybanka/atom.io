@@ -275,10 +275,7 @@ export function EcologyScene(props: {
 	})
 	const drawFamilySpines = (moving: boolean) => {
 		const family = props.selectedFamily
-		const connections = [
-			...(props.familyConnections ?? []),
-			...(props.historyConnections ?? []),
-		]
+		const connections = props.familyConnections ?? []
 		const positioned = moving
 			? connections.map((connection) => ({
 					...connection,
@@ -286,15 +283,19 @@ export function EcologyScene(props: {
 					to: { ...connection.to, ...motion.point(connection.to) },
 				}))
 			: connections
+		const history = moving
+			? motion.historySpines()
+			: (props.historyConnections ?? [])
+		const spines = [...positioned, ...history]
 		familySpine.material.opacity = props.selected ? 0.28 : FAMILY_SPINE_OPACITY
 		const emphasized = (link: FamilyConnection) =>
 			link.family === family || link.family === props.selected
 		writeFamilySpine(
 			familySpine,
-			positioned.filter((link) => !emphasized(link)),
+			spines.filter((link) => !emphasized(link)),
 			scale,
 		)
-		writeFamilySpine(selectedSpine, positioned.filter(emphasized), scale)
+		writeFamilySpine(selectedSpine, spines.filter(emphasized), scale)
 	}
 	const draw = () => {
 		const sceneChanged = dirty

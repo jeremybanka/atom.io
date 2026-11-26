@@ -93,6 +93,18 @@ outcome-collection-change.class {
 			> outcome-value {
 				flex: 1;
 			}
+			&[data-key-block] {
+				display: grid;
+				grid-template-columns: 6px minmax(0, 1fr);
+				row-gap: 0;
+				> code, > outcome-value {
+					grid-column: 2;
+				}
+				> code {
+					white-space: normal;
+					overflow-wrap: anywhere;
+				}
+			}
 		}
 	}
 	> snapshot-comparison > table > tbody > tr > td[data-snapshot-diff="before"] {

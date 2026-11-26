@@ -137,7 +137,11 @@ export function OutcomeCollectionChange(props: {
 				data-snapshot-diff={slot && entry.changed ? side : undefined}
 			>
 				{slot && (
-					<snapshot-entry>
+					<snapshot-entry
+						data-key-block={
+							(kind === `Object` && label.length > 10) || undefined
+						}
+					>
 						{label && (
 							<code
 								title={label}

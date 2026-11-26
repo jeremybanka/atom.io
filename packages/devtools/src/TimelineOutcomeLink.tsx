@@ -9,6 +9,7 @@ import {
 	type RecordedEvent,
 } from "./history-event.ts"
 import { type EditorTools, useExpanded } from "./store.ts"
+import css from "./TimelineOutcomeLink.module.css"
 
 type Outcome = Extract<RecordedEvent, { type: `transaction_outcome` }>
 
@@ -63,5 +64,7 @@ export function TimelineOutcomeLink(props: {
 			)
 		)
 	}
-	return <timeline-outcome-link>{content()}</timeline-outcome-link>
+	return (
+		<timeline-outcome-link class={css.class}>{content()}</timeline-outcome-link>
+	)
 }

@@ -296,8 +296,16 @@ export function EventView(props: {
 							disabled={!expandable}
 							onClick={toggle}
 						>
-							<EditorIcon name={getOpen() ? `collapse` : `expand`} />
-							{standaloneTimelineEvent && label()}
+							{standaloneTimelineEvent ? (
+								<>
+									<span data-timeline-caret>
+										<EditorIcon name={getOpen() ? `collapse` : `expand`} />
+									</span>
+									{label()}
+								</>
+							) : (
+								<EditorIcon name={getOpen() ? `collapse` : `expand`} />
+							)}
 						</button>
 						{owner ? (
 							<button

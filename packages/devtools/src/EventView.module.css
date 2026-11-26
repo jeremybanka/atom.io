@@ -32,7 +32,7 @@ event-view.class {
 	}
 	& > event-heading > button[data-timeline-label] {
 		width: auto;
-		> editor-icon {
+		> [data-timeline-caret] {
 			display: grid;
 			place-items: center;
 			width: 22px;
@@ -47,7 +47,7 @@ event-view.class {
 		outline: 2px solid var(--ink-strong);
 		outline-offset: -2px;
 	}
-	:is(&, & > history-write) > p[data-change] > [data-kind="number"] {
+	& > p[data-change] > [data-kind="number"] {
 		display: inline-block;
 		min-width: 3ch;
 		text-align: right;
@@ -83,22 +83,22 @@ event-view.class {
 		line-height: 18px;
 		overflow-wrap: anywhere;
 	}
-	:is(&, & > history-write) > p[data-change] {
+	& > p[data-change] {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 4px;
 	}
-	:is(&, & > history-write) > p[data-change] > span {
+	& > p[data-change] > span {
 		display: inline-flex;
 		color: var(--ink-muted);
 	}
-	:is(&, & > history-write) > p[data-change] > ins {
+	& > p[data-change] > ins {
 		color: var(--ink);
 		text-decoration: none;
 		background: var(--change-added);
 	}
-	:is(&, & > history-write) > p[data-change] > del {
+	& > p[data-change] > del {
 		color: var(--ink-muted);
 		background: var(--change-removed);
 	}
@@ -107,37 +107,6 @@ event-view.class {
 		border: 0;
 		&[data-indented] {
 			margin-inline-start: 12px;
-		}
-	}
-	& > history-write {
-		display: contents;
-	}
-	& > history-write > p[data-compact-write] {
-		display: grid;
-		grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) auto minmax(0, 2fr);
-		align-items: center;
-		min-height: 22px;
-		padding: 2px 6px;
-		line-height: 18px;
-		&[data-unnamed] {
-			grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-		}
-		> strong {
-			overflow: hidden;
-			white-space: nowrap;
-			text-overflow: ellipsis;
-		}
-		> :is(del, ins)[data-kind] {
-			min-width: 0;
-			max-width: 100%;
-		}
-		> del {
-			justify-self: end;
-			text-align: end;
-		}
-		> ins {
-			justify-self: start;
-			text-align: start;
 		}
 	}
 	& > p[data-outcome-metadata] {
@@ -196,13 +165,6 @@ event-view.class {
 		gap: 6px;
 		> small {
 			color: var(--ink-muted);
-		}
-	}
-	& > timeline-outcome-link {
-		display: block;
-		padding-inline-start: 12px;
-		> button {
-			color: var(--accent);
 		}
 	}
 	&[data-search-selected="true"] > event-heading {

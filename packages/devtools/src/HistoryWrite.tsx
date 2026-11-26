@@ -5,6 +5,7 @@ import { EditorIcon } from "./EditorIcon.tsx"
 import type { RecordedEvent } from "./history-event.ts"
 import { historyCollectionChanges } from "./history-value.ts"
 import { historyValuePair } from "./history-value-pair.ts"
+import css from "./HistoryWrite.module.css"
 import { OutcomeCollectionChange } from "./OutcomeCollectionChange.tsx"
 import { OutcomeValue } from "./OutcomeValue.tsx"
 import { OutcomeValuePair } from "./OutcomeValuePair.tsx"
@@ -21,7 +22,7 @@ export function HistoryWrite(props: {
 	const collection = historyCollectionChanges(oldValue, newValue)
 	const pair = collection ? undefined : historyValuePair(oldValue, newValue)
 	return (
-		<history-write>
+		<history-write class={css.class}>
 			{collection ? (
 				<OutcomeCollectionChange
 					tools={props.tools}

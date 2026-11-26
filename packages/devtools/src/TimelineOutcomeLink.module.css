@@ -1,0 +1,7 @@
+timeline-outcome-link.class {
+	display: block;
+	padding-inline-start: 12px;
+	> button {
+		color: var(--accent);
+	}
+}

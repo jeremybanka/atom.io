@@ -51,7 +51,23 @@ export function OutcomeCollectionChange(props: {
 	const first = preserveSmallBefore
 		? entries.find((entry) => entry.position === 0 && !entry.changed)
 		: undefined
-	const preview = first ? [first, ...compact.slice(0, inlineLimit - 1)] : compact
+	const sampledTail =
+		kind === `Array` &&
+		comparisonLimited &&
+		beforeSize! > 0 &&
+		afterSize! > beforeSize! &&
+		changes.some((entry) => entry.position >= beforeSize!)
+			? entries.find(
+					(entry) => entry.position === beforeSize! - 1 && !entry.changed,
+				)
+			: undefined
+	const anchor = first ?? sampledTail
+	const preview = anchor
+		? [
+				anchor,
+				...compact.filter((entry) => entry !== anchor).slice(0, inlineLimit - 1),
+			].sort((a, b) => a.position - b.position)
+		: compact
 	const more = entries.length - preview.length
 	const keyWidth = Math.min(
 		32,

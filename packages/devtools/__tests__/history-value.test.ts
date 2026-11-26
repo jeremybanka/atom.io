@@ -301,3 +301,14 @@ it(`retains index labels on both sides of a middle insertion`, () => {
 		[`2`, `3`, false],
 	])
 })
+
+it(`retains the shared neighbor at a sampled array append boundary`, () => {
+	const before = Array.from({ length: 5000 }, (_, index) => index)
+	const entries = historyCollectionChanges(before, [...before, 5000])!.entries
+	expect(
+		entries.slice(-2).map((entry) => [entry.position, entry.changed]),
+	).toEqual([
+		[4999, false],
+		[5000, true],
+	])
+})

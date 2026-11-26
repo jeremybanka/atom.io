@@ -236,6 +236,11 @@ function arrayComparisonPositions(
 		Math.min(beforeSize, afterSize),
 	)
 	const end = Math.min(size, boundary + 8)
+	if (beforeSize !== afterSize) {
+		const lastShared = Math.min(beforeSize, afterSize) - 1
+		if (lastShared >= arrayComparisonLimit && lastShared < boundary)
+			prefix.push(lastShared)
+	}
 	if (boundary < end) prefix.push(...indices(boundary, end))
 	return prefix
 }
@@ -317,7 +322,10 @@ export function historyCollectionChanges(
 			)
 			if (changed) changeCount++
 			const rows = array && changed ? changedEntries : entries
-			if (array && rows.length === limit) continue
+			if (array && rows.length >= limit) {
+				const lastShared = Math.min(before.size!, after.size!) - 1
+				if (changed || before.size === after.size || key !== lastShared) continue
+			}
 			const label = array
 				? String(key).padStart(digits, `0`)
 				: before.kind === `Object`
@@ -333,11 +341,26 @@ export function historyCollectionChanges(
 				changed,
 			})
 		}
+		const matchBeforeBoundary =
+			array && before.size !== after.size
+				? Math.min(before.size!, after.size!) - 1
+				: -1
+		const context = entries.filter(
+			(entry) => entry.position !== matchBeforeBoundary,
+		)
+		const boundaryContext = entries.find(
+			(entry) => entry.position === matchBeforeBoundary,
+		)
 		const snapshot =
 			aligned ??
 			(array
 				? changedEntries
-						.concat(entries.slice(0, limit - changedEntries.length))
+						.concat(
+							(boundaryContext ? [boundaryContext, ...context] : context).slice(
+								0,
+								limit - changedEntries.length,
+							),
+						)
 						.sort((a, b) => a.position - b.position)
 				: entries)
 		return {

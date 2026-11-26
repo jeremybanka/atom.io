@@ -28,6 +28,7 @@ export function OutcomeCollectionChange(props: {
 		truncated,
 		comparisonLimited,
 		changeCount,
+		orderChanged,
 	} = props.change
 	const [open, toggle] = useExpanded(props.tools, [
 		`outcome-change`,
@@ -35,6 +36,7 @@ export function OutcomeCollectionChange(props: {
 	])
 	const changes = entries.filter((entry) => entry.changed)
 	const keepSpliceContext =
+		kind === `Array` &&
 		entries.length <= inlineLimit + 1 &&
 		entries.some((entry) => entry.beforeLabel !== entry.afterLabel)
 	const compact = keepSpliceContext
@@ -125,6 +127,9 @@ export function OutcomeCollectionChange(props: {
 		side: `before` | `after`,
 	) => {
 		const slot = entry[side]
+		const changed =
+			(side === `before` ? entry.beforeChanged : entry.afterChanged) ??
+			entry.changed
 		const label =
 			(side === `before` ? entry.beforeLabel : entry.afterLabel) ?? entry.label
 		const field =
@@ -137,7 +142,7 @@ export function OutcomeCollectionChange(props: {
 		return (
 			<td
 				data-snapshot-side={side}
-				data-snapshot-diff={slot && entry.changed ? side : undefined}
+				data-snapshot-diff={slot && changed ? side : undefined}
 			>
 				{slot && (
 					<snapshot-entry
@@ -278,6 +283,9 @@ export function OutcomeCollectionChange(props: {
 					{changeCount} edited {kind === `Array` ? `indexes` : `entries`}
 					{comparisonLimited ? ` found` : ``}
 				</small>
+			)}
+			{orderChanged && (
+				<small data-collection-note>Iteration order changed</small>
 			)}
 			{discarded && (
 				<small data-collection-note>

@@ -185,6 +185,8 @@ type HistorySnapshotEntry = {
 	label: string
 	beforeLabel?: string
 	afterLabel?: string
+	beforeChanged?: boolean
+	afterChanged?: boolean
 	before?: Slot | undefined
 	after?: Slot | undefined
 	changed: boolean
@@ -200,6 +202,7 @@ export type HistoryCollectionChange = {
 	truncated: boolean
 	comparisonLimited: boolean
 	changeCount?: number
+	orderChanged?: true
 }
 
 /** Extract a single changed field without invoking getters or custom formatters. */
@@ -316,6 +319,37 @@ function alignArraySplice(
 	})
 }
 
+function orderedCollectionRows(
+	before: Collection,
+	after: Collection,
+	label: (key: unknown) => string,
+): HistorySnapshotEntry[] | undefined {
+	if (before.truncated || after.truncated || before.size !== after.size)
+		return undefined
+	const beforeKeys = new Set(before.keys)
+	if (after.keys.some((key) => !beforeKeys.has(key))) return undefined
+	if (before.keys.every((key, index) => Object.is(key, after.keys[index])))
+		return undefined
+	return before.keys.map((key, position) => {
+		const nextKey = after.keys[position]
+		const previous = before.read(key)
+		const current = after.read(nextKey)
+		const beforeChanged = !sameValue(previous?.value, after.read(key)?.value)
+		const afterChanged = !sameValue(before.read(nextKey)?.value, current?.value)
+		return {
+			position,
+			label: label(key),
+			beforeLabel: label(key),
+			afterLabel: label(nextKey),
+			before: previous,
+			after: current,
+			changed: beforeChanged || afterChanged,
+			beforeChanged,
+			afterChanged,
+		}
+	})
+}
+
 export function historyCollectionChanges(
 	previous: unknown,
 	next: unknown,
@@ -327,7 +361,15 @@ export function historyCollectionChanges(
 		const array = before.kind === `Array`
 		const length = Math.max(before.size ?? 0, after.size ?? 0)
 		const digits = String(Math.max(0, length - 1)).length
-		const aligned = array ? alignArraySplice(before, after, digits) : undefined
+		const order =
+			before.kind === `Map`
+				? orderedCollectionRows(
+						before,
+						after,
+						(key) => describeOutcomeValue(key).text,
+					)
+				: undefined
+		const aligned = array ? alignArraySplice(before, after, digits) : order
 		const keys = array
 			? aligned
 				? []
@@ -405,6 +447,7 @@ export function historyCollectionChanges(
 				: before.truncated || after.truncated,
 			comparisonLimited: array && !aligned && keys.length < length,
 			...(changeCount > 3 ? { changeCount } : {}),
+			...(order ? { orderChanged: true } : {}),
 		}
 	} catch {
 		return undefined

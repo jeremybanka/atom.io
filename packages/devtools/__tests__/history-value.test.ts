@@ -313,3 +313,27 @@ it(`retains the shared neighbor at a sampled array append boundary`, () => {
 		[5000, true],
 	])
 })
+
+it(`preserves each map snapshot's insertion order`, () => {
+	const before = new Map([
+		[`Kenya`, 1],
+		[`Rwanda`, 2],
+	])
+	const after = new Map([
+		[`Rwanda`, 4],
+		[`Kenya`, 1],
+	])
+	const change = historyCollectionChanges(before, after)!
+	expect(change.orderChanged).toBe(true)
+	expect(
+		change.entries.map((row) => [
+			row.beforeLabel,
+			row.beforeChanged,
+			row.afterLabel,
+			row.afterChanged,
+		]),
+	).toEqual([
+		[`"Kenya"`, false, `"Rwanda"`, true],
+		[`"Rwanda"`, true, `"Kenya"`, false],
+	])
+})

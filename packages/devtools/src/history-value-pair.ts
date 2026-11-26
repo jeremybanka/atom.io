@@ -1,4 +1,4 @@
-import { describeOutcomeValue } from "./history-value.ts"
+import { describeOutcomeValue, historySnapshotShape } from "./history-value.ts"
 
 type Snapshot = { value: unknown; preview: string; description?: string }
 
@@ -40,6 +40,10 @@ function textChange(before: string, after: string): HistoryValuePair {
 	}
 }
 
+function typedSnapshot(value: unknown, description: string): Snapshot {
+	return { value, description, preview: describeOutcomeValue(value).text }
+}
+
 export function historyValuePair(
 	before: unknown,
 	after: unknown,
@@ -74,6 +78,24 @@ export function historyValuePair(
 			},
 			after: { value: after, preview: preview(afterDate), description: `Date` },
 			disclose: sameTime,
+		}
+	}
+	const oldShape = historySnapshotShape(before),
+		newShape = historySnapshotShape(after)
+	if (
+		(oldShape?.kind === `Array` && !newShape) ||
+		(newShape?.kind === `Array` && !oldShape)
+	) {
+		return {
+			before: typedSnapshot(
+				before,
+				oldShape?.description ?? (before === null ? `null` : typeof before),
+			),
+			after: typedSnapshot(
+				after,
+				newShape?.description ?? (after === null ? `null` : typeof after),
+			),
+			disclose: true,
 		}
 	}
 	if (typeof before !== `string` || typeof after !== `string`) return undefined

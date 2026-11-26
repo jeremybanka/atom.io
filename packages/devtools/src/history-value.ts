@@ -94,6 +94,25 @@ function collection(value: unknown, scanMap = false): Collection | undefined {
 	}
 }
 
+export function historySnapshotShape(
+	value: unknown,
+): { kind: Collection[`kind`]; description: string } | undefined {
+	try {
+		const shape = collection(value)
+		if (!shape) return undefined
+		const { kind, size } = shape
+		return {
+			kind,
+			description:
+				size === undefined
+					? kind
+					: `${kind} · ${kind === `Array` ? `length` : `size`} ${size}`,
+		}
+	} catch {
+		return undefined
+	}
+}
+
 type Description = {
 	text: string
 	complete: boolean

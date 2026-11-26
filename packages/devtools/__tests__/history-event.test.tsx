@@ -440,11 +440,14 @@ it(`aligns collection snapshots with unchanged context and discloses larger samp
 		await click(raw)
 		expect(raw.textContent).toBe(`{"cart": ["coffee-beans"]}`)
 		const truncated = host.querySelector<HTMLButtonElement>(
-			`p:has(> strong[title="truncated"]) button[aria-label="Show full new value"]`,
+			`outcome-value-pair:has(> strong[title="truncated"]) button[aria-expanded]`,
 		)!
-		expect(truncated.textContent).toBe(`[[Array(…)]]`)
+		const next = truncated.parentElement!.querySelector(
+			`[data-value-side="after"] code`,
+		)
+		expect(next?.textContent).toBe(`[[Array(…)]]`)
 		await click(truncated)
-		expect(truncated.textContent).toBe(`[[[]]]`)
+		expect(next?.textContent).toBe(`[[[]]]`)
 	} finally {
 		root.dispose()
 	}

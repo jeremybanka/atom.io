@@ -136,17 +136,66 @@ event-view.class {
 		}
 	}
 	&[data-timeline-event] > event-heading {
-		> [data-redo-next] {
+		> button:is([data-graph-id], [data-timeline-label]) {
+			padding-inline-end: 0;
+			> [data-timeline-kind] {
+				flex-shrink: 3;
+			}
+		}
+		> [data-timeline-tail], > button > [data-timeline-tail] {
+			display: flex;
+			align-items: center;
+			justify-content: flex-end;
+			gap: 6px;
+			flex-shrink: 0;
+			min-inline-size: 0;
+			max-inline-size: 55%;
 			margin-inline-start: auto;
-			padding-inline-end: 6px;
-			color: var(--timeline-accent);
-			flex-shrink: 0;
-		}
-		> [data-write-count] {
-			flex-shrink: 0;
-		}
-		> [data-redo-next] + [data-write-count] {
-			margin-inline-start: 0;
+			padding-inline: 6px;
+			font-size: 11px;
+			> [data-redo-next] {
+				color: var(--timeline-accent);
+				flex-shrink: 0;
+			}
+			> [data-timeline-summary] {
+				min-inline-size: 0;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				line-height: 16px;
+				color: var(--ink-muted);
+				&:has(> [data-summary-values]) {
+					display: flex;
+					align-items: center;
+					gap: 6px;
+				}
+				> [data-summary-label] {
+					overflow: hidden;
+					text-overflow: ellipsis;
+				}
+				> [data-summary-values] {
+					display: flex;
+					align-items: center;
+					gap: 4px;
+					flex-shrink: 0;
+					max-inline-size: 100%;
+					> :is(del, ins) {
+						min-inline-size: 0;
+						overflow: hidden;
+						text-overflow: ellipsis;
+					}
+					> span {
+						flex-shrink: 0;
+					}
+					> del {
+						background: var(--change-removed);
+					}
+					> ins {
+						color: var(--ink);
+						background: var(--change-added);
+						text-decoration: none;
+					}
+				}
+			}
 		}
 	}
 	& > event-heading[data-timeline-outcome] {
@@ -158,7 +207,7 @@ event-view.class {
 			display: inline-flex;
 			align-items: center;
 			gap: 3px;
-			flex: 0 1 auto;
+			flex: 0 3 auto;
 			min-width: 0;
 			height: 20px;
 			padding-inline: 0 4px;

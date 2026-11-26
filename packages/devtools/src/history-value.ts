@@ -94,15 +94,22 @@ function collection(value: unknown, scanMap = false): Collection | undefined {
 	}
 }
 
-export function historySnapshotShape(
-	value: unknown,
-): { kind: Collection[`kind`]; description: string } | undefined {
+export function historySnapshotShape(value: unknown):
+	| {
+			kind: Collection[`kind`]
+			size: number | undefined
+			truncated: boolean
+			description: string
+	  }
+	| undefined {
 	try {
 		const shape = collection(value)
 		if (!shape) return undefined
-		const { kind, size } = shape
+		const { kind, size, truncated } = shape
 		return {
 			kind,
+			size,
+			truncated,
 			description:
 				size === undefined
 					? kind

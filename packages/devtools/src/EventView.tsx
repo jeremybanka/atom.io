@@ -19,6 +19,7 @@ import { describeOutcomeValue, historySnapshotShape } from "./history-value.ts"
 import { HistoryWrite } from "./HistoryWrite.tsx"
 import { OutcomeValue } from "./OutcomeValue.tsx"
 import { type EditorTools, useExpanded } from "./store.ts"
+import { timelineEventSummary } from "./timeline-event-summary.ts"
 import { useTimelineOutcomeLink } from "./timeline-outcome-link.ts"
 
 export interface EcologyEventInteraction {
@@ -72,6 +73,49 @@ export function EventView(props: {
 		compact && `subEvents` in event
 			? historyWriteCount(event.subEvents)
 			: undefined
+	const summary = timelineEvent
+		? timelineEventSummary(event, writeCount)
+		: undefined
+	const summaryText =
+		typeof summary === `object`
+			? `${summary.label ? `${summary.label}: ` : ``}${summary.before} to ${summary.after}`
+			: summary
+	const description = () =>
+		outcomeLink
+			? undefined
+			: [props.timeline?.redoNext ? `Redo next` : undefined, summaryText]
+					.filter(Boolean)
+					.join(`. `) || undefined
+	const timelineTail = () =>
+		(summary !== undefined || props.timeline?.redoNext) && (
+			<span data-timeline-tail>
+				{props.timeline?.redoNext && <small data-redo-next>Redo next</small>}
+				{summary !== undefined && (
+					<small
+						data-timeline-summary
+						data-write-count={writeCount !== undefined || undefined}
+						title={summaryText}
+					>
+						{typeof summary === `string` ? (
+							summary
+						) : (
+							<>
+								{summary.label && (
+									<span data-summary-label>{summary.label}</span>
+								)}
+								<span data-summary-values>
+									<del>{summary.before}</del>
+									<span role="img" aria-label="changed to">
+										<EditorIcon name="arrow" />
+									</span>
+									<ins>{summary.after}</ins>
+								</span>
+							</>
+						)}
+					</small>
+				)}
+			</span>
+		)
 	const lifecycle =
 		timelineDetails &&
 		(event.type === `atom_creation` || event.type === `atom_disposal`)
@@ -96,6 +140,7 @@ export function EventView(props: {
 							{compact ? event.type.replaceAll(`_`, ` `) : event.type}
 						</small>
 					)}
+			{timelineEvent && !outcomeLink && timelineTail()}
 		</>
 	)
 	const outcomeKind = () => {
@@ -319,6 +364,9 @@ export function EventView(props: {
 						<button
 							type="button"
 							aria-label={`${getOpen() ? `Collapse` : `Expand`} ${headingName}`}
+							aria-description={
+								standaloneTimelineEvent ? description() : undefined
+							}
 							aria-expanded={getOpen()}
 							data-timeline-label={standaloneTimelineEvent || undefined}
 							disabled={!expandable}
@@ -341,6 +389,7 @@ export function EventView(props: {
 								data-graph-id={graphId}
 								data-history-owner={owner}
 								aria-label={`Select ${owner.startsWith(`transaction:`) ? `outcome` : `timeline event`} ${props.index + 1}`}
+								aria-description={description()}
 								aria-pressed={selected()}
 								onKeyDown={(keyEvent) => {
 									if (
@@ -363,8 +412,8 @@ export function EventView(props: {
 							!standaloneTimelineEvent && label()
 						)}
 						{outcomeKind()}
-						{props.timeline?.redoNext && <small data-redo-next>Redo next</small>}
-						{writeCount !== undefined && (
+						{outcomeLink && timelineTail()}
+						{!timelineEvent && writeCount !== undefined && (
 							<small
 								data-write-count
 							>{`${writeCount} ${writeCount === 1 ? `write` : `writes`}`}</small>

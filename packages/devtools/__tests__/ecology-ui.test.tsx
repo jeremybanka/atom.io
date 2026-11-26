@@ -2031,6 +2031,12 @@ it(`opens the retained source outcome after inspecting a scoped timeline event`,
 	)
 	expect(first.textContent).toContain(`1 · cartItems`)
 	expect(second.textContent).toContain(`2 · saveCart`)
+	expect(
+		first.querySelector(`[data-timeline-summary]`)?.getAttribute(`title`),
+	).toBe(`length: 0 to 1`)
+	expect(
+		second.querySelector(`[data-timeline-summary]`)?.getAttribute(`title`),
+	).toBe(`cartItems · length: 1 to 2`)
 	expect(history.querySelector(`outcome-collection-change`)).toBeNull()
 	await f.click(`Expand 1 · cartItems`)
 	expect(

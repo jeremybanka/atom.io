@@ -24,7 +24,7 @@ event-view.class {
 		min-width: 0;
 		height: 100%;
 		padding: 0 4px 0 0;
-		background: transparent;
+		/* background: transparent; */
 		text-align: left;
 		&:focus-visible {
 			outline-offset: -2px;
@@ -54,9 +54,11 @@ event-view.class {
 		font-variant-numeric: tabular-nums;
 	}
 	& > event-impact {
-		display: block;
+		display: flex;
+		flex-flow: column;
 		margin-left: 9px;
 		border-left: 1px solid var(--ink-muted);
+		gap: 5px;
 	}
 	& > event-heading > strong,
 	& > event-heading > :is(button[data-graph-id], button[data-timeline-label])
@@ -231,7 +233,9 @@ event-view.class {
 		margin-inline-start: 10px;
 		border-inline-start: 1px solid var(--line);
 		> event-impact {
-			display: block;
+			display: flex;
+			flex-flow: column;
+			gap: 5px;
 		}
 		> p[data-outcome-metadata] {
 			padding-inline-start: 6px;

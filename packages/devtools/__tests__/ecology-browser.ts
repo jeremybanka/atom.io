@@ -815,7 +815,7 @@ try {
 					style.borderBottomWidth,
 				]
 			}),
-			[`0px`, `0px`, `0px`, `0px`, `0px`],
+			[`0px`, `0px`, `0px`, `1px`, `0px`],
 		)
 		const priceHistory = editorRow(`timeline:price history`)
 		assert.equal(await priceHistory.locator(`timeline-history`).count(), 0)

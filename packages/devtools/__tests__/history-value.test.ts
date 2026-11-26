@@ -168,7 +168,7 @@ it(`reports changed record properties, map entries and set membership`, () => {
 	const long = new Map(Array.from({ length: 35 }, (_, index) => [index, index]))
 	const reordered = historyCollectionChanges(long, new Map([...long].reverse()))!
 	expect(reordered.truncated).toBe(true)
-	expect(reordered.entries).toHaveLength(35)
+	expect(reordered.entries).toHaveLength(32)
 	expect(reordered.entries.some((entry) => entry.changed)).toBe(false)
 	const hidden = Object.defineProperty({}, `internal`, { value: 1 })
 	expect(historyCollectionChanges(hidden, {})).toMatchObject({
@@ -336,4 +336,19 @@ it(`preserves each map snapshot's insertion order`, () => {
 		[`"Kenya"`, false, `"Rwanda"`, true],
 		[`"Rwanda"`, true, `"Kenya"`, false],
 	])
+})
+
+it(`compares large map keys beyond the displayed sample`, () => {
+	const before = new Map(
+		Array.from({ length: 60 }, (_, index) => [index, index]),
+	)
+	const after = new Map(
+		[...before].map(([key, value]) => [key, key < 40 ? value : -value]),
+	)
+	const change = historyCollectionChanges(before, after)!
+	expect(change.entries).toHaveLength(32)
+	expect(change.changeCount).toBe(20)
+	expect(
+		change.entries.filter((entry) => entry.changed).map((entry) => entry.label),
+	).toEqual(Array.from({ length: 20 }, (_, index) => String(index + 40)))
 })

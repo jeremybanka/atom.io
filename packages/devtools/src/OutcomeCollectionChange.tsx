@@ -79,7 +79,9 @@ export function OutcomeCollectionChange(props: {
 	const length =
 		kind === `Array`
 			? Math.max(beforeSize!, afterSize!)
-			: entries.length + Number(truncated)
+			: Math.max(entries.at(-1)?.position ?? -1, entries.length - 1) +
+				1 +
+				Number(truncated)
 	const discarded =
 		kind === `Array` && beforeSize! > afterSize! && changes.length === 0
 			? [afterSize!, beforeSize! - 1].map((index) =>
@@ -299,7 +301,7 @@ export function OutcomeCollectionChange(props: {
 			{truncated && (
 				<small data-collection-note>
 					{comparisonLimited
-						? `Large array · comparison sampled. Changes may be missing.`
+						? `Large ${kind.toLowerCase()} · comparison sampled. Changes may be missing.`
 						: `Large value · showing sampled entries`}
 				</small>
 			)}

@@ -1,7 +1,7 @@
 import { historyValue } from "./history-event.ts"
 
 const limit = 32
-const arrayComparisonLimit = 4096
+const comparisonLimit = 4096
 const accessor = Symbol(`recorded accessor`)
 const empty = Symbol(`array hole`)
 const mapSize = Object.getOwnPropertyDescriptor(Map.prototype, `size`)!.get!
@@ -37,7 +37,7 @@ function indices(from: number, to: number): number[] {
 }
 
 /** Inspect the recorded value on demand using own data properties or native collection methods. */
-function collection(value: unknown): Collection | undefined {
+function collection(value: unknown, scanMap = false): Collection | undefined {
 	if (value === null || typeof value !== `object`) return undefined
 	if (Array.isArray(value)) {
 		const size = Object.getOwnPropertyDescriptor(value, `length`)
@@ -69,12 +69,13 @@ function collection(value: unknown): Collection | undefined {
 	const map = value instanceof Map
 	if (!map && !(value instanceof Set)) return undefined
 	const size = Reflect.apply(map ? mapSize : setSize, value, []) as number
+	const maxKeys = map && scanMap ? comparisonLimit : limit
 	const keys: unknown[] = []
 	const items: Iterable<unknown> = map
 		? Map.prototype.keys.call(value)
 		: Set.prototype.values.call(value)
 	for (const key of items) {
-		if (keys.length === limit) break
+		if (keys.length === maxKeys) break
 		keys.push(key)
 	}
 	const read = (key: unknown): Slot | undefined => {
@@ -84,7 +85,13 @@ function collection(value: unknown): Collection | undefined {
 				: undefined
 		return Set.prototype.has.call(value, key) ? { value: key } : undefined
 	}
-	return { kind: map ? `Map` : `Set`, size, keys, truncated: size > limit, read }
+	return {
+		kind: map ? `Map` : `Set`,
+		size,
+		keys,
+		truncated: size > maxKeys,
+		read,
+	}
 }
 
 type Description = {
@@ -258,15 +265,12 @@ function arrayComparisonPositions(
 	afterSize: number,
 ): number[] {
 	const size = Math.max(beforeSize, afterSize)
-	const prefix = indices(0, Math.min(size, arrayComparisonLimit))
-	const boundary = Math.max(
-		arrayComparisonLimit,
-		Math.min(beforeSize, afterSize),
-	)
+	const prefix = indices(0, Math.min(size, comparisonLimit))
+	const boundary = Math.max(comparisonLimit, Math.min(beforeSize, afterSize))
 	const end = Math.min(size, boundary + 8)
 	if (beforeSize !== afterSize) {
 		const lastShared = Math.min(beforeSize, afterSize) - 1
-		if (lastShared >= arrayComparisonLimit && lastShared < boundary)
+		if (lastShared >= comparisonLimit && lastShared < boundary)
 			prefix.push(lastShared)
 	}
 	if (boundary < end) prefix.push(...indices(boundary, end))
@@ -356,10 +360,12 @@ export function historyCollectionChanges(
 	next: unknown,
 ): HistoryCollectionChange | undefined {
 	try {
-		const before = collection(previous),
-			after = collection(next)
+		const before = collection(previous, true),
+			after = collection(next, true)
 		if (!before || !after || before.kind !== after.kind) return undefined
 		const array = before.kind === `Array`
+		const map = before.kind === `Map`
+		const bounded = array || map
 		const length = Math.max(before.size ?? 0, after.size ?? 0)
 		const digits = String(Math.max(0, length - 1)).length
 		const objectKeys = new Map<object, number>()
@@ -384,7 +390,7 @@ export function historyCollectionChanges(
 		const entries: HistorySnapshotEntry[] = []
 		const changedEntries: HistorySnapshotEntry[] = []
 		let changeCount = 0
-		for (const key of keys) {
+		for (const [offset, key] of keys.entries()) {
 			const old = before.read(key),
 				current = after.read(key)
 			if (!old && !current) continue
@@ -393,10 +399,16 @@ export function historyCollectionChanges(
 				current ? current.value : empty,
 			)
 			if (changed) changeCount++
-			const rows = array && changed ? changedEntries : entries
-			if (array && rows.length >= limit) {
+			const rows = bounded && changed ? changedEntries : entries
+			if (bounded && rows.length >= limit) {
 				const lastShared = Math.min(before.size!, after.size!) - 1
-				if (changed || before.size === after.size || key !== lastShared) continue
+				if (
+					!array ||
+					changed ||
+					before.size === after.size ||
+					key !== lastShared
+				)
+					continue
 			}
 			const label = array
 				? String(key).padStart(digits, `0`)
@@ -406,7 +418,7 @@ export function historyCollectionChanges(
 						? mapLabel(key)
 						: ``
 			rows.push({
-				position: array ? (key as number) : entries.length,
+				position: array ? (key as number) : map ? offset : entries.length,
 				label,
 				before: old,
 				after: current,
@@ -424,8 +436,8 @@ export function historyCollectionChanges(
 			(entry) => entry.position === matchBeforeBoundary,
 		)
 		const snapshot =
-			aligned ??
-			(array
+			aligned?.slice(0, limit) ??
+			(bounded
 				? changedEntries
 						.concat(
 							(boundaryContext ? [boundaryContext, ...context] : context).slice(
@@ -439,19 +451,24 @@ export function historyCollectionChanges(
 			kind: before.kind,
 			beforeSize: before.size,
 			afterSize: after.size,
-			beforeEmpty: array
-				? before.size === 0
-				: !before.truncated &&
-					entries.every((entry) => entry.before === undefined),
-			afterEmpty: array
-				? after.size === 0
-				: !after.truncated &&
-					entries.every((entry) => entry.after === undefined),
+			beforeEmpty:
+				before.size !== undefined
+					? before.size === 0
+					: !before.truncated &&
+						entries.every((entry) => entry.before === undefined),
+			afterEmpty:
+				after.size !== undefined
+					? after.size === 0
+					: !after.truncated &&
+						entries.every((entry) => entry.after === undefined),
 			entries: snapshot,
-			truncated: array
-				? snapshot.length < length
+			truncated: bounded
+				? snapshot.length < (array ? length : keys.length) ||
+					(map && (before.truncated || after.truncated))
 				: before.truncated || after.truncated,
-			comparisonLimited: array && !aligned && keys.length < length,
+			comparisonLimited:
+				(array && !aligned && keys.length < length) ||
+				(map && (before.truncated || after.truncated)),
 			...(changeCount > 3 ? { changeCount } : {}),
 			...(order ? { orderChanged: true } : {}),
 			...(objectKeys.size ? { objectKeys: true } : {}),

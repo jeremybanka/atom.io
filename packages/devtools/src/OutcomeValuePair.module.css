@@ -11,6 +11,13 @@ outcome-value-pair.class {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		border-inline: 1px solid var(--line);
+		&[data-full-comparison] {
+			> [data-value-side] > code {
+				max-block-size: 12rem;
+				overflow: auto;
+				scrollbar-gutter: stable;
+			}
+		}
 		> [data-value-side] {
 			min-width: 0;
 			& + [data-value-side] {
@@ -40,6 +47,15 @@ outcome-value-pair.class {
 			}
 			&[data-value-side="after"] > code {
 				background: var(--change-added);
+			}
+		}
+	}
+	@container atom-io-devtools (max-width: 360px) {
+		> [data-value-columns][data-full-comparison] {
+			grid-template-columns: 1fr;
+			> [data-value-side] + [data-value-side] {
+				border-inline-start: 0;
+				border-block-start: 1px solid var(--line);
 			}
 		}
 	}

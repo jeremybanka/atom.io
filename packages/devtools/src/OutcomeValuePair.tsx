@@ -20,7 +20,7 @@ export function OutcomeValuePair(props: {
 	const snapshot = (side: `before` | `after`) => {
 		const { value, preview, description } = props.pair[side]
 		return (
-			<div data-value-side={side}>
+			<value-snapshot data-value-side={side}>
 				<p>
 					<span>{side === `before` ? `Before` : `After`}</span>
 					{description && <small>{description}</small>}
@@ -28,20 +28,23 @@ export function OutcomeValuePair(props: {
 				<code>
 					{open() ? describeOutcomeValue(value, true, true).text : preview}
 				</code>
-			</div>
+			</value-snapshot>
 		)
 	}
 	return (
 		<outcome-value-pair class={css.class}>
 			<strong title={props.name}>{props.name}</strong>
-			<div data-value-columns>
+			<value-snapshots
+				data-value-columns
+				data-full-comparison={open() || undefined}
+			>
 				{snapshot(`before`)}
 				{snapshot(`after`)}
-			</div>
+			</value-snapshots>
 			{props.pair.disclose && (
 				<button type="button" aria-expanded={open()} onClick={toggle}>
 					<EditorIcon name={open() ? `collapse` : `expand`} />
-					{open() ? `Show less` : `Show full comparison`}
+					{open() ? `Show preview` : `Show full comparison`}
 				</button>
 			)}
 		</outcome-value-pair>

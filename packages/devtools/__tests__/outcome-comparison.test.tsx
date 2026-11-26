@@ -349,6 +349,17 @@ it(`scrolls to edits on disclosure and cycles through the updates`, async () => 
 		await view.open()
 		const comparison = collection(view.host, `edits`)
 		const pane = comparison.querySelector<HTMLElement>(`snapshot-comparison`)!
+		let scrollTop = 0
+		Object.defineProperties(pane, {
+			clientHeight: { value: 120 },
+			scrollHeight: { value: 260 },
+			scrollTop: {
+				get: () => scrollTop,
+				set: (requested: number) => {
+					scrollTop = Math.max(0, Math.min(140, requested))
+				},
+			},
+		})
 		vi.spyOn(pane, `getBoundingClientRect`).mockReturnValue(
 			new DOMRect(0, 0, 200, 120),
 		)
@@ -372,7 +383,7 @@ it(`scrolls to edits on disclosure and cycles through the updates`, async () => 
 			(button) => button.textContent === `Next edit`,
 		)!
 		await click(nextEdit)
-		expect(pane.scrollTop).toBe(180)
+		expect(pane.scrollTop).toBe(140)
 		await click(nextEdit)
 		expect(pane.scrollTop).toBe(100)
 		const unchanged = collection(view.host, `unchanged`)

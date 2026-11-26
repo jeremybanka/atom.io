@@ -195,12 +195,17 @@ export function OutcomeCollectionChange(props: {
 		const edits = Array.from(
 			comparison.querySelectorAll(`tr[data-snapshot-changed]`),
 		)
-		const next = fromStart
-			? undefined
-			: edits.find(
-					(row) =>
-						row.getBoundingClientRect().top > bounds.top + headingHeight + 2,
-				)
+		const atBottom =
+			comparison.scrollTop > 0 &&
+			comparison.scrollTop + comparison.clientHeight >=
+				comparison.scrollHeight - 1
+		const next =
+			fromStart || atBottom
+				? undefined
+				: edits.find(
+						(row) =>
+							row.getBoundingClientRect().top > bounds.top + headingHeight + 2,
+					)
 		const target = next ?? edits[0]
 		if (target)
 			comparison.scrollTop +=

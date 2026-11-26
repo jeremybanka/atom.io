@@ -261,6 +261,13 @@ it(`ships initial and incremental Ecology operations over the remote protocol`, 
 				`0 of 0 events applied`,
 			)
 		})
+		const countRow = host.querySelector(
+			`[data-row-id='timeline:${countTimeline.key}']`,
+		)!
+		expect(countRow.querySelector(`timeline-history`)).toBeNull()
+		expect(
+			countRow.querySelectorAll(`timeline-travel button:disabled`),
+		).toHaveLength(2)
 
 		const draftTimelines = silo.timelineFamily<string>({
 			key: `draft`,
@@ -290,7 +297,7 @@ it(`ships initial and incremental Ecology operations over the remote protocol`, 
 					?.textContent,
 			).toBe(`Current position`)
 			expect(
-				host.querySelectorAll(`ecology-editor timeline-travel button:disabled`),
+				countRow.querySelectorAll(`timeline-travel button:disabled`),
 			).toHaveLength(2)
 		})
 		host
@@ -346,6 +353,10 @@ it(`ships initial and incremental Ecology operations over the remote protocol`, 
 		const memberRow = host.querySelector(
 			`[data-row-id='timeline:${member.key}']`,
 		)!
+		expect(memberRow.querySelector(`timeline-history`)).toBeNull()
+		expect(
+			memberRow.querySelectorAll(`timeline-travel button:disabled`),
+		).toHaveLength(2)
 		memberRow
 			.querySelector<HTMLButtonElement>(`button[aria-expanded="false"]`)!
 			.click()

@@ -44,7 +44,7 @@ export function EcologyOperationHistory(props: {
 				</button>
 				{props.label}
 				<small>{summary()}</small>
-				{props.expanded && timeline?.() && (
+				{timeline && (
 					<TimelineTravel
 						tools={props.tools}
 						timelineKey={key}

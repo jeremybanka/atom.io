@@ -316,6 +316,20 @@ it(`opens recorded transaction outcomes and timeline controls in the standalone 
 	expect(
 		editor.querySelector(`transaction-outcomes, timeline-history`),
 	).toBeNull()
+	const travel = editor.querySelector(`node-heading > timeline-travel`)!
+	expect(travel.parentElement?.lastElementChild).toBe(travel)
+	const undo = travel.querySelector<HTMLButtonElement>(`[aria-label="undo"]`)!
+	const redo = travel.querySelector<HTMLButtonElement>(`[aria-label="redo"]`)!
+	expect(undo.disabled).toBe(false)
+	expect(redo.disabled).toBe(true)
+	await f.click(`undo`)
+	expect(f.silo.getState(countAtom)).toBe(2)
+	expect(redo.disabled).toBe(false)
+	expect(editor.querySelector(`timeline-history`)).toBeNull()
+	await f.click(`redo`)
+	expect(f.silo.getState(countAtom)).toBe(4)
+	expect(redo.disabled).toBe(true)
+	expect(editor.querySelector(`timeline-history`)).toBeNull()
 	await f.select(`transaction:save`, `Enter`)
 	const outcomes = editor.querySelector(`transaction-outcomes`)!
 	expect(outcomes.textContent).toBe(`Outcome 11 writeOutcome 21 write`)
@@ -358,15 +372,8 @@ it(`opens recorded transaction outcomes and timeline controls in the standalone 
 	await f.select(outcomeCards[0].getAttribute(`data-graph-id`)!)
 	expect(document.activeElement?.closest(`transaction-outcomes`)).not.toBeNull()
 	await f.select(`timeline:count`, `Enter`)
-	const heading = editor.querySelector(
-		`ecology-operation-history > node-heading:has(timeline-travel)`,
-	)!
-	expect(heading.lastElementChild?.localName).toBe(`timeline-travel`)
-	const disabledRedo = editor.querySelector<HTMLButtonElement>(
-		`timeline-travel button:disabled`,
-	)!
-	expect(disabledRedo.getAttribute(`aria-label`)).toBe(`redo`)
-	expect(disabledRedo.querySelector(`[data-editor-icon="redo"]`)).not.toBeNull()
+	expect(redo.disabled).toBe(true)
+	expect(redo.querySelector(`[data-editor-icon="redo"]`)).not.toBeNull()
 	expect(outcomes.querySelector(`[data-editor-icon="arrow"]`)).not.toBeNull()
 	expect(
 		outcomes.querySelector(`event-heading button [data-editor-icon="collapse"]`),

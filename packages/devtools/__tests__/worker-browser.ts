@@ -306,6 +306,20 @@ if (process.argv.includes(`--serve`)) {
 		assert.equal(await outcomeEntry.getAttribute(`aria-pressed`), `true`)
 
 		const timelineCard = operationCard(`timeline:count`)
+		const timelineRow = ecology.locator(
+			`ecology-editor-row[data-row-id="timeline:count"]`,
+		)
+		const travel = timelineRow.locator(`node-heading > timeline-travel`)
+		const undo = travel.getByRole(`button`, { name: `undo` })
+		const redo = travel.getByRole(`button`, { name: `redo` })
+		const history = timelineRow.locator(`timeline-history`)
+		assert.equal(await history.count(), 0)
+		await undo.click()
+		await expectWorker(18, 36)
+		assert.equal(await history.count(), 0)
+		await redo.click()
+		await expectWorker(25, 50)
+		assert.equal(await history.count(), 0)
 		await timelineCard.press(`Enter`)
 		const eventCard = scene
 			.locator(`ecology-node-card[data-history="past"]`)
@@ -332,8 +346,6 @@ if (process.argv.includes(`--serve`)) {
 				`timeline-history button[data-graph-id="${eventId}"][aria-pressed="true"]`,
 			)
 			.waitFor()
-		const travel = ecology.locator(`node-heading > timeline-travel`)
-		const undo = travel.getByRole(`button`, { name: `undo` })
 		await undo.locator(`[data-editor-icon="undo"]`).waitFor()
 		await undo.click()
 		await expectWorker(18, 36)
@@ -345,7 +357,7 @@ if (process.argv.includes(`--serve`)) {
 			(await futureEvent.evaluate(position)) <
 				(await timelineCard.locator(`..`).evaluate(position)),
 		)
-		await travel.getByRole(`button`, { name: `redo` }).click()
+		await redo.click()
 		await expectWorker(25, 50)
 		await futureEvent.waitFor({ state: `detached` })
 		await timelineCard.press(`Enter`)

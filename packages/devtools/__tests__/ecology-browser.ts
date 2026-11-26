@@ -817,7 +817,18 @@ try {
 			}),
 			[`0px`, `0px`, `0px`, `0px`, `0px`],
 		)
-		await operations
+		const priceHistory = editorRow(`timeline:price history`)
+		assert.equal(await priceHistory.locator(`timeline-history`).count(), 0)
+		assert.deepEqual(
+			await priceHistory
+				.locator(`timeline-travel button:disabled`)
+				.all()
+				.then((buttons) =>
+					Promise.all(buttons.map((button) => button.isVisible())),
+				),
+			[true, true],
+		)
+		await priceHistory
 			.getByRole(`button`, { name: `Expand timeline price history` })
 			.click()
 		assert.equal(
@@ -827,15 +838,15 @@ try {
 			`No recorded events`,
 		)
 		assert.deepEqual(
-			await operations
-				.locator(`ecology-editor timeline-travel button:disabled`)
+			await priceHistory
+				.locator(`timeline-travel button:disabled`)
 				.evaluateAll((buttons) =>
 					buttons.map((button) => button.getBoundingClientRect().height),
 				),
 			[22, 22],
 		)
 		assert.equal(
-			await editorRow(`timeline:price history`)
+			await priceHistory
 				.locator(`ecology-operation-history > node-heading`)
 				.evaluate((heading) => heading.getBoundingClientRect().height),
 			22,

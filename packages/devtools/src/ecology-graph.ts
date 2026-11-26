@@ -33,7 +33,7 @@ const operationAnchorReserve = 25
 const operationEdgeReserve = 100
 const historyWorkLimit = 10_000
 export const stateHelixRadius = 8
-export const operationHelixRadius = stateHelixRadius * 4
+export const operationHelixRadius: number = stateHelixRadius * 4
 
 export interface GraphHistory {
 	events: readonly RecordedEvent[]

@@ -5,7 +5,7 @@
 	"description": "Solid 2.0 · SDK next",
 	"type": "module",
 	"dependencies": {
-		"solid-js": "2.0.3"
+		"solid-js": "2.0.4"
 	},
 	"devDependencies": {
 		"@types/node": "26.6.7",

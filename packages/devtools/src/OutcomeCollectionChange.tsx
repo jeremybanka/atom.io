@@ -36,12 +36,21 @@ export function OutcomeCollectionChange(props: {
 	const keepSpliceContext =
 		entries.length <= inlineLimit + 1 &&
 		entries.some((entry) => entry.beforeLabel !== entry.afterLabel)
-	const preview = keepSpliceContext
+	const compact = keepSpliceContext
 		? entries
 		: (entries.length > inlineLimit && changes.length ? changes : entries).slice(
 				0,
 				inlineLimit,
 			)
+	const preserveSmallBefore =
+		kind === `Array` &&
+		beforeSize === 1 &&
+		afterSize! > inlineLimit + 1 &&
+		changes.length > 0
+	const first = preserveSmallBefore
+		? entries.find((entry) => entry.position === 0 && !entry.changed)
+		: undefined
+	const preview = first ? [first, ...compact.slice(0, inlineLimit - 1)] : compact
 	const more = entries.length - preview.length
 	const keyWidth = Math.min(
 		32,

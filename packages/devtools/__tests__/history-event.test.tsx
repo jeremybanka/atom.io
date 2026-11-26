@@ -416,7 +416,12 @@ it(`aligns collection snapshots with unchanged context and discloses larger samp
 					`[data-snapshot-gap] [data-snapshot-side="${side}"]`,
 				),
 			].map((entry) => entry.textContent)
-		expect(gaps(extended, `before`)).toEqual([`…`, ``, ``])
+		expect(gaps(extended, `before`)).toEqual([``, ``, ``])
+		expect(
+			extended.querySelector(
+				`[data-snapshot-entry] [data-snapshot-side="before"]`,
+			)?.textContent,
+		).toBe(`000"stock"`)
 		expect(gaps(shortened, `after`)).toEqual([`…`, ``, ``])
 		expect(large.querySelector(`[data-collection-note]`)?.textContent).toContain(
 			`sampled entries`,

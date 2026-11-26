@@ -89,7 +89,11 @@ function collection(value: unknown): Collection | undefined {
 
 type Description = { text: string; complete: boolean; truncated: boolean }
 
-function describe(value: unknown, expanded: boolean): Description {
+function describe(
+	value: unknown,
+	expanded: boolean,
+	multiline: boolean,
+): Description {
 	const path = new Set<unknown>()
 	let budget = expanded ? 96 : 12
 	let complete = true
@@ -136,12 +140,16 @@ function describe(value: unknown, expanded: boolean): Description {
 					parts.push(
 						shape.kind === `Array` || shape.kind === `Set`
 							? text
-							: `${visit(key, depth + 1)}: ${text}`,
+							: `${multiline && shape.kind === `Object` ? recordKey(key) : visit(key, depth + 1)}: ${text}`,
 					)
 				}
 			}
 			if (shape.truncated || shape.keys.length > maximum) parts.push(omit(`…`))
-			const text = parts.join(`, `)
+			const indent = `  `.repeat(depth + 1)
+			const text =
+				multiline && parts.length > 1
+					? `\n${indent}${parts.join(`,\n${indent}`)}\n${`  `.repeat(depth)}`
+					: parts.join(`, `)
 			if (shape.kind === `Array`) return `[${text}]`
 			if (shape.kind === `Object`) return `{${text}}`
 			return `${shape.kind}(${shape.size}) {${text}}`
@@ -158,8 +166,9 @@ function describe(value: unknown, expanded: boolean): Description {
 export function describeOutcomeValue(
 	value: unknown,
 	expanded = false,
+	multiline = false,
 ): Description {
-	return describe(value, expanded)
+	return describe(value, expanded, multiline)
 }
 
 type HistorySnapshotEntry = {
@@ -226,8 +235,8 @@ export function changedRecordField(
 function sameValue(before: unknown, after: unknown): boolean {
 	if (Object.is(before, after)) return true
 	if (typeof before !== `object` || typeof after !== `object`) return false
-	const a = describe(before, false),
-		b = describe(after, false)
+	const a = describeOutcomeValue(before),
+		b = describeOutcomeValue(after)
 	return a.complete && b.complete && a.text === b.text
 }
 

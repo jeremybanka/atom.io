@@ -17,6 +17,9 @@ outcome-value.class {
 		white-space: nowrap;
 		text-overflow: ellipsis;
 	}
+	> button[aria-expanded="true"] {
+		text-decoration: none;
+	}
 	> button[aria-expanded="true"] > code {
 		max-height: 9rem;
 		overflow: auto;

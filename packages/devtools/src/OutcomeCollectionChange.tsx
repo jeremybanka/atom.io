@@ -165,6 +165,14 @@ export function OutcomeCollectionChange(props: {
 							label={side === `before` ? `previous value` : `new value`}
 							value={slot.value}
 							summary={field && `${field.label}: ${field[side]}`}
+							sharedExpansion={
+								entry.before?.value &&
+								entry.after?.value &&
+								typeof entry.before.value === `object` &&
+								typeof entry.after.value === `object`
+									? `snapshot values`
+									: undefined
+							}
 						/>
 					</snapshot-entry>
 				)}

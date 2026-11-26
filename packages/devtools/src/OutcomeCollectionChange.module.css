@@ -93,7 +93,9 @@ outcome-collection-change.class {
 			> outcome-value {
 				flex: 1;
 			}
-			&[data-key-block], &[data-field-preview] {
+			&[data-key-block],
+			&[data-field-preview],
+			&:has(> outcome-value button[aria-expanded="true"]) {
 				display: grid;
 				grid-template-columns: 6px minmax(0, 1fr);
 				row-gap: 0;
@@ -104,6 +106,9 @@ outcome-collection-change.class {
 					white-space: normal;
 					overflow-wrap: anywhere;
 				}
+			}
+			> outcome-value > button[aria-expanded="true"] > code {
+				max-block-size: 15rem;
 			}
 		}
 	}

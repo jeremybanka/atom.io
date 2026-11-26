@@ -11,12 +11,13 @@ export function OutcomeValue(
 		eventId: string
 		label: string
 		summary?: string | undefined
+		sharedExpansion?: string | undefined
 	} & ({ value: unknown } | { preview: string; full(): string }),
 ): SpaElement {
 	const [open, toggle] = useExpanded(props.tools, [
 		`outcome-value`,
 		props.eventId,
-		props.label,
+		props.sharedExpansion ?? props.label,
 	])
 	const { text, truncated } =
 		`value` in props
@@ -34,7 +35,11 @@ export function OutcomeValue(
 					<code>
 						{open()
 							? `value` in props
-								? describeOutcomeValue(props.value, true).text
+								? describeOutcomeValue(
+										props.value,
+										true,
+										props.sharedExpansion !== undefined,
+									).text
 								: props.full()
 							: (props.summary ??
 								(text.length > 16 ? `${text.slice(0, 15)}…` : text))}

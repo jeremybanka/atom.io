@@ -128,7 +128,10 @@ export function OutcomeCollectionChange(props: {
 		const label =
 			(side === `before` ? entry.beforeLabel : entry.afterLabel) ?? entry.label
 		const field =
-			kind === `Array` && entry.changed && entry.before && entry.after
+			(kind === `Array` || kind === `Object`) &&
+			entry.changed &&
+			entry.before &&
+			entry.after
 				? changedRecordField(entry.before.value, entry.after.value)
 				: undefined
 		return (
@@ -138,6 +141,9 @@ export function OutcomeCollectionChange(props: {
 			>
 				{slot && (
 					<snapshot-entry
+						data-field-preview={
+							(kind === `Object` && field !== undefined) || undefined
+						}
 						data-key-block={
 							(kind === `Object` && label.length > 10) || undefined
 						}

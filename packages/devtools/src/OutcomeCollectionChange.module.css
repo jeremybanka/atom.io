@@ -93,7 +93,7 @@ outcome-collection-change.class {
 			> outcome-value {
 				flex: 1;
 			}
-			&[data-key-block] {
+			&[data-key-block], &[data-field-preview] {
 				display: grid;
 				grid-template-columns: 6px minmax(0, 1fr);
 				row-gap: 0;

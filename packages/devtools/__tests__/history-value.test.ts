@@ -352,3 +352,21 @@ it(`compares large map keys beyond the displayed sample`, () => {
 		change.entries.filter((entry) => entry.changed).map((entry) => entry.label),
 	).toEqual(Array.from({ length: 20 }, (_, index) => String(index + 40)))
 })
+
+it(`shows ordered Set snapshots without creating membership changes`, () => {
+	const change = historyCollectionChanges(
+		new Set([`Kenya`, `Rwanda`]),
+		new Set([`Rwanda`, `Kenya`]),
+	)!
+	expect(change.orderChanged).toBe(true)
+	expect(
+		change.entries.map((row) => [
+			row.before?.value,
+			row.after?.value,
+			row.changed,
+		]),
+	).toEqual([
+		[`Kenya`, `Rwanda`, false],
+		[`Rwanda`, `Kenya`, false],
+	])
+})

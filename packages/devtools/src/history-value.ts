@@ -380,7 +380,9 @@ export function historyCollectionChanges(
 		const order =
 			before.kind === `Map`
 				? orderedCollectionRows(before, after, mapLabel)
-				: undefined
+				: before.kind === `Set`
+					? orderedCollectionRows(before, after, () => ``)
+					: undefined
 		const aligned = array ? alignArraySplice(before, after, digits) : order
 		const keys = array
 			? aligned

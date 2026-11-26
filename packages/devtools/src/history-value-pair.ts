@@ -19,6 +19,27 @@ function dateSnapshot(value: unknown): string | undefined {
 	}
 }
 
+function textChange(before: string, after: string): HistoryValuePair {
+	let prefix = 0
+	const maxPrefix = Math.min(before.length, after.length, 16_384)
+	while (prefix < maxPrefix && before[prefix] === after[prefix]) prefix++
+	const roughStart = Math.max(0, prefix - 8)
+	const space = roughStart ? before.indexOf(` `, roughStart) : -1
+	const start = space >= roughStart && space < prefix ? space + 1 : roughStart
+	const preview = (value: string) => {
+		const limit = Math.min(value.length, start + 44)
+		const spaceBeforeLimit =
+			limit < value.length ? value.lastIndexOf(` `, limit) : -1
+		const end = spaceBeforeLimit > start + 30 ? spaceBeforeLimit : limit
+		return `${start ? `…` : ``}${JSON.stringify(value.slice(start, end))}${value.length > end ? `…` : ``}`
+	}
+	return {
+		before: { value: before, preview: preview(before) },
+		after: { value: after, preview: preview(after) },
+		disclose: true,
+	}
+}
+
 export function historyValuePair(
 	before: unknown,
 	after: unknown,
@@ -56,6 +77,8 @@ export function historyValuePair(
 		}
 	}
 	if (typeof before !== `string` || typeof after !== `string`) return undefined
+	if (Math.max(before.length, after.length) > 42)
+		return textChange(before, after)
 	if (!/["\\\r\n\t]/.test(before) && !/["\\\r\n\t]/.test(after)) return undefined
 	const previous = describeOutcomeValue(before)
 	const next = describeOutcomeValue(after)

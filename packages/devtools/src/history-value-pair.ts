@@ -8,6 +8,17 @@ export type HistoryValuePair = {
 	disclose?: boolean
 }
 
+function dateSnapshot(value: unknown): string | undefined {
+	try {
+		if (!(value instanceof Date)) return undefined
+		return Number.isNaN(Date.prototype.getTime.call(value))
+			? `Invalid`
+			: Date.prototype.toISOString.call(value)
+	} catch {
+		return undefined
+	}
+}
+
 export function historyValuePair(
 	before: unknown,
 	after: unknown,
@@ -23,6 +34,25 @@ export function historyValuePair(
 				after: { value: after, preview: digits(next) },
 				disclose: Math.max(previous.length, next.length) > 36,
 			}
+		}
+	}
+	const beforeDate = dateSnapshot(before)
+	const afterDate =
+		typeof beforeDate === `string` ? dateSnapshot(after) : undefined
+	if (beforeDate && afterDate) {
+		const separator = beforeDate.indexOf(`T`)
+		const sameTime =
+			separator !== -1 && afterDate.endsWith(beforeDate.slice(separator))
+		const preview = (iso: string) =>
+			sameTime ? iso.slice(0, iso.indexOf(`T`)) : iso
+		return {
+			before: {
+				value: before,
+				preview: preview(beforeDate),
+				description: `Date`,
+			},
+			after: { value: after, preview: preview(afterDate), description: `Date` },
+			disclose: sameTime,
 		}
 	}
 	if (typeof before !== `string` || typeof after !== `string`) return undefined

@@ -67,6 +67,7 @@ export function disposeTimelineInStore<
 	store.timelineTopics.delete(timeline.key)
 	store.timelines.delete(timeline.key)
 	recordStoreChange(store, `timelines`, timeline.key)
+	recordStoreChange(store, `timelineDefinitions`, timeline.key)
 	store.on.timelineDisposal.next(deposited)
 	store.logger.info(`🔥`, `timeline`, timeline.key, `disposed`)
 }

@@ -6,7 +6,14 @@ import type {
 	TransactionToken,
 } from "atom.io"
 
-import type { EcologyFamily, EcologyNode, EcologySnapshot } from "./ecology.ts"
+import type {
+	EcologyFamily,
+	EcologyNode,
+	EcologyOperation,
+	EcologyOperations,
+	EcologySnapshot,
+} from "./ecology.ts"
+import type { RecordedEvent } from "./history-event.ts"
 
 export type RemotePrimitive = boolean | number | string | null
 export const REMOTE_PROTOCOL_VERSION = 1
@@ -55,8 +62,10 @@ export type RemoteCachedValue =
 	| { status: `uncached` }
 	| { status: `value`; value: unknown }
 export type RemoteStateToken = ReadableToken<unknown, any, any>
-type TransactionHistory = TransactionOutcomeEvent<TransactionToken<any>>
-type TimelineHistory = TimelineEvent<any>
+type OutcomeCorrelation = Pick<RecordedEvent, `timelineOutcomeSequence`>
+type TransactionHistory = TransactionOutcomeEvent<TransactionToken<any>> &
+	OutcomeCorrelation
+type TimelineHistory = TimelineEvent<any> & OutcomeCorrelation
 type StoreState = {
 	token: RemoteStateToken
 	cache: RemoteCachedValue
@@ -94,6 +103,8 @@ export type RemoteEcologyUpdate = {
 	nodes: RemoteRecordsUpdate<EcologyNode>
 	edges?: RemoteRecordsUpdate<RemoteEcologyEdge>
 	families?: RemoteRecordsUpdate<EcologyFamily>
+	operations?: RemoteRecordsUpdate<EcologyOperation> &
+		Omit<EcologyOperations, `records`>
 	metadata?: RemoteEcologyMetadata
 }
 export interface RemoteStoreUpdate {

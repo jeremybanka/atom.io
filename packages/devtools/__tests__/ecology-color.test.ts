@@ -3,6 +3,7 @@ import { expect, it } from "vitest"
 
 import type { EcologyFamily, EcologyNode } from "../src/ecology.ts"
 import { ecologyColor } from "../src/ecology-color.ts"
+import type { EcologySource } from "../src/ecology-graph.ts"
 
 const node = (
 	key: string,
@@ -18,7 +19,27 @@ const node = (
 	dependenciesTruncated: false,
 })
 
-it(`digests singleton keys into stable, saturated warm/cool colors with contrast in both themes`, () => {
+it(`assigns stable, distinct hue ranges with contrast in both themes`, () => {
+	const palettes: readonly [
+		source: (key: string) => EcologySource,
+		minimum: number,
+		maximum: number,
+	][] = [
+		[(key) => node(key), 0, 50],
+		[(key) => node(key, true), 182, 252],
+		[(key) => ({ key, type: `transaction` }), 68, 169],
+		[
+			(key) => ({
+				key,
+				type: `timeline`,
+				family: null,
+				at: 0,
+				historyLength: 0,
+			}),
+			265,
+			315,
+		],
+	]
 	const colors = new Set<string>()
 	for (const key of [
 		``,
@@ -26,18 +47,16 @@ it(`digests singleton keys into stable, saturated warm/cool colors with contrast
 		`🍊café`,
 		...Array.from({ length: 1000 }, (_, i) => `node${i}`),
 	]) {
-		for (const selector of [false, true]) {
-			const source = node(key, selector)
+		for (const [makeSource, minimum, maximum] of palettes) {
+			const source = makeSource(key)
 			const value = ecologyColor(source)
 			expect(ecologyColor({ ...source })).toBe(value)
 			colors.add(value)
 			const color = new THREE.Color(value)
 			const hsl = color.getHSL({ h: 0, s: 0, l: 0 }, THREE.SRGBColorSpace)
 			expect(hsl.s).toBeGreaterThanOrEqual(0.6)
-			if (selector) {
-				expect(hsl.h * 360).toBeGreaterThanOrEqual(90)
-				expect(hsl.h * 360).toBeLessThan(270)
-			} else expect(hsl.h * 360 < 90 || hsl.h * 360 >= 270).toBe(true)
+			expect(hsl.h * 360).toBeGreaterThanOrEqual(minimum)
+			expect(hsl.h * 360).toBeLessThanOrEqual(maximum)
 			const luminance = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b
 			expect(luminance).toBeCloseTo(0.18, 3)
 			for (const background of [`#0a0a0a`, `#f6f6f6`]) {
@@ -50,10 +69,10 @@ it(`digests singleton keys into stable, saturated warm/cool colors with contrast
 			}
 		}
 	}
-	expect(colors.size).toBe(2006)
+	expect(colors.size).toBe(4012)
 })
 
-it(`gives every family member its family's color, including empty definitions and selector families`, () => {
+it(`gives atom, selector, and timeline family members their family's color`, () => {
 	for (const selector of [false, true]) {
 		const family: EcologyFamily = {
 			key: `stockBySku`,
@@ -69,4 +88,22 @@ it(`gives every family member its family's color, including empty definitions an
 			ecologyColor({ ...family, memberKeys: [`later`], memberCount: 1 }),
 		).toBe(color)
 	}
+	const history: EcologyFamily = {
+		key: `history`,
+		type: `timeline_family`,
+		memberKeys: [],
+		memberCount: 0,
+		countComplete: true,
+	}
+	const color = ecologyColor(history)
+	for (const subKey of [`"rice"`, `"beans"`])
+		expect(
+			ecologyColor({
+				key: `${history.key}(${subKey})`,
+				type: `timeline`,
+				family: { key: history.key, subKey },
+				at: 0,
+				historyLength: 0,
+			}),
+		).toBe(color)
 })

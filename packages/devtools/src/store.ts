@@ -17,31 +17,41 @@ import {
 	setIntoStore,
 } from "atom.io/internal"
 import type { FamilyNode, IntrospectionStates } from "atom.io/introspection"
-import { attachIntrospectionStates } from "atom.io/introspection"
+import { attachIntrospectionStates, observeStore } from "atom.io/introspection"
 
+import { appendTransactionHistory } from "./history-event.ts"
 import type { RemotePanelConnection } from "./remote-connection.ts"
 
 const locals = new WeakMap<RootStore, RegularAtomFamilyToken<unknown, string>>()
 const introspection = new WeakMap<RootStore, IntrospectionStates>()
+const localHistories = new WeakMap<RootStore[`transactions`], OperationHistory>()
 export type Path = readonly string[]
 export interface EditorTools {
 	store: RootStore
 	expanded: RegularAtomToken<Record<string, boolean>>
 	error: RegularAtomToken<string>
 	worker?: RemotePanelConnection | undefined
+	history: OperationHistory
 	attempt(run: () => void): void
 }
 type StateToken = ReadableToken<unknown, any, any>
 export type StateTokenIndex = Map<string, StateToken | FamilyNode<StateToken>>
 export type TimelineView = Pick<Timeline<any>, `at` | `history`>
-export interface StoreViews {
+export type TransactionHistory = readonly TransactionOutcomeEvent<
+	TransactionToken<any>
+>[]
+interface OperationHistory {
+	useTransaction(key: string): Accessor<TransactionHistory>
+	useTimeline(key: string): Accessor<TimelineView | undefined>
+}
+interface StoreViews {
 	atomIndex: ReadableToken<StateTokenIndex>
 	selectorIndex: ReadableToken<StateTokenIndex>
 	transactionIndex: ReadableToken<TransactionToken<any>[]>
 	timelineIndex: ReadableToken<TimelineToken<any>[]>
-	transactionLog(
-		key: string,
-	): ReadableToken<readonly TransactionOutcomeEvent<TransactionToken<any>>[]>
+}
+export interface RemoteStoreViews extends StoreViews {
+	transactionLog(key: string): ReadableToken<TransactionHistory>
 	timelineLog(key: string): ReadableToken<TimelineView>
 }
 export type Tools = EditorTools & StoreViews
@@ -103,12 +113,92 @@ function getIntrospectionStates(store: RootStore): IntrospectionStates {
 	return states
 }
 function localViews(store: RootStore): StoreViews {
-	const states = getIntrospectionStates(store)
+	return getIntrospectionStates(store)
+}
+function localOperationHistory(store: RootStore): OperationHistory {
+	const existing = localHistories.get(store.transactions)
+	if (existing) return existing
+	const transactions = createRegularAtomFamily<
+		TransactionHistory,
+		string,
+		never
+	>(store, {
+		key: `🔍 Devtools transaction history`,
+		default: () => [],
+	})
+	const timelines = createRegularAtomFamily<
+		TimelineView | undefined,
+		string,
+		never
+	>(store, {
+		key: `🔍 Devtools timeline history`,
+		default: () => undefined,
+	})
+	const views = new Map<
+		string,
+		{ token: RegularAtomToken<TimelineView | undefined>; readers: number }
+	>()
+	const readTimeline = (key: string): TimelineView | undefined => {
+		const timeline = store.timelines.get(key)
+		return timeline && { at: timeline.at, history: timeline.history }
+	}
+	// Keep the bounded transaction log for this store when the panel unmounts.
+	const stop = observeStore(
+		store,
+		({ transactions: changes, timelines: changedTimelines }) => {
+			for (const [key, { registeredAt, outcomes }] of changes) {
+				const token = findInStore(store, transactions, key)
+				setIntoStore(store, token, (previous) =>
+					appendTransactionHistory(previous, outcomes, registeredAt),
+				)
+			}
+			for (const key of changedTimelines) {
+				const view = views.get(key)
+				if (view) setIntoStore(store, view.token, () => readTimeline(key))
+			}
+		},
+	)
+	store.miscResources.set(`🔍 Devtools operation history`, {
+		[Symbol.dispose]: stop,
+	})
+	const history: OperationHistory = {
+		useTransaction: (key) => useGetter(transactions, key),
+		useTimeline(key) {
+			let view = views.get(key)
+			if (!view) {
+				const token = findInStore(store, timelines, key)
+				setIntoStore(store, token, () => readTimeline(key))
+				views.set(key, (view = { token, readers: 0 }))
+			}
+			const { token } = view
+			view.readers++
+			onCleanup(() => {
+				if (--view.readers === 0) {
+					views.delete(key)
+					disposeFromStore(store, token)
+				}
+			})
+			return useGetter(token)
+		},
+	}
+	localHistories.set(store.transactions, history)
+	return history
+}
+function remoteOperationHistory(
+	worker: RemotePanelConnection,
+	store: RootStore,
+): OperationHistory {
 	return {
-		...states,
-		transactionLog: (key) =>
-			findInStore(store, states.transactionLogSelectors, key),
-		timelineLog: (key) => findInStore(store, states.timelineSelectors, key),
+		useTransaction: (key) => useGetter(worker.views.transactionLog(key)),
+		useTimeline(key) {
+			const token = worker.views.timelineLog(key)
+			const read = useGetter(token)
+			const readIndex = useGetter(worker.views.timelineIndex)
+			return () => {
+				readIndex()
+				return store.atoms.has(token.key) ? read() : undefined
+			}
+		},
 	}
 }
 export function useTools(
@@ -145,6 +235,9 @@ export function useEditorTools(
 		store,
 		error,
 		worker,
+		history: worker
+			? remoteOperationHistory(worker, store)
+			: localOperationHistory(store),
 		expanded: ownedAtom(store, expanded),
 		attempt(run) {
 			try {
@@ -160,7 +253,7 @@ export function useExpanded(
 	tools: EditorTools,
 	path: Path,
 	initial = false,
-): [Accessor<boolean>, (event: MouseEvent) => void] {
+): [Accessor<boolean>, (event: Pick<MouseEvent, `shiftKey`>) => void] {
 	const getExpanded = useGetter(tools.expanded)
 	const setExpanded = useSetter(tools.expanded)
 	const key = JSON.stringify(path)

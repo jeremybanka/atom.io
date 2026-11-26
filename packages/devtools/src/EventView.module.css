@@ -1,61 +1,263 @@
 event-view.class {
 	display: block;
-	event-heading {
+	border-top: 1px solid var(--line);
+	& > event-heading {
 		display: flex;
 		align-items: center;
-	}
-	event-impact {
-		display: block;
-	}
-
-	& > event-heading {
 		height: 22px;
 		background: var(--surface-inactive);
 		white-space: nowrap;
 		overflow: hidden;
 	}
-	[data-kind="number"] {
+	& > event-heading > button[aria-expanded] {
+		display: grid;
+		place-items: center;
+		width: 22px;
+		height: 22px;
+		padding: 0;
+		flex-shrink: 0;
+	}
+	& > event-heading > :is(button[data-graph-id], button[data-timeline-label]) {
+		display: flex;
+		align-items: center;
+		flex: 1;
+		min-width: 0;
+		height: 100%;
+		padding: 0 4px 0 0;
+		/* background: transparent; */
+		text-align: left;
+		&:focus-visible {
+			outline-offset: -2px;
+		}
+	}
+	& > event-heading > button[data-timeline-label] {
+		width: auto;
+		> [data-timeline-caret] {
+			display: grid;
+			place-items: center;
+			width: 22px;
+			flex-shrink: 0;
+		}
+	}
+	&[data-hovered="true"] {
+		--surface-inactive: var(--surface-hover);
+		background: var(--surface-hover);
+	}
+	&[data-selected="true"] > event-heading {
+		outline: 2px solid var(--ink-strong);
+		outline-offset: -2px;
+	}
+	& > p[data-change] > [data-kind="number"] {
 		display: inline-block;
 		min-width: 3ch;
 		text-align: right;
 		font-variant-numeric: tabular-nums;
 	}
-	event-impact {
+	& > event-impact {
+		display: flex;
+		flex-flow: column;
 		margin-left: 9px;
 		border-left: 1px solid var(--ink-muted);
+		gap: 5px;
 	}
-	& {
-		border-top: 1px solid var(--line);
-	}
-	& > event-heading strong {
+	& > event-heading > strong,
+	& > event-heading > :is(button[data-graph-id], button[data-timeline-label])
+		> strong {
 		min-width: 0;
 		padding-right: 6px;
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
-	& > event-heading small {
+	& > event-heading > small,
+	& > event-heading > :is(button[data-graph-id], button[data-timeline-label])
+		> small {
 		font-size: 11px;
 	}
-	& > p, & > code {
+	& > event-heading > small[data-write-count] {
+		margin-inline-start: auto;
+		padding-inline-end: 6px;
+		color: var(--ink-muted);
+		font-variant-numeric: tabular-nums;
+	}
+	& > p, & > code, & > event-details > :is(p, code) {
 		display: block;
 		padding: 3px 6px;
 		line-height: 18px;
 		overflow-wrap: anywhere;
 	}
-	ins {
+	& > p[data-change] {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 4px;
+	}
+	& > p[data-change] > span {
+		color: var(--ink-muted);
+	}
+	& > p[data-change] > ins {
 		color: var(--ink);
 		text-decoration: none;
 		background: var(--change-added);
 	}
-	del {
+	& > p[data-change] > del {
 		color: var(--ink-muted);
 		background: var(--change-removed);
 	}
-	[data-cursor] {
-		background: var(--ink);
-		color: var(--bg-color);
-		text-align: center;
-		line-height: 21px;
+	& > event-impact[data-compact] {
+		margin: 0;
+		border: 0;
+		&[data-indented] {
+			margin-inline-start: 12px;
+		}
+	}
+	& > p[data-outcome-metadata],
+	& > event-details > p[data-outcome-metadata] {
+		display: flex;
+		align-items: start;
+		flex-wrap: wrap;
+		gap: 0 10px;
+		min-height: 22px;
+		padding: 2px 6px 2px 18px;
+		color: var(--ink-muted);
+		&[data-metadata-only] > span {
+			flex-basis: 100%;
+			> span {
+				min-inline-size: 6ch;
+			}
+		}
+		> span {
+			display: flex;
+			gap: 4px;
+			min-width: 0;
+			> span {
+				flex: 0 0 auto;
+			}
+			&[data-metadata-block] {
+				flex-basis: 100%;
+			}
+		}
+	}
+	&[data-timeline-event] > event-heading {
+		> button:is([data-graph-id], [data-timeline-label]) {
+			padding-inline-end: 0;
+			> [data-timeline-kind] {
+				flex-shrink: 3;
+			}
+		}
+		> [data-timeline-tail], > button > [data-timeline-tail] {
+			display: flex;
+			align-items: center;
+			justify-content: flex-end;
+			gap: 6px;
+			flex-shrink: 0;
+			min-inline-size: 0;
+			max-inline-size: 55%;
+			margin-inline-start: auto;
+			padding-inline: 6px;
+			font-size: 11px;
+			> [data-redo-next] {
+				color: var(--timeline-accent);
+				flex-shrink: 0;
+			}
+			> [data-timeline-summary] {
+				min-inline-size: 0;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				line-height: 16px;
+				color: var(--ink-muted);
+				&:has(> [data-summary-values]) {
+					display: flex;
+					align-items: center;
+					gap: 6px;
+				}
+				> [data-summary-label] {
+					overflow: hidden;
+					text-overflow: ellipsis;
+				}
+				> [data-summary-values] {
+					display: flex;
+					align-items: center;
+					gap: 4px;
+					flex-shrink: 0;
+					max-inline-size: 100%;
+					> :is(del, ins) {
+						min-inline-size: 0;
+						overflow: hidden;
+						text-overflow: ellipsis;
+					}
+					> span {
+						flex-shrink: 0;
+					}
+					> del {
+						background: var(--change-removed);
+					}
+					> ins {
+						color: var(--ink);
+						background: var(--change-added);
+						text-decoration: none;
+					}
+				}
+			}
+		}
+	}
+	& > event-heading[data-timeline-outcome] {
+		> button:is([data-graph-id], [data-timeline-label]) {
+			flex: 0 1 auto;
+			padding-inline-end: 0;
+		}
+		> button[data-outcome-link] {
+			display: inline-flex;
+			align-items: center;
+			gap: 3px;
+			flex: 0 3 auto;
+			min-width: 0;
+			height: 20px;
+			padding-inline: 0 4px;
+			color: var(--accent);
+			font-size: 11px;
+			line-height: 16px;
+			> [data-outcome-link-label] {
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+			> [data-outcome-link-icon] {
+				flex-shrink: 0;
+			}
+			&:hover > [data-outcome-link-label] {
+				text-decoration: underline;
+			}
+		}
+	}
+	& > event-details {
+		display: block;
+		margin-inline-start: 10px;
+		border-inline-start: 1px solid var(--line);
+		> event-impact {
+			display: flex;
+			flex-flow: column;
+			gap: 5px;
+		}
+		> p[data-outcome-metadata] {
+			padding-inline-start: 6px;
+		}
+	}
+	&[data-timeline-state="future"]
+		> event-heading :is(strong, [data-timeline-kind]) {
+		color: var(--ink-muted);
+	}
+	[data-timeline-kind] {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		color: var(--ink-muted);
+	}
+	& > p[data-lifecycle], & > event-details > p[data-lifecycle] {
+		display: flex;
+		align-items: baseline;
+		gap: 6px;
+		> small {
+			color: var(--ink-muted);
+		}
 	}
 	&[data-search-selected="true"] > event-heading {
 		outline: 2px solid var(--accent);

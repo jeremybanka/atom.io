@@ -1,8 +1,10 @@
+import type { TransactionSubEvent } from "atom.io"
 import { afterEach, expect, it, vi } from "vitest"
 
 import type { EcologyNode, EcologySnapshot } from "../src/ecology.ts"
 import {
 	createGraphContext,
+	type GraphHistory,
 	projectEcology,
 	scheduleGraph,
 } from "../src/ecology-graph.ts"
@@ -39,6 +41,214 @@ function drain<T>(iterator: Generator<void, T>): T {
 	while (!step.done) step = iterator.next()
 	return step.value
 }
+const update = (key: string) => ({
+	type: `atom_update` as const,
+	token: { type: `atom` as const, key },
+	timestamp: 1,
+	update: { oldValue: 0, newValue: 1 },
+})
+const outcome = (subEvents: TransactionSubEvent[], sequence?: number) => ({
+	type: `transaction_outcome` as const,
+	token: { type: `transaction` as const, key: `save` },
+	id: `shared`,
+	timestamp: 1,
+	params: [],
+	output: undefined,
+	subEvents,
+	...(sequence === undefined ? {} : { timelineOutcomeSequence: sequence }),
+})
+
+it(`projects operation links through collapsed families and highlights their direct endpoints`, () => {
+	const data: EcologySnapshot = {
+		...snapshot(
+			[node(`entry`, `atom`, `items`), node(`derived`, `selector`)],
+			[{ dependency: `entry`, selector: `derived` }],
+		),
+		families: [
+			{
+				key: `items`,
+				type: `atom_family`,
+				memberKeys: [`entry`],
+				memberCount: 1,
+				countComplete: true,
+			},
+		],
+		operations: {
+			truncated: false,
+			work: 3,
+			records: [
+				{
+					key: `save`,
+					type: `transaction`,
+					targets: [
+						{ key: `entry`, kind: `state` },
+						{ key: `missing`, kind: `state` },
+					],
+				},
+				{
+					key: `histories`,
+					type: `timeline_family`,
+					memberKeys: [`history`, `uncaptured`],
+					memberCount: 2,
+					countComplete: false,
+					targets: [{ key: `items`, kind: `family` }],
+				},
+				{
+					key: `history`,
+					type: `timeline`,
+					family: { key: `histories`, subKey: `"entry"` },
+					at: 0,
+					historyLength: 0,
+					targets: [{ key: `entry`, kind: `state` }],
+				},
+			],
+		},
+	}
+	const context = createGraphContext()
+	const collapsed = drain(projectEcology(data, context))
+	expect(collapsed.edges).toEqual([
+		{ from: `state:entry`, to: `state:derived`, traced: false },
+		{
+			from: `timeline_family:histories`,
+			to: `family:items`,
+			relation: `timeline`,
+			traced: false,
+		},
+		{
+			from: `timeline:history`,
+			to: `state:entry`,
+			relation: `timeline`,
+			traced: false,
+		},
+	])
+	context.expanded.add(`family:items`)
+	context.expanded.add(`timeline_family:histories`)
+	context.selected = `timeline_family:histories`
+	expect(drain(projectEcology(data, context)).selection?.selectedIds).toEqual(
+		new Set([`timeline_family:histories`, `timeline:history`]),
+	)
+	context.selected = `timeline:history`
+	const expanded = drain(projectEcology(data, context))
+	expect(expanded.edges[0]).toEqual({
+		from: `timeline:history`,
+		to: `state:entry`,
+		relation: `timeline`,
+		traced: true,
+	})
+	expect(expanded.selection?.items).toEqual(
+		new Set([
+			`timeline:history`,
+			`state:entry`,
+			`timeline_family:histories`,
+			`family:items`,
+		]),
+	)
+	expect(expanded.selection?.edges.size).toBe(0)
+	const family = expanded.all.get(`timeline_family:histories`)!
+	const member = expanded.all.get(`timeline:history`)!
+	expect(Math.hypot(family.x, family.z)).toBeCloseTo(32)
+	expect(Math.hypot(member.x - family.x, member.z - family.z)).toBeCloseTo(12)
+	const crowded = {
+		...data,
+		nodes: [
+			...Array.from({ length: 500 }, (_, index) => node(`other-${index}`)),
+			...data.nodes,
+		],
+	}
+	context.selected = `state:entry`
+	const selected = drain(projectEcology(crowded, context))
+	expect(selected.items).toHaveLength(500)
+	expect(selected.edges).toContainEqual({
+		from: `timeline:history`,
+		to: `state:entry`,
+		relation: `timeline`,
+		traced: true,
+	})
+})
+
+it(`keeps operation relationships within the card and edge budgets`, () => {
+	const nodes = Array.from({ length: 501 }, (_, index) => node(`state-${index}`))
+	const targets = nodes.map(({ key }) => ({ kind: `state` as const, key }))
+	const records = Array.from({ length: 3 }, (_, index) => ({
+		key: `history-${index}`,
+		type: `timeline` as const,
+		family: null,
+		at: 0,
+		historyLength: 0,
+		targets,
+	}))
+	const data: EcologySnapshot = {
+		...snapshot(nodes),
+		operations: { records, truncated: true, work: records.length },
+	}
+	const context = createGraphContext()
+	context.selected = `timeline:uncaptured`
+	const matches = new Set(records.map(({ key }) => `timeline:${key}`))
+	const overview = drain(projectEcology(data, context, matches))
+	expect(context.selected).toBe(`timeline:uncaptured`)
+	expect(overview.edges).toHaveLength(1000)
+	context.selected = `timeline:history-0`
+	const selected = drain(projectEcology(data, context))
+	expect(selected.items).toHaveLength(500)
+	expect(selected.edges.filter((edge) => edge.traced)).toHaveLength(499)
+})
+
+it(`moves history flyouts outside the state helix at shared angles and heights`, () => {
+	const data: EcologySnapshot = {
+		...snapshot(Array.from({ length: 9 }, (_, slot) => node(`state${slot}`))),
+		operations: {
+			records: [
+				{ type: `transaction`, key: `save` },
+				{
+					type: `timeline`,
+					key: `history`,
+					family: null,
+					at: 1,
+					historyLength: 2,
+				},
+			],
+			work: 2,
+			truncated: false,
+		},
+	}
+	const histories = new Map<string, GraphHistory>([
+		[`transaction:save`, { events: [outcome([update(`state4`)])] }],
+		[
+			`timeline:history`,
+			{ events: [update(`state0`), update(`state1`)], at: 1 },
+		],
+	])
+	const context = createGraphContext()
+	for (const id of histories.keys()) context.expanded.add(id)
+	const model = drain(
+		projectEcology(data, context, undefined, undefined, histories),
+	)
+	const firstState = model.all.get(`state:state0`)!
+	const transaction = model.all.get(`transaction:save`)!
+	expect(transaction.x).toBeCloseTo(-firstState.x * 4)
+	expect(transaction.z).toBeCloseTo(-firstState.z * 4)
+	const state = model.all.get(`state:state4`)!
+	const stateRadius = Math.hypot(state.x, state.z)
+	const transactionOutcome = model.items.find(
+		(item) => item.history?.direction === `outcome`,
+	)!
+	expect(transactionOutcome.y).toBe(state.y)
+	expect(
+		Math.hypot(transactionOutcome.x - state.x, transactionOutcome.z - state.z),
+	).toBeCloseTo(stateRadius * 3)
+
+	const flyouts = model.items.filter((item) => item.history)
+	expect(flyouts.map((item) => item.history!.direction)).toEqual([
+		`outcome`,
+		`past`,
+		`future`,
+	])
+	for (const item of flyouts) {
+		const { anchor } = item.history!
+		expect(Math.hypot(anchor.x, anchor.z)).toBeCloseTo(stateRadius * 4)
+		expect([item.x, item.z]).toEqual([anchor.x, anchor.z])
+	}
+})
 
 it(`emphasizes ancestors and descendants independently, excluding side branches and bypass edges`, () => {
 	const data = snapshot(
@@ -128,13 +338,13 @@ it(`traces family members through cycles, retains parallel edges and recomputes 
 	)
 	expect(collapsed.edges.every((edge) => edge.traced)).toBe(true)
 	expect(collapsed.familyConnections).toEqual([])
-	context.expanded.add(`inputs`)
+	context.expanded.add(`family:inputs`)
 	const expanded = drain(projectEcology(data, context, undefined, collapsed))
 	expect(expanded.selection).toBe(collapsed.selection)
 	expect(expanded.edges[0].from).toBe(`state:a`)
 	expect(expanded.familyConnections).toEqual([
 		{
-			family: `inputs`,
+			family: `family:inputs`,
 			from: expanded.all.get(`family:inputs`),
 			to: expanded.all.get(`state:a`),
 			color: expanded.all.get(`family:inputs`)!.color,
@@ -176,7 +386,7 @@ it(`admits all selected family members before related families within the editor
 	}
 	const context = createGraphContext()
 	context.selected = `family:inputs`
-	context.expanded.add(`inputs`)
+	context.expanded.add(`family:inputs`)
 	context.rowLimit = 3
 	const model = drain(projectEcology(data, context))
 	expect(model.rows.map((row) => row.id)).toEqual([
@@ -242,8 +452,8 @@ it(`groups families, keeps zero definitions and namespaces group/member identiti
 	context.selected = `state:b`
 	model = drain(projectEcology(withFamilies, context))
 	expect(model.edges[1].traced).toBe(true)
-	context.expanded.add(`items`)
-	context.expanded.add(`zero`)
+	context.expanded.add(`family:items`)
+	context.expanded.add(`family:zero`)
 	model = drain(projectEcology(withFamilies, context))
 	expect(model.items).toHaveLength(5)
 	expect(point(`state:a`)).not.toEqual(point(`state:b`))
@@ -254,7 +464,7 @@ it(`groups families, keeps zero definitions and namespaces group/member identiti
 	).toBeCloseTo(0)
 	expect(model.familyConnections).toEqual([
 		{
-			family: `items`,
+			family: `family:items`,
 			from: model.all.get(`state:b`),
 			to: member,
 			color: anchor.color,
@@ -300,7 +510,7 @@ it(`bounds family connections to painted members, including when the family card
 		],
 	}
 	const context = createGraphContext()
-	context.expanded.add(`members`)
+	context.expanded.add(`family:members`)
 	const model = drain(
 		projectEcology(
 			data,
@@ -312,7 +522,7 @@ it(`bounds family connections to painted members, including when the family card
 	expect(model.items.some((item) => item.id === `family:members`)).toBe(false)
 	expect(model.familyConnections).toEqual([
 		{
-			family: `members`,
+			family: `family:members`,
 			from: model.all.get(`state:member499`),
 			to: model.all.get(`state:member498`),
 			color: model.all.get(`family:members`)!.color,
@@ -396,6 +606,342 @@ it(`caps paint at500 nodes/1000 edges while reporting exact captured totals and 
 	expect(
 		drain(projectEcology(snapshot(nodes, edges), context, new Set())).rows,
 	).toEqual([])
+})
+
+it(`admits operation anchors and links on a saturated overview`, () => {
+	const records = Array.from({ length: 30 }, (_, index) => ({
+		type: `transaction` as const,
+		key: `save-${index}`,
+		targets: [{ kind: `state` as const, key: `late` }],
+	}))
+	const data: EcologySnapshot = {
+		...snapshot(
+			[
+				node(`first`),
+				node(`selected`, `selector`),
+				...Array.from({ length: 600 }, (_, index) => node(`n${index}`)),
+				node(`late`),
+			],
+			Array.from({ length: 1_100 }, () => ({
+				dependency: `first`,
+				selector: `selected`,
+			})),
+		),
+		operations: { records, work: records.length, truncated: false },
+	}
+	const histories = new Map<string, GraphHistory>(
+		records.map(({ key }) => [
+			`transaction:${key}`,
+			{ events: [outcome([update(`late`)])] },
+		]),
+	)
+	const model = drain(
+		projectEcology(data, createGraphContext(), undefined, undefined, histories),
+	)
+	expect(model.items).toHaveLength(500)
+	expect(model.edges).toHaveLength(1_000)
+	expect(model.items.filter((item) => item.kind === `transaction`)).toHaveLength(
+		25,
+	)
+	expect(model.edges.filter((edge) => edge.relation)).toHaveLength(25)
+	expect(model.edges).toContainEqual({
+		from: expect.stringMatching(/^history:transaction:save-0:/),
+		to: `state:late`,
+		relation: `transaction`,
+		traced: false,
+	})
+})
+
+it(`routes exact history occurrences through collapsed anchors and leaves timeline scope on its owner`, () => {
+	const data: EcologySnapshot = {
+		...snapshot([
+			node(`count`),
+			node(`scope`),
+			node(`other`),
+			node(`derived`, `selector`),
+			{ ...node(`mutable`), type: `mutable_atom` },
+			node(`*mutable`),
+			node(`items("member")`),
+		]),
+		operations: {
+			records: [
+				{
+					type: `transaction`,
+					key: `save`,
+					targets: [{ kind: `state`, key: `other` }],
+				},
+				{
+					type: `timeline`,
+					key: `count`,
+					at: 2,
+					historyLength: 2,
+					family: null,
+					targets: [{ kind: `state`, key: `scope` }],
+				},
+			],
+			truncated: false,
+			work: 2,
+		},
+	}
+	const nested = outcome([
+		update(`*mutable`),
+		update(`missing`),
+		{
+			type: `molecule_creation`,
+			timestamp: 1,
+			key: `member`,
+			provenance: `root`,
+		},
+		{
+			type: `molecule_disposal`,
+			timestamp: 1,
+			key: `member`,
+			provenance: [],
+			values: [[`items`, 0]],
+		},
+	])
+	const earlier = outcome([update(`other`)], 6)
+	const saved = outcome([update(`other`), update(`count`), nested], 7)
+	const recorded = outcome([update(`count`), update(`count`)], 7)
+	const selector = {
+		type: `selector_update` as const,
+		token: { type: `writable_pure_selector` as const, key: `derived` },
+		timestamp: 2,
+		subEvents: [update(`count`)],
+	}
+	const histories = new Map<string, GraphHistory>([
+		[`transaction:save`, { events: [earlier, saved] }],
+		[`timeline:count`, { events: [recorded, selector], at: 2 }],
+	])
+	const context = createGraphContext()
+	context.selected = `state:count`
+	const collapsed = drain(
+		projectEcology(data, context, undefined, undefined, histories),
+	)
+	const endpoint = (event: object) =>
+		[...collapsed.historyEndpoints.values()].find(
+			(entry) => entry.event === event,
+		)!
+	const targets = (event: object) =>
+		collapsed.edges
+			.filter((edge) => edge.from === endpoint(event).item.id)
+			.map((edge) => edge.to)
+	expect(targets(saved)).toEqual([
+		`state:count`,
+		`state:other`,
+		`state:mutable`,
+		`state:items("member")`,
+	])
+	expect(targets(recorded)).toEqual([`state:count`, endpoint(saved).item.id])
+	expect(targets(selector)).toEqual([`state:count`, `state:derived`])
+	expect(collapsed.edges).toContainEqual({
+		from: `timeline:count`,
+		to: `state:scope`,
+		relation: `timeline`,
+		traced: false,
+	})
+	expect(collapsed.edges.some((edge) => edge.from === `transaction:save`)).toBe(
+		false,
+	)
+	expect([...collapsed.historyFocus]).toEqual(
+		expect.arrayContaining([`timeline:count`, `transaction:save`]),
+	)
+	expect(collapsed.items.some((item) => item.history)).toBe(false)
+	expect(endpoint(saved).card.id).toBe(`transaction:save`)
+	expect(endpoint(saved).item).toMatchObject(endpoint(saved).item.cluster!)
+	expect(endpoint(saved).item.cluster).not.toEqual(
+		endpoint(earlier).item.cluster,
+	)
+	context.expanded.add(`timeline:count`)
+	context.expanded.add(`transaction:save`)
+	const expanded = drain(
+		projectEcology(data, context, undefined, collapsed, histories),
+	)
+	for (const event of [saved, recorded]) {
+		const id = endpoint(event).item.id
+		expect(expanded.historyEndpoints.get(id)?.card.id).toBe(id)
+		expect(expanded.items.some((item) => item.id === id)).toBe(true)
+	}
+	expect(expanded.edges).toContainEqual(
+		expect.objectContaining({
+			from: endpoint(recorded).item.id,
+			to: endpoint(saved).item.id,
+		}),
+	)
+})
+
+it(`shares the paint cap with live history and keeps both sides of the timeline cursor`, () => {
+	const data: EcologySnapshot = {
+		...snapshot([node(`a`)]),
+		operations: {
+			records: [
+				{
+					type: `timeline`,
+					key: `a`,
+					family: null,
+					at: 300,
+					historyLength: 600,
+					targets: [{ kind: `state`, key: `a` }],
+				},
+				{ type: `transaction`, key: `save` },
+			],
+			work: 2,
+			truncated: false,
+		},
+	}
+	const events = Array.from({ length: 600 }, (_, index) => ({
+		type: `molecule_creation` as const,
+		key: index,
+		provenance: `root`,
+		timestamp: index,
+	}))
+	const histories = new Map<string, GraphHistory>([
+		[`timeline:a`, { events, at: 300 }],
+		[`transaction:save`, { events }],
+	])
+	const context = createGraphContext()
+	context.selected = `timeline:a`
+	context.expanded.add(`transaction:save`)
+	context.expanded.add(`timeline:a`)
+	const matches = new Set([`timeline:a`, `transaction:save`])
+	const model = drain(
+		projectEcology(data, context, matches, undefined, histories),
+	)
+	expect(model.items).toHaveLength(500)
+	expect(model.edges).toMatchObject([{ from: `timeline:a`, to: `state:a` }])
+	expect(
+		model.items.filter((item) => item.history?.direction === `past`),
+	).toHaveLength(249)
+	expect(
+		model.items.filter((item) => item.history?.direction === `future`),
+	).toHaveLength(248)
+	expect(model.historyConnections).toMatchObject([
+		{
+			family: `timeline:a`,
+			from: {
+				label: `548 · molecule creation`,
+				history: { direction: `future` },
+			},
+			to: { history: { direction: `past` } },
+		},
+	])
+	context.expanded.delete(`timeline:a`)
+	const outcomes = drain(
+		projectEcology(data, context, matches, model, histories),
+	)
+	expect(outcomes.items).toHaveLength(500)
+	expect(outcomes.items[3].label).toBe(`Outcome 104`)
+	expect(outcomes.items.at(-1)?.label).toBe(`Outcome 600`)
+	expect(outcomes.historyConnections).toMatchObject([
+		{
+			family: `transaction:save`,
+			from: { label: `Outcome 600` },
+			to: { id: `transaction:save` },
+		},
+	])
+	context.expanded.add(`timeline:a`)
+	const atStart = drain(
+		projectEcology(
+			data,
+			context,
+			matches,
+			outcomes,
+			new Map([
+				[`timeline:a`, { events: events.slice(0, 2), at: 0 }],
+				[`transaction:save`, { events: [] }],
+			]),
+		),
+	)
+	expect(atStart.items.filter((item) => item.history)).toHaveLength(2)
+	expect(atStart.historyConnections).toMatchObject([
+		{
+			family: `timeline:a`,
+			from: { history: { direction: `future` } },
+			to: { id: `timeline:a` },
+		},
+	])
+})
+
+it(`bounds collapsed family histories and skips routes to states outside the painted graph`, () => {
+	const memberKeys = Array.from(
+		{ length: 501 },
+		(_, index) => `history-${index}`,
+	)
+	const data: EcologySnapshot = {
+		...snapshot([
+			node(`visible`),
+			...Array.from({ length: 500 }, (_, index) => node(`state-${index}`)),
+			node(`offscreen`),
+		]),
+		operations: {
+			records: [
+				{
+					type: `timeline_family`,
+					key: `history`,
+					memberKeys,
+					memberCount: memberKeys.length,
+					countComplete: true,
+				},
+				...memberKeys.map((key, index) => ({
+					type: `timeline` as const,
+					key,
+					family: { key: `history`, subKey: String(index) },
+					at: 0,
+					historyLength: 0,
+				})),
+				{ type: `transaction`, key: `save` },
+			],
+			work: memberKeys.length + 2,
+			truncated: false,
+		},
+	}
+	const event = outcome([
+		update(`offscreen`),
+		update(`visible`),
+		...Array.from({ length: 10_000 }, () => update(`visible`)),
+	])
+	const histories = new Map<string, GraphHistory>([
+		[`timeline:history-0`, { events: [event], at: 1 }],
+	])
+	const context = createGraphContext()
+	context.expanded.add(`timeline:history-0`)
+	const model = drain(
+		projectEcology(data, context, undefined, undefined, histories),
+	)
+	expect(model.historyOwners).toHaveLength(500)
+	expect(model.historyOwners[0].id).toBe(`transaction:save`)
+	const entry = [...model.historyEndpoints.values()][0]
+	expect(entry.card.id).toBe(`timeline_family:history`)
+	expect(model.edges).toEqual([
+		{
+			from: entry.item.id,
+			to: `state:visible`,
+			relation: `timeline`,
+			traced: false,
+		},
+	])
+})
+
+it(`preserves the selected anchor when expanded operations fill the paint cap`, () => {
+	const records = Array.from({ length: 501 }, (_, index) => ({
+		type: `transaction` as const,
+		key: String(index),
+	}))
+	const context = createGraphContext()
+	context.selected = `transaction:500`
+	for (const record of records) context.expanded.add(`transaction:${record.key}`)
+	const model = drain(
+		projectEcology(
+			{
+				...snapshot(),
+				operations: { records, work: records.length, truncated: false },
+			},
+			context,
+		),
+	)
+	expect(model.items).toHaveLength(500)
+	expect(model.items.at(-1)?.id).toBe(context.selected)
+	expect(model.historyConnections).toEqual([])
 })
 
 it(`never invents a missing family group, handles lower-bound counts and terminates on cycles`, () => {
@@ -527,7 +1073,7 @@ it(`keeps parallel helices opposite at every shared height, with equal steps and
 		families,
 	}
 	const context = createGraphContext()
-	for (const family of families) context.expanded.add(family.key)
+	for (const family of families) context.expanded.add(`family:${family.key}`)
 	const model = drain(projectEcology(data, context))
 	const position = (slot: number, selector: boolean) =>
 		model.all.get(selector ? `state:s${slot}` : `family:group${slot}`)!
@@ -649,14 +1195,14 @@ it(`keeps lazy metadata immutable across equal-sized expansion changes and ignor
 		],
 	}
 	const context = createGraphContext()
-	context.expanded.add(`derived`)
+	context.expanded.add(`family:derived`)
 	const first = drain(projectEcology(data, context)),
 		member = first.all.get(`state:s1`)!
 	const before = [member.x, member.y, member.z]
 	context.expanded = new Set([`inputs`])
 	const next = drain(projectEcology(data, context, undefined, first))
 	expect(next.all).not.toBe(first.all)
-	expect(first.all.expanded.has(`derived`)).toBe(true)
+	expect(first.all.expanded.has(`family:derived`)).toBe(true)
 	expect([member.x, member.y, member.z]).toEqual(before)
 	const collapsed = next.all.get(`state:s1`)!,
 		group = next.all.get(`family:derived`)!
@@ -744,7 +1290,7 @@ it(`keeps clustered member endpoints distinct, bounded and stable without admitt
 	expect(
 		members.map((member) => filtered.all.get(`state:${member.key}`)),
 	).toEqual(points)
-	context.expanded.add(`inputs`)
+	context.expanded.add(`family:inputs`)
 	const expanded = drain(projectEcology(data, context, undefined, filtered))
 	expect(expanded.items).toHaveLength(102)
 	expect(expanded.all.get(`state:input0`)!.x).not.toBe(points[0].x)

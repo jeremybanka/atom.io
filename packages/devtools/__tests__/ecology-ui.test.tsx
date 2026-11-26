@@ -221,6 +221,366 @@ it(`opens/searches/selects/traces/expands passively and evaluates only with Gene
 	expect(f.silo.getState(dormantSelector)).toBe(2)
 })
 
+it(`searches and expands timeline families independently of state families with the same key`, async () => {
+	const f = setup()
+	const draftAtoms = f.silo.atomFamily<number, string>({
+		key: `draft`,
+		default: 0,
+	})
+	const state = f.silo.findState(draftAtoms, `first`)
+	f.silo.getState(state)
+	const run = vi.fn()
+	f.silo.transaction({ key: state.key, do: run })
+	dispose = mountEcology(f.host, { store: f.silo.store }).dispose
+	await settle()
+
+	const row = (id: string) => f.host.querySelector(`[data-row-id='${id}']`)
+	const card = (id: string) =>
+		f.host.querySelector(`ecology-node-card > button[data-graph-id='${id}']`)
+	expect(card(`transaction:${state.key}`)?.textContent).toContain(`Transaction`)
+	expect(
+		row(`transaction:${state.key}`)?.firstElementChild?.getAttribute(
+			`data-primitive`,
+		),
+	).toBe(`transaction`)
+
+	const draftTimelines = f.silo.timelineFamily<string>({
+		key: `draft`,
+		scope: [],
+	})
+	await settle()
+	expect(card(`timeline_family:${draftTimelines.key}`)?.textContent).toContain(
+		`Timeline Family · 0 members`,
+	)
+	expect(
+		row(
+			`timeline_family:${draftTimelines.key}`,
+		)?.firstElementChild?.getAttribute(`data-primitive`),
+	).toBe(`timeline-family`)
+	const timeline = f.silo.findTimeline(draftTimelines, `first`)
+	await settle()
+	expect(timeline.key).toBe(state.key)
+	expect(card(`timeline_family:${draftTimelines.key}`)?.textContent).toContain(
+		`1 members`,
+	)
+	expect(row(`timeline:${timeline.key}`)).toBeNull()
+	await f.search(`timeline`)
+	f.host
+		.querySelector<HTMLButtonElement>(
+			`[data-result-id='timeline:${timeline.key}']`,
+		)!
+		.click()
+	await settle()
+	expect(card(`timeline:${timeline.key}`)?.textContent).toContain(
+		`Timeline · 0 of 0 events applied`,
+	)
+	expect(
+		row(`timeline:${timeline.key}`)?.firstElementChild?.getAttribute(
+			`data-primitive`,
+		),
+	).toBe(`timeline`)
+	await f.search(``)
+	expect(
+		row(`family:${draftAtoms.key}`)
+			?.querySelector(`button[data-action="expand"]`)
+			?.getAttribute(`aria-expanded`),
+	).toBe(`false`)
+	expect(row(`state:${state.key}`)).toBeNull()
+	expect(run).not.toHaveBeenCalled()
+})
+
+it(`opens recorded transaction outcomes and timeline controls in the standalone editor`, async () => {
+	const f = setup()
+	const countAtom = f.silo.atom<number>({ key: `count`, default: 0 })
+	f.silo.getState(countAtom)
+	f.silo.timeline({ key: `count`, scope: [countAtom] })
+	const saveTransaction = f.silo.transaction({
+		key: `save`,
+		do: ({ set }, value: number) => {
+			set(countAtom, value)
+			return value
+		},
+	})
+	dispose = mountEcology(f.host, { store: f.silo.store }).dispose
+	await settle()
+	await f.click(`Expand transaction save`)
+	expect(f.host.querySelector(`transaction-outcomes`)?.textContent).toBe(
+		`No recorded outcomes`,
+	)
+	await f.click(`Collapse transaction save`)
+	f.silo.runTransaction(saveTransaction)(2)
+	f.silo.runTransaction(saveTransaction)(4)
+	await settle()
+
+	const editor = f.host.querySelector(`ecology-editor`)!
+	expect(
+		editor.querySelector(`transaction-outcomes, timeline-history`),
+	).toBeNull()
+	const travel = editor.querySelector(`node-heading > timeline-travel`)!
+	expect(travel.parentElement?.lastElementChild).toBe(travel)
+	const undo = travel.querySelector<HTMLButtonElement>(`[aria-label="undo"]`)!
+	const redo = travel.querySelector<HTMLButtonElement>(`[aria-label="redo"]`)!
+	expect(undo.disabled).toBe(false)
+	expect(redo.disabled).toBe(true)
+	await f.click(`undo`)
+	expect(f.silo.getState(countAtom)).toBe(2)
+	expect(redo.disabled).toBe(false)
+	expect(editor.querySelector(`timeline-history`)).toBeNull()
+	await f.click(`redo`)
+	expect(f.silo.getState(countAtom)).toBe(4)
+	expect(redo.disabled).toBe(true)
+	expect(editor.querySelector(`timeline-history`)).toBeNull()
+	await f.select(`transaction:save`, `Enter`)
+	const outcomes = editor.querySelector(`transaction-outcomes`)!
+	expect(outcomes.textContent).toBe(`Outcome 11 writeOutcome 21 write`)
+	await f.click(`Expand outcome 2`)
+	const second = outcomes.querySelectorAll(`:scope > event-view`)[1]
+	expect(second.querySelector(`p[data-compact-write]`)?.textContent).toBe(
+		`count24`,
+	)
+	expect(second.querySelector(`p[data-outcome-metadata]`)?.textContent).toBe(
+		`Args[4]Result4`,
+	)
+	const scene = f.host.querySelector(`ecology-scene`)!
+	const axis = (control: Element) =>
+		control
+			.closest(`ecology-node-card`)!
+			.getAttribute(`data-position`)!
+			.split(`,`)
+			.map(Number)
+	const node = (id: string) =>
+		scene.querySelector(`button[data-graph-id="${id}"]`)!
+	const outcomeCards = [
+		...scene.querySelectorAll<HTMLButtonElement>(
+			`[data-history="outcome"] > button`,
+		),
+	]
+	const [transactionX, transactionY, transactionZ] = axis(
+		node(`transaction:save`),
+	)
+	expect(
+		outcomeCards.map((card) => card.querySelector(`strong`)?.textContent),
+	).toEqual([`Outcome 1`, `Outcome 2`])
+	expect(axis(outcomeCards[0])).toEqual([
+		transactionX,
+		expect.any(Number),
+		transactionZ,
+	])
+	expect(transactionY).toBeGreaterThan(axis(outcomeCards[0])[1])
+	expect(axis(outcomeCards[0])[1]).toBeGreaterThan(axis(outcomeCards[1])[1])
+	outcomeCards[0].focus()
+	await f.select(outcomeCards[0].getAttribute(`data-graph-id`)!)
+	expect(document.activeElement?.closest(`transaction-outcomes`)).not.toBeNull()
+	await f.select(`timeline:count`, `Enter`)
+	expect(redo.disabled).toBe(true)
+	expect(redo.querySelector(`[data-editor-icon="redo"]`)).not.toBeNull()
+	expect(outcomes.querySelector(`[data-editor-icon="arrow"]`)).not.toBeNull()
+	expect(
+		outcomes.querySelector(`event-heading button [data-editor-icon="collapse"]`),
+	).not.toBeNull()
+	expect(scene.getAttribute(`data-history-connections`)).toBe(`2`)
+	expect(
+		editor.querySelector(`timeline-history [data-cursor]`)?.textContent,
+	).toBe(`Current position`)
+	await f.click(`Reset view`)
+	await f.click(`undo`)
+	expect(f.silo.getState(countAtom)).toBe(2)
+	const past = scene.querySelector(`[data-history="past"] > button`)!
+	const future = scene.querySelector(`[data-history="future"] > button`)!
+	const [timelineX, timelineY, timelineZ] = axis(node(`timeline:count`))
+	expect(axis(past)).toEqual([timelineX, expect.any(Number), timelineZ])
+	expect(axis(future)).toEqual([timelineX, expect.any(Number), timelineZ])
+	expect(axis(past)[1]).toBeGreaterThan(timelineY)
+	expect(axis(future)[1]).toBeLessThan(timelineY)
+	const futureId = future.getAttribute(`data-history-event`)
+	await f.select(future.getAttribute(`data-graph-id`)!, `Enter`)
+	expect(
+		document.activeElement
+			?.closest(`[data-history-event]`)
+			?.getAttribute(`data-history-event`),
+	).toBe(futureId)
+	expect(
+		editor.querySelector(`timeline-history [data-cursor]`)?.nextElementSibling
+			?.localName,
+	).toBe(`event-view`)
+	await f.click(`redo`)
+	expect(f.silo.getState(countAtom)).toBe(4)
+	outcomeCards[0].focus()
+	await f.select(`transaction:save`, `Enter`)
+	expect(document.activeElement).toBe(node(`transaction:save`))
+	await f.select(`timeline:count`, `Enter`)
+	node(`timeline:count`).dispatchEvent(
+		new KeyboardEvent(`keydown`, { key: `Enter`, bubbles: true, repeat: true }),
+	)
+	await settle()
+	expect(
+		editor.querySelector(`transaction-outcomes, timeline-history`),
+	).toBeNull()
+	expect(scene.getAttribute(`data-history-connections`)).toBe(`0`)
+})
+
+it(`synchronizes individual history entries between the graph and the editor`, async () => {
+	const f = setup()
+	const countAtom = f.silo.atom<number>({ key: `count`, default: 0 })
+	f.silo.getState(countAtom)
+	const countTimeline = f.silo.timeline({ key: `count`, scope: [countAtom] })
+	const saveTransaction = f.silo.transaction({
+		key: `save`,
+		do: ({ set }, value: number) => {
+			set(countAtom, value)
+		},
+	})
+	f.mount()
+	await settle()
+	const run = f.silo.runTransaction(saveTransaction)
+	run(1)
+	run(2)
+	await settle()
+	await f.click(`Expand transaction save`)
+	await f.click(`Expand timeline count`)
+	const view = f.host.querySelector<HTMLElement>(`ecology-view`)!
+	const events = [
+		...view.querySelectorAll<HTMLElement>(`event-view[data-history-graph-id]`),
+	]
+	const [outcome, other, , event] = events
+	const pair = (entry: HTMLElement) => {
+		const id = entry.dataset[`historyGraphId`]!
+		return {
+			id,
+			editor: entry.querySelector<HTMLButtonElement>(
+				`event-heading > button[data-graph-id]`,
+			)!,
+			map: [
+				...view.querySelectorAll<HTMLButtonElement>(
+					`ecology-node-card > button`,
+				),
+			].find((button) => button.dataset[`graphId`] === id)!,
+		}
+	}
+	const selected = (entry: HTMLElement) =>
+		[pair(entry).editor, pair(entry).map].map((node) =>
+			node.getAttribute(`aria-pressed`),
+		)
+	const hover = async (node: Element, type = `pointerover`) => {
+		node.dispatchEvent(
+			new PointerEvent(type, { bubbles: true, pointerType: `mouse` }),
+		)
+		await settle()
+	}
+	const hovered = () => [...view.querySelectorAll(`[data-hovered="true"]`)]
+	await f.click(`Expand outcome 1`)
+	const jobs = view.dataset[`jobs`]
+	await hover(outcome.querySelector(`p[data-compact-write] ins`)!)
+	expect(hovered()).toEqual([pair(outcome).map.parentElement, outcome])
+	expect(view.dataset[`jobs`]).toBe(jobs)
+	await hover(pair(event).map)
+	expect(hovered()).toEqual([pair(event).map.parentElement, event])
+	await hover(pair(event).map, `pointercancel`)
+	expect(hovered()).toEqual([])
+
+	const outcomePair = pair(outcome)
+	outcomePair.editor.focus()
+	outcomePair.editor.dispatchEvent(
+		new KeyboardEvent(`keydown`, { key: ` `, bubbles: true, cancelable: true }),
+	)
+	await settle()
+	expect(selected(outcome)).toEqual([`true`, `true`])
+	expect(selected(other)).toEqual([`false`, `false`])
+	expect(document.activeElement).toBe(outcomePair.editor)
+	expect(
+		view
+			.querySelector(`[data-graph-id="transaction:save"]`)
+			?.getAttribute(`aria-pressed`),
+	).toBe(`false`)
+	expect(
+		outcome.closest(`ecology-editor-row`)?.getAttribute(`data-selection-anchor`),
+	).toBe(`false`)
+	const disclosure = outcome.querySelector<HTMLButtonElement>(
+		`event-heading > button[aria-expanded]`,
+	)!
+	disclosure.click()
+	await settle()
+	expect(disclosure.getAttribute(`aria-expanded`)).toBe(`false`)
+	expect(selected(outcome)).toEqual([`true`, `true`])
+
+	const eventPair = pair(event)
+	await f.select(eventPair.id)
+	expect(selected(event)).toEqual([`true`, `true`])
+	expect(selected(outcome)).toEqual([`false`, `false`])
+	expect(document.activeElement).toBe(eventPair.editor)
+	await f.click(`undo`)
+	expect(pair(event).map.parentElement?.getAttribute(`data-history`)).toBe(
+		`future`,
+	)
+	expect(selected(event)).toEqual([`true`, `true`])
+	const owner = () =>
+		view.querySelector(
+			`ecology-node-card > button[data-graph-id="timeline:count"]`,
+		)
+	await f.click(`Collapse timeline count`)
+	expect(owner()?.getAttribute(`aria-pressed`)).toBe(`true`)
+	expect(document.activeElement?.getAttribute(`data-graph-id`)).toBe(
+		`timeline:count`,
+	)
+	await f.select(`timeline:count`, `Enter`)
+	const reopened = [
+		...view.querySelectorAll<HTMLElement>(`event-view[data-history-graph-id]`),
+	].find((entry) => entry.dataset[`historyGraphId`] === eventPair.id)!
+	expect(selected(reopened)).toEqual([`true`, `true`])
+	f.silo.clearTimeline(countTimeline)
+	await settle()
+	expect(owner()?.getAttribute(`aria-pressed`)).toBe(`true`)
+	await f.click(`Clear selection`)
+	expect(view.querySelector(`button[aria-pressed="true"]`)).toBeNull()
+})
+
+it(`updates a timeline cursor without recapturing the graph`, async () => {
+	const f = setup()
+	const countAtom = f.silo.atom<number>({ key: `count`, default: 0 })
+	f.silo.getState(countAtom)
+	f.silo.timeline({ key: `count`, scope: [countAtom] })
+	f.mount()
+	await settle()
+	const view = f.host.querySelector<HTMLElement>(`ecology-view`)!
+	const jobs = view.dataset[`jobs`]
+	const scan = vi.spyOn(f.silo.store.timelines, `values`)
+	f.silo.setState(countAtom, 1)
+	await settle()
+	expect(
+		f.host.querySelector(
+			`ecology-node-card button[data-graph-id="timeline:count"]`,
+		)?.textContent,
+	).toContain(`1 of 1 event applied`)
+	expect(
+		f.host.querySelector(
+			`ecology-editor-row[data-row-id="timeline:count"] node-heading small`,
+		)?.textContent,
+	).toBe(`1 of 1 event applied`)
+	expect(Number(view.dataset[`jobs`])).toBeGreaterThan(Number(jobs))
+	expect(scan).not.toHaveBeenCalled()
+})
+
+it(`retains outcomes across a debugger remount and a separate Ecology instance`, async () => {
+	const f = setup()
+	const saveTransaction = f.silo.transaction({
+		key: `save`,
+		do: (_, value: number) => value,
+	})
+	f.mount()
+	f.silo.runTransaction(saveTransaction)(5)
+	await settle()
+	dispose()
+	f.silo.runTransaction(saveTransaction)(6)
+	dispose = mountEcology(f.host, { store: f.silo.store }).dispose
+	await settle()
+	await f.click(`Expand transaction save`)
+	await f.click(`Expand outcome 1`)
+	await f.click(`Expand outcome 2`)
+	const outcomes = f.host.querySelector(`transaction-outcomes`)?.textContent
+	expect(outcomes).toContain(`Result5`)
+	expect(outcomes).toContain(`Result6`)
+})
+
 it(`updates and flashes cards from the root cache without evaluating dormant state`, async () => {
 	const f = setup()
 	const countAtom = f.silo.atom<number>({ key: `count`, default: () => 2 })
@@ -873,6 +1233,9 @@ it(`defers a hidden controller and suspends live updates before the visibility o
 	try {
 		await settle()
 		expect(update).not.toHaveBeenCalled()
+		expect(
+			controller.viewOutcome(`transaction:missing`, `history:missing`),
+		).toBe(false)
 		panel.hidden = false
 		await settle()
 		expect(update).toHaveBeenCalledWith({ busy: true })
@@ -1645,4 +2008,100 @@ it(`focuses generated controls even when the new value leaves the filter, and re
 	expect(document.activeElement?.getAttribute(`aria-label`)).toBe(
 		`Search ecology`,
 	)
+})
+
+it(`opens the retained source outcome after inspecting a scoped timeline event`, async () => {
+	const f = setup()
+	const cartItemsAtom = f.silo.atom<string[]>({ key: `cartItems`, default: [] })
+	const sessionSavedAtom = f.silo.atom<boolean>({
+		key: `sessionSaved`,
+		default: false,
+	})
+	f.silo.getState(cartItemsAtom)
+	f.silo.getState(sessionSavedAtom)
+	f.silo.timeline({ key: `cart history`, scope: [cartItemsAtom] })
+	const saveCartTransaction = f.silo.transaction({
+		key: `saveCart`,
+		do: ({ set }) => {
+			set(cartItemsAtom, [`beans`, `mug`])
+			set(sessionSavedAtom, true)
+		},
+	})
+	f.mount()
+	await settle()
+	f.silo.setState(cartItemsAtom, [`beans`])
+	f.silo.runTransaction(saveCartTransaction)()
+	await settle()
+	await f.click(`Expand timeline cart history`)
+	const history = f.host.querySelector(`timeline-history`)!
+	const [first, second] = history.querySelectorAll<HTMLElement>(
+		`event-view[data-timeline-event]`,
+	)
+	expect(first.textContent).toContain(`1 · cartItems`)
+	expect(second.textContent).toContain(`2 · saveCart`)
+	expect(
+		first.querySelector(`[data-timeline-summary]`)?.getAttribute(`title`),
+	).toBe(`length: 0 to 1`)
+	expect(
+		second.querySelector(`[data-timeline-summary]`)?.getAttribute(`title`),
+	).toBe(`cartItems · length: 1 to 2`)
+	expect(history.querySelector(`outcome-collection-change`)).toBeNull()
+	await f.click(`Expand 1 · cartItems`)
+	expect(
+		first.querySelector(`[data-snapshot-diff="after"] outcome-value`)
+			?.textContent,
+	).toBe(`"beans"`)
+	expect(first.querySelector(`button[data-graph-id]`)).not.toBeNull()
+	const title = second.querySelector<HTMLButtonElement>(`button[data-graph-id]`)!
+	title.focus()
+	for (const modifiers of [{ repeat: true }, { ctrlKey: true }]) {
+		title.dispatchEvent(
+			new KeyboardEvent(`keydown`, {
+				key: `Enter`,
+				bubbles: true,
+				cancelable: true,
+				...modifiers,
+			}),
+		)
+		await settle()
+		expect(second.querySelector(`outcome-collection-change`)).toBeNull()
+	}
+	title.dispatchEvent(
+		new KeyboardEvent(`keydown`, {
+			key: `Enter`,
+			bubbles: true,
+			cancelable: true,
+		}),
+	)
+	await settle()
+	expect(
+		second.querySelector(`[data-snapshot-diff="after"] outcome-value`)
+			?.textContent,
+	).toBe(`"mug"`)
+	expect(second.textContent).not.toContain(`sessionSaved`)
+	await f.click(`undo`)
+	expect(second.dataset[`timelineState`]).toBe(`future`)
+	expect(second.querySelector(`[data-redo-next]`)?.textContent).toBe(`Redo next`)
+	expect(
+		second.querySelector(`[data-snapshot-diff="after"] outcome-value`)
+			?.textContent,
+	).toBe(`"mug"`)
+	expect(
+		f.host.querySelector(`[data-history="future"] strong`)?.textContent,
+	).toBe(`2 · saveCart`)
+
+	// Selecting the linked outcome also works when the active filter only matches its timeline.
+	await f.search(`cart history`)
+	await f.click(`Transaction outcome`)
+	const source = f.host.querySelector(
+		`ecology-editor transaction-outcomes event-view`,
+	)!
+	expect(source.textContent).toContain(`sessionSaved`)
+	expect(source.querySelector(`button[data-graph-id]`)).toBe(
+		document.activeElement,
+	)
+	expect(source.getAttribute(`data-selected`)).toBe(`true`)
+	expect(
+		f.host.querySelector(`[data-history="outcome"] button[aria-pressed="true"]`),
+	).not.toBeNull()
 })

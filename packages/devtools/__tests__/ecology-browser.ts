@@ -592,7 +592,7 @@ try {
 						.trim(),
 					border: getComputedStyle(node.querySelector(`button`)!).borderTopColor,
 					iconFill: getComputedStyle(
-						node.querySelector(`ecology-primitive-icon rect`)!,
+						node.querySelector(`ecology-primitive-icon svg`)!,
 					).fill,
 				})),
 			)
@@ -617,13 +617,242 @@ try {
 					id: node.getAttribute(`data-row-id`),
 					border: getComputedStyle(node).borderLeftColor,
 					iconFill: getComputedStyle(
-						node.querySelector(`ecology-primitive-icon rect`)!,
+						node.querySelector(`ecology-primitive-icon svg`)!,
 					).fill,
 				})),
 			)
 		assert.ok(rows.length > 0)
 		for (const { id, iconFill, border } of rows)
 			assert.equal(iconFill, border, `Editor icon color: ${id}`)
+	}
+	const operations = await context.newPage()
+	try {
+		await operations.goto(
+			`http://127.0.0.1:${(server.address() as AddressInfo).port}/?inline&operations`,
+		)
+		const editorRow = (id: string) =>
+			operations.locator(`ecology-editor-row[data-row-id="${id}"]`)
+		for (const id of [
+			`state:price`,
+			`state:total`,
+			`family:items`,
+			`transaction:save`,
+			`timeline:price history`,
+			`timeline_family:histories`,
+		]) {
+			const height = await editorRow(id).evaluate(
+				(editorElement) => editorElement.getBoundingClientRect().height,
+			)
+			assert.equal(height, 23, `Collapsed editor row height for ${id}`)
+		}
+		for (const colorScheme of [`light`, `dark`] as const) {
+			await operations.emulateMedia({ colorScheme })
+			for (const [id, kind, detail] of [
+				[`transaction:save`, `transaction`, `Transaction`],
+				[
+					`timeline:price history`,
+					`timeline`,
+					`Timeline · 0 of 0 events applied`,
+				],
+				[
+					`timeline_family:histories`,
+					`timeline-family`,
+					`Timeline Family · 1 members`,
+				],
+			]) {
+				const card = operations.locator(
+					`ecology-node-card > button[data-graph-id="${id}"]`,
+				)
+				assert.equal(await card.locator(`small`).textContent(), detail)
+				assert.equal(
+					await card
+						.locator(`ecology-primitive-icon`)
+						.getAttribute(`data-primitive`),
+					kind,
+				)
+				const editorIcon = editorRow(id).locator(
+					`:scope > ecology-primitive-icon`,
+				)
+				assert.equal(await editorIcon.getAttribute(`data-primitive`), kind)
+				const [cardColors, editorColors] = await Promise.all([
+					card.evaluate((node) => ({
+						fill: getComputedStyle(
+							node.querySelector(`ecology-primitive-icon svg`)!,
+						).fill,
+						border: getComputedStyle(node).borderTopColor,
+					})),
+					editorIcon.evaluate((node) => ({
+						fill: getComputedStyle(node.querySelector(`svg`)!).fill,
+						border: getComputedStyle(node.parentElement!).borderLeftColor,
+					})),
+				])
+				assert.equal(
+					cardColors.fill,
+					cardColors.border,
+					`${id} card in ${colorScheme}`,
+				)
+				assert.equal(
+					editorColors.fill,
+					editorColors.border,
+					`${id} row in ${colorScheme}`,
+				)
+				assert.equal(
+					cardColors.fill,
+					editorColors.fill,
+					`${id} color in ${colorScheme}`,
+				)
+			}
+		}
+		await operations
+			.getByRole(`button`, { name: `Expand transaction save` })
+			.click()
+		assert.equal(
+			await operations
+				.locator(`ecology-editor transaction-outcomes`)
+				.textContent(),
+			`No recorded outcomes`,
+		)
+		await operations
+			.getByRole(`button`, { name: `Collapse transaction save` })
+			.click()
+		await operations.evaluate(() => {
+			window.ecologyFixture.recordOperation()
+		})
+		for (const [id, relation, pattern] of [
+			[`transaction:save`, `transaction`, `6px, 4px`],
+			[`timeline:price history`, `timeline`, `0.5px, 4px`],
+			[`timeline_family:histories`, `timeline`, `0.5px, 4px`],
+		]) {
+			const path = operations
+				.locator(
+					`ecology-node-card:has(> button[data-graph-id="${id}"]) > svg > path[data-relation="${relation}"]`,
+				)
+				.first()
+			const { dasharray, stroke, border } = await path.evaluate((node) => {
+				const style = getComputedStyle(node)
+				const card = node.closest(`ecology-node-card`)!.querySelector(`button`)!
+				return {
+					dasharray: style.strokeDasharray,
+					stroke: style.stroke,
+					border: getComputedStyle(card).borderTopColor,
+				}
+			})
+			assert.equal(dasharray, pattern)
+			assert.equal(stroke, border)
+		}
+		const selectorArrow = operations.locator(
+			`ecology-node-card:has(> button[data-graph-id="state:price"]) > svg > path`,
+		)
+		assert.equal(
+			await selectorArrow.evaluate(
+				(node) => getComputedStyle(node).strokeDasharray,
+			),
+			`none`,
+		)
+		await operations
+			.getByRole(`button`, { name: `Expand transaction save` })
+			.click()
+		await operations
+			.locator(
+				`ecology-node-card[data-history="outcome"] > svg > path[data-relation="transaction"]`,
+			)
+			.waitFor({ state: `attached` })
+		assert.equal(
+			await operations
+				.locator(
+					`ecology-node-card:has(> button[data-graph-id="transaction:save"]) > svg > path[data-relation="transaction"][d]:not([d=""])`,
+				)
+				.count(),
+			0,
+		)
+		await operations
+			.getByRole(`button`, { name: `Expand outcome 1`, exact: true })
+			.click()
+		const cartChange = operations.locator(
+			`transaction-outcomes outcome-collection-change`,
+		)
+		assert.equal(
+			await cartChange.locator(`[data-collection-summary] strong`).textContent(),
+			`cartItems`,
+		)
+		assert.deepEqual(await cartChange.locator(`th small`).allTextContents(), [
+			`length 0`,
+			`length 1`,
+		])
+		assert.equal(await cartChange.locator(`tbody tr`).count(), 1)
+		assert.equal(
+			await cartChange.locator(`[data-snapshot-punctuation]`).count(),
+			0,
+		)
+		assert.equal(
+			await cartChange
+				.locator(`[data-snapshot-diff="after"] snapshot-entry`)
+				.textContent(),
+			`0"coffee-beans"`,
+		)
+		assert.equal(
+			await cartChange.locator(`[data-snapshot-diff="before"]`).count(),
+			0,
+		)
+		const [beforePosition, afterPosition] = await cartChange
+			.locator(`th`)
+			.evaluateAll((cells) =>
+				cells.map((cell) => ({
+					x: cell.getBoundingClientRect().x,
+					y: cell.getBoundingClientRect().y,
+				})),
+			)
+		assert.equal(beforePosition.y, afterPosition.y)
+		assert.ok(beforePosition.x < afterPosition.x)
+		assert.deepEqual(
+			await cartChange.locator(`snapshot-comparison`).evaluate((element) => {
+				const style = getComputedStyle(element)
+				return [
+					style.marginLeft,
+					style.marginRight,
+					style.marginBottom,
+					style.borderTopWidth,
+					style.borderBottomWidth,
+				]
+			}),
+			[`0px`, `0px`, `0px`, `1px`, `0px`],
+		)
+		const priceHistory = editorRow(`timeline:price history`)
+		assert.equal(await priceHistory.locator(`timeline-history`).count(), 0)
+		assert.deepEqual(
+			await priceHistory
+				.locator(`timeline-travel button:disabled`)
+				.all()
+				.then((buttons) =>
+					Promise.all(buttons.map((button) => button.isVisible())),
+				),
+			[true, true],
+		)
+		await priceHistory
+			.getByRole(`button`, { name: `Expand timeline price history` })
+			.click()
+		assert.equal(
+			await operations
+				.locator(`ecology-editor timeline-history [data-empty-history]`)
+				.textContent(),
+			`No recorded events`,
+		)
+		assert.deepEqual(
+			await priceHistory
+				.locator(`timeline-travel button:disabled`)
+				.evaluateAll((buttons) =>
+					buttons.map((button) => button.getBoundingClientRect().height),
+				),
+			[22, 22],
+		)
+		assert.equal(
+			await priceHistory
+				.locator(`ecology-operation-history > node-heading`)
+				.evaluate((heading) => heading.getBoundingClientRect().height),
+			22,
+		)
+	} finally {
+		await operations.close()
 	}
 	assert.equal(await page.locator(`ecology-view nav[data-workspace]`).count(), 0)
 	assert.equal(

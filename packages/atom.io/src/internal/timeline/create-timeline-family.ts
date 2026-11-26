@@ -15,6 +15,7 @@ import type { Subject } from "atom.io/foundations/subject"
 import { newest } from "../lineage.ts"
 import { getUpdateToken } from "../mutable/index.ts"
 import { deposit, type Store, withdraw } from "../store/index.ts"
+import { recordStoreChange } from "../store-observation.ts"
 import type { RootStore } from "../transaction/index.ts"
 import { isChildStore } from "../transaction/index.ts"
 import {
@@ -226,6 +227,7 @@ export function createTimelineFamily<
 		create: (key, data) => createTimelineFamilyMember(store, token, key, data),
 	}
 	store.timelineFamilies.set(options.key, family)
+	recordStoreChange(store, `timelineFamilies`, family.key)
 	for (const scope of options.scope) {
 		addScope(store, family, scope)
 	}

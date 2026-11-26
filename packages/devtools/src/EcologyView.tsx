@@ -5,7 +5,12 @@ import type { FutureActivity } from "atom.io/introspection"
 import { animate } from "motion"
 
 import { createEcologyController } from "./ecology-controller.ts"
-import type { GraphContext, GraphModel } from "./ecology-graph.ts"
+import type {
+	GraphContext,
+	GraphHistory,
+	GraphItem,
+	GraphModel,
+} from "./ecology-graph.ts"
 import type { EcologyLine } from "./ecology-lines.ts"
 import { EcologyEditor } from "./EcologyEditor.tsx"
 import { EcologyGuide } from "./EcologyGuide.tsx"
@@ -32,10 +37,12 @@ export interface EcologyPresentation {
 	matches: ReadonlySet<string> | undefined
 	edges: EcologyLine[]
 	familyConnections: GraphModel[`familyConnections`]
+	historyConnections: GraphModel[`historyConnections`]
+	historyOwners: GraphModel[`historyOwners`]
 	selected?: GraphModel[`items`][number] | undefined
 	selectedCard?: string | undefined
-	familyExpanded: boolean
-	hasSelectedFamily: boolean
+	selectedHistory?: string | undefined
+	expansion: { kind: `family` | `history`; expanded: boolean } | undefined
 	hasSelection: boolean
 	selectedIds: ReadonlySet<string>
 	selectionOutside: boolean
@@ -55,6 +62,30 @@ export interface EcologyPresentation {
 	generation: number
 	activity: ReadonlyMap<string, EcologyActivity>
 	pinnedKey: string | undefined
+}
+
+function ObserveHistory(props: {
+	tools: EditorTools
+	item: GraphItem
+	onChange(id: string, history?: GraphHistory): void
+}): null {
+	const { id, key, kind } = props.item
+	if (kind === `transaction`) {
+		onCommit(props.tools.history.useTransaction(key), (events) => {
+			props.onChange(id, { events })
+		})
+	} else {
+		onCommit(props.tools.history.useTimeline(key), (timeline) => {
+			props.onChange(
+				id,
+				timeline && { events: timeline.history, at: timeline.at },
+			)
+		})
+	}
+	onCleanup(() => {
+		props.onChange(id)
+	})
+	return null
 }
 
 function ViewportAction(props: {
@@ -157,10 +188,12 @@ export function EcologyView(props: {
 		matches: undefined,
 		edges: [],
 		familyConnections: [],
+		historyConnections: [],
+		historyOwners: [],
 		selected: undefined,
 		selectedCard: undefined,
-		familyExpanded: false,
-		hasSelectedFamily: false,
+		selectedHistory: undefined,
+		expansion: undefined,
 		hasSelection: false,
 		selectedIds: new Set(),
 		query: props.context.query,
@@ -189,8 +222,19 @@ export function EcologyView(props: {
 	const state = presentation.read
 	const selectedFamily = () => {
 		const selected = state().selected
-		return selected?.kind === `family` ? selected.key : selected?.familyLabel
+		return selected?.kind === `family` ? selected.id : selected?.familyId
 	}
+	const expansion = () => state().expansion
+	const expansionIcon = (): EditorIconName =>
+		expansion()?.kind === `history`
+			? expansion()?.expanded
+				? `collapseHistory`
+				: `expandHistory`
+			: expansion()?.expanded
+				? `collapseFamily`
+				: `expandFamily`
+	const expansionLabel = () =>
+		`${expansion()?.expanded ? `Collapse` : `Expand`} ${expansion()?.kind === `history` ? `history` : `family`}`
 	const hover = (event: PointerEvent) => {
 		const target =
 			event.type === `pointerout` ? event.relatedTarget : event.target
@@ -198,9 +242,15 @@ export function EcologyView(props: {
 			event.pointerType !== `touch` &&
 			target instanceof Element &&
 			host!.contains(target)
-				? target.closest<HTMLElement>(`[data-graph-id], ecology-editor-row`)
+				? target.closest<HTMLElement>(
+						`[data-graph-id], [data-history-graph-id], ecology-editor-row`,
+					)
 				: undefined
-		setHovered(item?.dataset[`graphId`] ?? item?.dataset[`rowId`])
+		setHovered(
+			item?.dataset[`graphId`] ??
+				item?.dataset[`historyGraphId`] ??
+				item?.dataset[`rowId`],
+		)
 	}
 	onMount(() => {
 		controller = createEcologyController(
@@ -231,6 +281,14 @@ export function EcologyView(props: {
 			}}
 		>
 			<EcologyToolbar marker={marker} state={state()} />
+			{state().historyOwners.map((item) => (
+				<ObserveHistory
+					key={item.id}
+					tools={props.tools}
+					item={item}
+					onChange={(id, history) => controller?.setHistory(id, history)}
+				/>
+			))}
 			<ecology-body>
 				<ecology-map>
 					<EcologyViewport
@@ -242,9 +300,16 @@ export function EcologyView(props: {
 						activity={state().activity}
 						edges={state().edges}
 						familyConnections={state().familyConnections}
+						historyConnections={state().historyConnections}
+						expanded={state().expanded}
 						selected={state().selectedCard}
 						selectedFamily={selectedFamily()}
-						selectedIds={state().selectedIds}
+						selectedIds={
+							state().selectedHistory === state().selectedCard &&
+							state().selectedHistory
+								? undefined
+								: state().selectedIds
+						}
 						traced={state().traced}
 						focused={state().focused}
 						matches={state().matches}
@@ -254,17 +319,15 @@ export function EcologyView(props: {
 					<ecology-map-actions>
 						<ViewportAction
 							action="expand"
-							available={state().hasSelectedFamily}
-							label={
-								state().familyExpanded ? `Collapse family` : `Expand family`
-							}
-							icon={state().familyExpanded ? `collapseFamily` : `expandFamily`}
-							expanded={state().familyExpanded}
+							available={expansion() !== undefined}
+							label={expansionLabel()}
+							icon={expansionIcon()}
+							expanded={expansion()?.expanded}
 						/>
 						<ViewportAction
 							action="clear"
 							available={state().hasSelection}
-							precedingAvailable={state().hasSelectedFamily}
+							precedingAvailable={expansion() !== undefined}
 							label="Clear selection"
 							icon="clearSelection"
 						/>
@@ -274,6 +337,9 @@ export function EcologyView(props: {
 					tools={props.tools}
 					state={state()}
 					hovered={hovered()}
+					onViewOutcome={(owner, outcome) =>
+						controller!.viewOutcome(owner, outcome)
+					}
 					onGenerate={(key) => {
 						controller?.refresh(key)
 					}}

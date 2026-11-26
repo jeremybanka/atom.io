@@ -4,10 +4,9 @@ import { useGetter } from "@atom.io/spa"
 import type { TransactionToken } from "atom.io"
 import { isReservedIntrospectionKey } from "atom.io/internal"
 
-import { EventView } from "./EventView.tsx"
-import { historyIdentity } from "./history-event.ts"
 import { type Tools, useExpanded } from "./store.ts"
 import css from "./TransactionIndex.module.css"
+import { TransactionOutcomes } from "./TransactionOutcomes.tsx"
 
 export function TransactionIndex(props: { tools: Tools }): SpaElement {
 	const getTransactionIndex = useGetter(props.tools.transactionIndex)
@@ -33,9 +32,7 @@ function TransactionLog(props: {
 	tools: Tools
 	token: TransactionToken<any>
 }): SpaElement {
-	const getTransactionLog = useGetter(
-		props.tools.transactionLog(props.token.key),
-	)
+	const getTransactionLog = props.tools.history.useTransaction(props.token.key)
 	const [getOpen, toggle] = useExpanded(props.tools, [props.token.key])
 	return (
 		<transaction-log data-testid={`transaction-${props.token.key}`}>
@@ -53,16 +50,7 @@ function TransactionLog(props: {
 				<small data-count>({getTransactionLog().length})</small>
 			</node-heading>
 			{getOpen() ? (
-				<transaction-outcomes>
-					{getTransactionLog().map((event, index) => (
-						<EventView
-							key={historyIdentity(event)}
-							tools={props.tools}
-							event={event}
-							index={index}
-						/>
-					))}
-				</transaction-outcomes>
+				<TransactionOutcomes tools={props.tools} history={getTransactionLog()} />
 			) : null}
 		</transaction-log>
 	)

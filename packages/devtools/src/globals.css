@@ -114,6 +114,10 @@
 	editor-icon > svg {
 		display: block;
 	}
+	editor-icon:has(> :is([data-editor-icon="arrow"], [data-editor-icon="externalLink"])) {
+		display: inline-block;
+		vertical-align: middle;
+	}
 	button:has(> editor-icon) {
 		display: inline-grid;
 		place-items: center;

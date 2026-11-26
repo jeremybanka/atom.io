@@ -1,0 +1,38 @@
+outcome-value.class {
+	display: block;
+	min-width: 0;
+	> button {
+		display: block;
+		width: 100%;
+		min-width: 0;
+		height: auto;
+		padding: 0;
+		line-height: inherit;
+		text-align: inherit;
+		text-decoration: underline dotted;
+	}
+	> code, > button > code {
+		display: block;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+	}
+	&[data-wrap] :is(code, button > code) {
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
+	}
+	> small[data-circular] {
+		display: block;
+		color: var(--ink-muted);
+	}
+	> button[aria-expanded="true"] {
+		text-decoration: none;
+	}
+	> button[aria-expanded="true"] > code {
+		max-height: 9rem;
+		overflow: auto;
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
+		text-align: start;
+	}
+}

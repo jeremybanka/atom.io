@@ -45,6 +45,13 @@ export function EcologyGuide(props: {
 						the selected editor section when expanded.
 					</p>
 					<p>
+						Press Enter on a transaction or timeline to open or close its
+						history. Transaction outcomes extend below their node. Timeline
+						events extend above for past steps and below for future steps. Solid
+						lines join those cards to their owner. Select a history card to find
+						its event in the editor.
+					</p>
+					<p>
 						The ecology editor stays beside the graph on wide screens and below
 						it on narrow screens. Selected, related and other nodes have separate
 						sections. Cached values have nested editors; Generate explicitly
@@ -67,16 +74,22 @@ export function EcologyGuide(props: {
 					<h3>Capture details &amp; legend</h3>
 					<p data-notice>{props.notice}</p>
 					<p>
-						Atom and Selector cards represent captured state. Dashed cards group
-						families, including empty definitions. Arrows point from a dependency
-						to its consumer. Each key gives its card border and outgoing arrows a
-						stable color: warm hues for atoms, cool hues for selectors. Members
-						share their family's color. Solid lines in the same color connect
-						expanded members and brighten when you select the family or a member.
-						Their cards show subkeys below smaller colored family names.
-						Clustered members sit slightly around their family center, keeping
-						separate edges that overlap into a band with a darker core and softer
-						fringe. The parallel springs stay opposite at equal height; their
+						Cards represent atoms, selectors, transactions, and timelines.
+						Timeline cards show the current step and retained history length.
+						Dashed cards group families, including empty definitions. Solid
+						arrows point from a dependency to its selector. Dashed lines link
+						transaction outcomes to affected states. Dotted lines link timelines
+						to their scopes and timeline events to affected states and captured
+						outcomes. History cards keep their routes while clustered around
+						their parent. Atom colors range from warm yellow to red, selectors
+						from cyan through blue to indigo, transactions from turquoise through
+						green to lime, and timelines from magenta to violet. Members share
+						their family's color. Solid lines in the same color connect expanded
+						members and brighten when you select the family or a member. Their
+						cards show subkeys below smaller colored family names. Clustered
+						members sit slightly around their family center, keeping separate
+						edges that overlap into a band with a darker core and softer fringe.
+						The parallel springs stay opposite at equal height; their
 						viewer-facing cards can still overlap in projection.
 					</p>
 					<p>

@@ -7,11 +7,14 @@ import {
 } from "atom.io/introspection"
 
 import {
+	captureEcologyOperations,
 	captureEcologySnapshot,
 	describeEcologyNode,
 	type EcologyFamily,
 	type EcologyLimits,
 	type EcologyNode,
+	type EcologyOperation,
+	ecologyOperationId,
 	type EcologySnapshot,
 	ecologyValue,
 	scanEcologyRelations,
@@ -57,12 +60,13 @@ function index(snapshot: EcologySnapshot) {
 type EcologyChanges = Pick<
 	StoreChanges,
 	`values` | `states` | `families` | `dependencies`
->
+> & { operations?: boolean; timelines?: ReadonlySet<string> }
 
 const remoteLimits = {
 	maxNodes: 10_000,
 	maxFamilies: 10_000,
 	maxRelations: 50_000,
+	maxOperations: 10_000,
 }
 const emptyChange = <T>(): RemoteRecordsUpdate<T> => ({ upsert: [], remove: [] })
 const compare = (a: string, b: string) => (a < b ? -1 : Number(a > b))
@@ -91,13 +95,18 @@ function updateFrame(
 /** Track observed changes by key. Recapture when limits can change which records are visible. */
 export function trackRemoteEcology(
 	store: RootStore,
-	limits: Required<EcologyLimits> = remoteLimits,
+	options: EcologyLimits = {},
 ): {
 	initial: EcologySnapshot
 	update(changes: EcologyChanges): RemoteEcologyUpdate | undefined
 } {
+	const limits = { ...remoteLimits, ...options }
 	const capture = () => captureEcologySnapshot(store, limits)
 	const initial = capture()
+	const { records: initialOperations, ...initialOperationMetadata } =
+		initial.operations
+	let operationMetadata = initialOperationMetadata
+	let operationRecords = toMap(initialOperations, ecologyOperationId)
 	const neighbors = (key: string) => peekDependencies(store, key, 0).total
 	const definition = (key: string) => peekStateDefinition(store, key)
 	function indexTopology(snapshot: EcologySnapshot) {
@@ -301,12 +310,64 @@ export function trackRemoteEcology(
 		return updateFrame(nodes, edges, families, metadata)
 	}
 
+	function updateOperations(
+		changes: EcologyChanges,
+	): RemoteEcologyUpdate[`operations`] {
+		if (changes.operations || (store.timelines.size && changes.states.size)) {
+			const { records, ...metadata } = captureEcologyOperations(
+				store,
+				limits.maxOperations,
+				limits.maxRelations,
+			)
+			const next = toMap(records, ecologyOperationId)
+			const delta = diff(operationRecords, next)
+			const changed =
+				hasChanges(delta) || workChanged(operationMetadata, metadata)
+			operationMetadata = metadata
+			operationRecords = next
+			if (changed) return { ...delta, ...metadata }
+			return
+		}
+		if (!changes.timelines?.size) return
+		const delta = emptyChange<EcologyOperation>()
+		for (const key of changes.timelines) {
+			const id = `timeline:${key}`
+			const previous = operationRecords.get(id)
+			const timeline = store.timelines.get(key)
+			if (
+				previous?.type !== `timeline` ||
+				!timeline ||
+				(previous.at === timeline.at &&
+					previous.historyLength === timeline.history.length)
+			)
+				continue
+			const next = {
+				...previous,
+				at: timeline.at,
+				historyLength: timeline.history.length,
+			}
+			operationRecords.set(id, next)
+			delta.upsert.push(next)
+		}
+		if (hasChanges(delta)) return { ...delta, ...operationMetadata }
+	}
+
 	return {
 		initial,
-		update: (changes) =>
-			changes.states.size || changes.dependencies.size || changes.families.size
-				? updateTopology(changes)
-				: updateValues(changes.values),
+		update(changes) {
+			const state =
+				changes.states.size || changes.dependencies.size || changes.families.size
+					? updateTopology(changes)
+					: updateValues(changes.values)
+			const operations = updateOperations(changes)
+			return operations
+				? {
+						...state,
+						nodes: state?.nodes ?? emptyChange<EcologyNode>(),
+						operations,
+					}
+				: state
+		},
 	}
 }
 
@@ -324,6 +385,17 @@ export function projectRemoteEcology(initial: EcologySnapshot): {
 	update(change: RemoteEcologyUpdate): boolean
 } {
 	const graph = index(initial)
+	const operations = toMap<EcologyOperation>(
+		initial.operations?.records ?? [],
+		ecologyOperationId,
+	)
+	let operationMetadata = initial.operations && {
+		work: initial.operations.work,
+		truncated: initial.operations.truncated,
+		...(initial.operations.relations && {
+			relations: initial.operations.relations,
+		}),
+	}
 	let snapshot: EcologySnapshot | undefined
 	return {
 		read: () =>
@@ -343,10 +415,18 @@ export function projectRemoteEcology(initial: EcologySnapshot): {
 						...family,
 						memberKeys: [...family.memberKeys].sort(compare),
 					})),
+				...(operationMetadata && {
+					operations: {
+						...operationMetadata,
+						records: [...operations.values()].sort(
+							(a, b) => compare(a.type, b.type) || compare(a.key, b.key),
+						),
+					},
+				}),
 				...graph.metadata,
 			}),
 		update(change: RemoteEcologyUpdate): boolean {
-			const topology =
+			let topology =
 				Boolean(change.edges ?? change.families ?? change.metadata) ||
 				change.nodes.remove.length > 0 ||
 				change.nodes.upsert.some((node) => {
@@ -361,9 +441,41 @@ export function projectRemoteEcology(initial: EcologySnapshot): {
 			apply(graph.nodes, keyOf, change.nodes)
 			if (change.edges) apply(graph.edges, edgeKey, change.edges)
 			if (change.families) apply(graph.families, keyOf, change.families)
+			if (change.operations) {
+				const { upsert, remove, ...metadata } = change.operations
+				topology ||=
+					remove.length > 0 ||
+					workChanged(operationMetadata, metadata) ||
+					upsert.some((record) => {
+						const previous = operations.get(ecologyOperationId(record))
+						if (record.type === `timeline` && previous?.type === `timeline`)
+							return (
+								!same(record.family, previous.family) ||
+								!same(record.targets, previous.targets)
+							)
+						return !same(record, previous)
+					})
+				apply(operations, ecologyOperationId, change.operations)
+				operationMetadata = metadata
+			}
 			if (change.metadata) graph.metadata = change.metadata
 			snapshot = undefined
 			return topology
 		},
 	}
+}
+
+type OperationMetadata = Omit<
+	NonNullable<EcologySnapshot[`operations`]>,
+	`records`
+>
+function workChanged(
+	before: OperationMetadata | undefined,
+	after: OperationMetadata,
+): boolean {
+	return (
+		before?.work !== after.work ||
+		before.truncated !== after.truncated ||
+		!same(before.relations, after.relations)
+	)
 }

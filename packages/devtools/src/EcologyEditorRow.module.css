@@ -25,7 +25,7 @@ ecology-editor-row.class {
 	> node-heading {
 		display: flex;
 		align-items: center;
-		min-height: 26px;
+		height: 22px;
 		background: var(--surface-inactive);
 	}
 	> node-heading > small {

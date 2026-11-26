@@ -1,9 +1,10 @@
 import { mountAtomIODevtools } from "@atom.io/devtools"
 import { mountEcology } from "@atom.io/devtools/ecology"
-import { type Loadable, type RegularAtomToken, Silo } from "atom.io"
+import { type Loadable, type RegularAtomToken, scopeFamily, Silo } from "atom.io"
 
 const host = document.createElement(`section`)
-const inline = new URLSearchParams(location.search).has(`inline`)
+const fixture = new URLSearchParams(location.search)
+const inline = fixture.has(`inline`)
 if (inline) {
 	host.style.width = `900px`
 	host.style.height = `500px`
@@ -15,7 +16,8 @@ let panel = { dispose() {} },
 	mountStarted = 0,
 	setupMs = 0
 let change = () => {},
-	remove = () => {}
+	remove = () => {},
+	recordOperation = () => {}
 let brokenAtom:
 	| RegularAtomToken<Loadable<number | Error>, any, Error>
 	| undefined
@@ -65,6 +67,23 @@ function mount(mode: `small` | `empty` | `large`): void {
 			{ source: itemAtom.key },
 		)
 		app.atomFamily<number, string>({ key: `zero`, default: 0 })
+		if (fixture.has(`operations`)) {
+			const cartItemsAtom = app.atom<string[]>({ key: `cartItems`, default: [] })
+			app.getState(cartItemsAtom)
+			const saveTransaction = app.transaction({
+				key: `save`,
+				do: ({ set }) => {
+					set(cartItemsAtom, [`coffee-beans`])
+				},
+			})
+			recordOperation = app.runTransaction(saveTransaction)
+			app.timeline({ key: `price history`, scope: [priceAtom] })
+			const historiesTimelines = app.timelineFamily<string>({
+				key: `histories`,
+				scope: [scopeFamily(itemsAtoms, { timelineKey: (key) => key })],
+			})
+			app.findTimeline(historiesTimelines, `a`)
+		}
 		change = () => {
 			app.setState(priceAtom, 6)
 			app.getState(totalSelector)
@@ -126,6 +145,7 @@ declare global {
 			mount: typeof mount
 			change(): void
 			remove(): void
+			recordOperation(): void
 			showCaughtError(): void
 			timings(): { reads: number; mountStarted: number; setupMs: number }
 			evidence(): {
@@ -140,6 +160,9 @@ declare global {
 	}
 }
 window.ecologyFixture = {
+	recordOperation: () => {
+		recordOperation()
+	},
 	timings: () => ({ reads, mountStarted, setupMs }),
 	mount,
 	change: () => {

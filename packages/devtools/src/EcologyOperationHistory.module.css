@@ -1,0 +1,22 @@
+ecology-operation-history.class {
+	display: block;
+	min-width: 0;
+	> node-heading {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr) auto auto;
+		align-items: center;
+		height: 22px;
+		background: var(--surface-inactive);
+	}
+	> node-heading > button {
+		display: grid;
+		place-items: center;
+		width: 24px;
+		height: 22px;
+	}
+	> node-heading > small {
+		padding: 0 4px;
+		font-size: 10px;
+		color: var(--ink-muted);
+	}
+}

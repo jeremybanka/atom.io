@@ -20,7 +20,11 @@ import {
 	createFamilySpine,
 	writeFamilySpine,
 } from "../src/ecology-lines.ts"
-import { createEdgeRoutingMotion } from "../src/ecology-motion.ts"
+import {
+	createEcologyMotion,
+	createEdgeRoutingMotion,
+	FAMILY_SPRING,
+} from "../src/ecology-motion.ts"
 import { type CameraCommand, EcologyScene } from "../src/EcologyScene.tsx"
 import { useTools } from "../src/store.ts"
 
@@ -70,6 +74,7 @@ interface SceneState {
 	items: GraphItem[]
 	edges: EcologyLine[]
 	familyConnections?: FamilyConnection[]
+	historyConnections?: FamilyConnection[]
 	command?: CameraCommand | undefined
 }
 function fixture(
@@ -136,6 +141,7 @@ function fixture(
 					items={get().items}
 					edges={get().edges}
 					familyConnections={get().familyConnections}
+					historyConnections={get().historyConnections}
 					traced={get().traced}
 					selected={get().selected}
 					selectedFamily={get().selectedFamily}
@@ -214,7 +220,7 @@ it(`projects viewer-facing DOM cards and source-stacked edges, keeps a camera th
 	expect(f.viewport.dataset[`edges`]).toBe(`1`)
 	f.patch({
 		familyConnections: [
-			{ family: `items`, from: f.a, to: f.b, color: f.a.color },
+			{ family: `family:items`, from: f.a, to: f.b, color: f.a.color },
 		],
 	})
 	f.tick()
@@ -247,12 +253,12 @@ it(`projects viewer-facing DOM cards and source-stacked edges, keeps a camera th
 	expect(selectedSpine.material.opacity).toBeGreaterThan(spine.material.opacity)
 	expect(spine.renderOrder).toBeLessThan(0)
 	expect(ground.renderOrder).toBeLessThan(spine.renderOrder)
-	const member = { ...f.a, familyLabel: `items` },
-		sibling = { ...f.b, familyLabel: `items` }
+	const member = { ...f.a, familyLabel: `items`, familyId: `family:items` },
+		sibling = { ...f.b, familyLabel: `items`, familyId: `family:items` }
 	f.patch({
 		items: [member, sibling],
 		selected: member.id,
-		selectedFamily: member.familyLabel,
+		selectedFamily: member.familyId,
 		focused: new Set([member.id]),
 	})
 	f.tick()
@@ -367,9 +373,10 @@ it(`projects animated member cards, arrows and family spines from the same world
 	const member = {
 		...item(`items("a")`, 16, 4, -8),
 		familyLabel: `items`,
+		familyId: `family:items`,
 		cluster: { x: 8.1, y: 4, z: 0 },
 	}
-	f.context.expanded.add(`items`)
+	f.context.expanded.add(`family:items`)
 	f.patch({
 		items: [family, member, f.b],
 		edges: [
@@ -383,7 +390,7 @@ it(`projects animated member cards, arrows and family spines from the same world
 			},
 		],
 		familyConnections: [
-			{ family: `items`, from: family, to: member, color: family.color },
+			{ family: `family:items`, from: family, to: member, color: family.color },
 		],
 	})
 	f.tick()
@@ -424,6 +431,157 @@ it(`projects animated member cards, arrows and family spines from the same world
 	expect(destroy).toHaveBeenCalledOnce()
 })
 
+it(`springs late-arriving history and keeps the rendered line attached while an event crosses the cursor`, () => {
+	const media = new EventTarget() as MediaQueryList
+	Object.defineProperty(media, `matches`, { value: false })
+	vi.spyOn(window, `matchMedia`).mockReturnValue(media)
+	const f = fixture(false, true)
+	const timeline: GraphItem = {
+		...item(`count`, 5, 0, 2),
+		id: `timeline:count`,
+		kind: `timeline`,
+		source: {
+			type: `timeline`,
+			key: `count`,
+			at: 1,
+			historyLength: 1,
+			family: null,
+		},
+	}
+	const past: GraphItem = {
+		...timeline,
+		id: `history:timeline:count:change`,
+		history: { identity: `change`, direction: `past`, anchor: timeline },
+		familyId: timeline.id,
+		cluster: timeline,
+		y: 4,
+	}
+	f.patch({ items: [timeline], edges: [] })
+	f.context.expanded.add(timeline.id)
+	f.patch({ items: [timeline] })
+	f.patch({
+		items: [timeline, past],
+		historyConnections: [
+			{ family: timeline.id, from: timeline, to: past, color: timeline.color },
+		],
+	})
+	f.tick()
+	const selector = `ecology-node-card:has(>button[data-graph-id="${past.id}"])`
+	const card = f.viewport.querySelector<HTMLElement>(selector)!
+	const anchor = f.viewport.querySelector<HTMLElement>(
+		`ecology-node-card:has(>button[data-graph-id="${timeline.id}"])`,
+	)!
+	expect(card.style.transform).toBe(anchor.style.transform)
+	const [spring, openingTarget, transition] = vi.mocked(animate).mock.lastCall!
+	const offset = spring as MotionValue<number>
+	expect(openingTarget).toBe(4)
+	expect(transition).toEqual(FAMILY_SPRING)
+	const gl = vi.mocked(THREE.WebGLRenderer).mock.results.at(-1)!
+		.value as THREE.WebGLRenderer
+	const spine = vi
+		.mocked(gl.render)
+		.mock.lastCall![0].getObjectByName(`family-connections`) as ReturnType<
+		typeof createFamilySpine
+	>
+	const from = spine.geometry.getAttribute(`instanceStart`)
+	const to = spine.geometry.getAttribute(`instanceEnd`)
+	offset.set(2)
+	f.tick()
+	expect(card.style.transform).not.toBe(anchor.style.transform)
+	expect(to.getY(0)).toBeCloseTo(f.point({ ...past, y: 2 })[1])
+	const halfway = card.style.transform
+	const future: GraphItem = {
+		...past,
+		y: -4,
+		history: { identity: `change`, direction: `future`, anchor: timeline },
+	}
+	f.patch({
+		items: [timeline, future],
+		historyConnections: [
+			{ family: timeline.id, from: future, to: timeline, color: timeline.color },
+		],
+	})
+	f.tick()
+	expect(f.viewport.querySelector(selector)).toBe(card)
+	expect(card.style.transform).toBe(halfway)
+	expect(vi.mocked(animate).mock.lastCall).toEqual([offset, -4, FAMILY_SPRING])
+	expect(to.getY(0)).toBeCloseTo(f.point({ ...past, y: 2 })[1])
+	offset.set(-2)
+	f.tick()
+	expect(from.getY(0)).toBeCloseTo(f.point({ ...future, y: -2 })[1])
+	expect(to.getY(0)).toBeCloseTo(f.point(timeline)[1])
+})
+
+it(`follows a moving timeline family member and retracts an event when its drawer closes`, () => {
+	const media = new EventTarget() as MediaQueryList
+	let reduced = false
+	Object.defineProperty(media, `matches`, { get: () => reduced })
+	const motion = createEcologyMotion(vi.fn(), { matchMedia: () => media })
+	cleanups.push(motion.dispose)
+	const timeline = {
+		...item(`count`, 12, 0, 2),
+		familyId: `timeline_family:counts`,
+		cluster: { x: 4, y: 2, z: 0 },
+	}
+	const event: GraphItem = {
+		...item(`event`, 12, -4, 2),
+		familyId: timeline.id,
+		cluster: timeline,
+		history: { identity: `event`, direction: `future`, anchor: timeline },
+	}
+	const expanded = new Set<string>()
+	motion.sync([], expanded, 0)
+	expanded.add(timeline.familyId)
+	expanded.add(timeline.id)
+	motion.sync([timeline, event], expanded, 0)
+	const [familySpring] = vi.mocked(animate).mock.calls.at(-2)!
+	const [eventSpring] = vi.mocked(animate).mock.lastCall!
+	;(familySpring as MotionValue<number>).set(0.5)
+	const offset = eventSpring as MotionValue<number>
+	offset.set(-4)
+	expect(motion.position(event.id)).toEqual({ x: 8, y: -3, z: 1 })
+	const clustered: GraphItem = {
+		...event,
+		id: `history:clustered`,
+		y: 0.25,
+		cluster: { x: 12, y: 0.25, z: 2 },
+	}
+	expect(motion.point(clustered)).toEqual({ x: 8, y: 1.25, z: 1 })
+	expanded.delete(timeline.id)
+	motion.sync([timeline], expanded, 0)
+	expect(motion.exiting(event.id)).toBe(true)
+	expect(vi.mocked(animate).mock.lastCall).toEqual([offset, 0, FAMILY_SPRING])
+	offset.set(-2)
+	expect(motion.historySpines()).toEqual([
+		{
+			family: timeline.id,
+			color: event.color,
+			from: { x: 8, y: -1, z: 1 },
+			to: { x: 8, y: 1, z: 1 },
+		},
+	])
+	const past: GraphItem = {
+		...event,
+		id: `history:past`,
+		y: 4,
+		history: { identity: `past`, direction: `past`, anchor: timeline },
+	}
+	expanded.add(timeline.id)
+	motion.sync([timeline, event, past], expanded, 0)
+	const [pastSpring] = vi.mocked(animate).mock.lastCall!
+	;(pastSpring as MotionValue<number>).set(2)
+	expect(motion.historySpines()[0].to.y).toBe(3)
+	motion.sync([timeline, event], expanded, 0)
+	expect(motion.exiting(past.id)).toBe(true)
+	expanded.delete(timeline.familyId)
+	motion.sync([], expanded, 0)
+	expect(motion.exiting(event.id)).toBe(true)
+	reduced = true
+	media.dispatchEvent(new Event(`change`))
+	expect(motion.exiting(event.id)).toBe(false)
+	expect(motion.historySpines()).toEqual([])
+})
+
 it(`writes arrowless family spines with shared colors, world scaling and reusable bounded buffers`, () => {
 	const spine = createFamilySpine(3, 0.55)
 	const { geometry } = spine
@@ -436,7 +594,7 @@ it(`writes arrowless family spines with shared colors, world scaling and reusabl
 		scale = new THREE.Vector3(2, 3, 4)
 	expect(positions.count).toBe(500)
 	expect(geometry.instanceCount).toBe(0)
-	const connections = [{ family: `items`, from, to, color: from.color }]
+	const connections = [{ family: `family:items`, from, to, color: from.color }]
 	writeFamilySpine(spine, connections, scale)
 	expect(geometry.instanceCount).toBe(1)
 	expect(spine.visible).toBe(true)
@@ -504,6 +662,20 @@ it(`keeps outgoing paths inside their source layer, with inherited colors, separ
 	expect(path.getAttribute(`d`)).toBe(geometry)
 	expect(path.getAttribute(`data-traced`)).toBe(`true`)
 	expect(writes).not.toHaveBeenCalledWith(`d`, geometry)
+	const edge: EcologyLine = {
+		id: `a:b`,
+		source: f.a.id,
+		from: f.a,
+		to: f.b,
+		color: f.a.color,
+		traced: true,
+	}
+	f.patch({ edges: [{ ...edge, relation: `transaction` }] })
+	f.tick()
+	expect(path.getAttribute(`data-relation`)).toBe(`transaction`)
+	f.patch({ edges: [edge] })
+	f.tick()
+	expect(path.hasAttribute(`data-relation`)).toBe(false)
 	f.patch({
 		edges: [
 			{

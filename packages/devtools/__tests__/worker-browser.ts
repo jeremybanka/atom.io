@@ -121,7 +121,11 @@ if (process.argv.includes(`--serve`)) {
 			.click()
 		const search = panel.getByRole(`dialog`, { name: `Search ecology` })
 		await search.getByRole(`searchbox`).fill(`count`)
-		await search.getByRole(`button`, { name: `count`, exact: true }).waitFor()
+		await search.locator(`[data-result-id="state:count"]`).waitFor()
+		await search.locator(`[data-result-id="timeline:count"]`).waitFor()
+		await search.getByRole(`searchbox`).fill(`increment`)
+		await search.locator(`[data-result-id="transaction:increment"]`).waitFor()
+		await search.getByRole(`searchbox`).fill(``)
 		await search.getByRole(`button`, { name: `Close search` }).click()
 		await atoms.click()
 		await expectValue(`count`, `2`)
@@ -214,7 +218,171 @@ if (process.argv.includes(`--serve`)) {
 		await expectWorker(25, 50)
 
 		await panel.getByRole(`tab`, { name: `ecology` }).click()
-		await panel.getByTestId(`ecology-view`).locator(`[data-edges="1"]`).waitFor()
+		const ecology = panel.getByTestId(`ecology-view`)
+		for (const [id, relation] of [
+			[`state:count`, `:not([data-relation])`],
+			[`transaction:increment`, `[data-relation="transaction"]`],
+			[`timeline:count`, `[data-relation="timeline"]`],
+		]) {
+			await ecology
+				.locator(
+					`ecology-node-card:has(> button[data-graph-id="${id}"]) > svg > path[d]:not([d=""])${relation}`,
+				)
+				.first()
+				.waitFor({ state: `attached` })
+		}
+		const scene = ecology.locator(`ecology-scene`)
+		const operationCard = (id: string) =>
+			scene.locator(`button[data-graph-id="${id}"]`)
+		const transactionCard = operationCard(`transaction:increment`)
+		await transactionCard.press(`Enter`)
+		await scene
+			.locator(
+				`[data-history="outcome"] > svg > path[data-relation="transaction"]`,
+			)
+			.first()
+			.waitFor({ state: `attached` })
+		await ecology.locator(`transaction-outcomes event-view`).first().waitFor()
+		const outcomeEntry = ecology.getByRole(`button`, {
+			name: `Select outcome 1`,
+			exact: true,
+		})
+		const outcomeId = (await outcomeEntry.getAttribute(`data-graph-id`))!
+		await outcomeEntry.hover()
+		await scene
+			.locator(
+				`ecology-node-card[data-hovered="true"] > button[data-graph-id="${outcomeId}"]`,
+			)
+			.waitFor()
+		await outcomeEntry.click()
+		await scene
+			.locator(`button[data-graph-id="${outcomeId}"][aria-pressed="true"]`)
+			.waitFor()
+		const outline = (element: Element) => {
+			const { outlineColor, outlineStyle, outlineWidth } =
+				getComputedStyle(element)
+			return [outlineColor, outlineStyle, outlineWidth]
+		}
+		const mapOutline = await operationCard(outcomeId).evaluate(outline)
+		assert.deepEqual(mapOutline.slice(1), [`solid`, `2px`])
+		assert.deepEqual(
+			await outcomeEntry.locator(`..`).evaluate(outline),
+			mapOutline,
+		)
+		const outcomeRow = outcomeEntry.locator(`..`).locator(`..`)
+		assert.equal(
+			await outcomeRow.evaluate(
+				(element) => element.getBoundingClientRect().height,
+			),
+			23,
+		)
+		assert.equal(await outcomeRow.locator(`p[data-compact-write]`).count(), 0)
+		await outcomeRow
+			.getByRole(`button`, { name: `Expand outcome 1`, exact: true })
+			.click()
+		const write = outcomeRow.locator(`p[data-compact-write]`).first()
+		assert.equal(await write.locator(`strong`).textContent(), `count`)
+		assert.equal(await write.locator(`[data-editor-icon="arrow"]`).count(), 1)
+		const positions = await write.evaluate((element) =>
+			[...element.children].map(
+				(child) =>
+					child.getBoundingClientRect().top +
+					child.getBoundingClientRect().height / 2,
+			),
+		)
+		assert.ok(Math.max(...positions) - Math.min(...positions) < 1)
+		const iconXHeightOffset = (
+			element: Element,
+			targets: { label: string; icon: string },
+		) => {
+			const label = element.querySelector(targets.label)!
+			const reference = document.createElement(`span`)
+			reference.style.cssText = `display:inline-block;width:0;height:1ex;vertical-align:baseline`
+			label.append(reference)
+			const center = ({ top, height }: DOMRect) => top + height / 2
+			const xHeightCenter = center(reference.getBoundingClientRect())
+			const icon = element.querySelector(targets.icon)!
+			reference.remove()
+			return center(icon.getBoundingClientRect()) - xHeightCenter
+		}
+		const arrowXHeightOffset = await write.evaluate(iconXHeightOffset, {
+			label: `ins code`,
+			icon: `[data-editor-icon="arrow"] path`,
+		})
+		assert.ok(Math.abs(arrowXHeightOffset) <= 1)
+		assert.equal(await outcomeEntry.getAttribute(`aria-pressed`), `true`)
+
+		const timelineCard = operationCard(`timeline:count`)
+		const timelineRow = ecology.locator(
+			`ecology-editor-row[data-row-id="timeline:count"]`,
+		)
+		const travel = timelineRow.locator(`node-heading > timeline-travel`)
+		const undo = travel.getByRole(`button`, { name: `undo` })
+		const redo = travel.getByRole(`button`, { name: `redo` })
+		const history = timelineRow.locator(`timeline-history`)
+		assert.equal(await history.count(), 0)
+		await undo.click()
+		await expectWorker(18, 36)
+		assert.equal(await history.count(), 0)
+		await redo.click()
+		await expectWorker(25, 50)
+		assert.equal(await history.count(), 0)
+		await timelineCard.press(`Enter`)
+		const outcomeLink = history
+			.getByRole(`button`, { name: `Transaction outcome`, exact: true })
+			.first()
+		const outcomeLinkXHeightOffset = await outcomeLink.evaluate(
+			iconXHeightOffset,
+			{
+				label: `[data-outcome-link-label]`,
+				icon: `[data-editor-icon="externalLink"] path`,
+			},
+		)
+		assert.ok(Math.abs(outcomeLinkXHeightOffset) <= 0.5)
+		const eventCard = scene
+			.locator(`ecology-node-card[data-history="past"]`)
+			.getByRole(`button`, {
+				name: /^\d+ · increment · Applied · Transaction outcome$/,
+			})
+			.first()
+		await eventCard
+			.locator(`..`)
+			.locator(`svg > path[data-relation="timeline"][d]:not([d=""])`)
+			.nth(1)
+			.waitFor({ state: `attached` })
+		await timelineCard
+			.locator(`..`)
+			.locator(`svg > path[data-relation="timeline"]`)
+			.waitFor({ state: `attached` })
+		await ecology
+			.locator(`ecology-scene[data-history-connections="2"]`)
+			.waitFor()
+		const eventId = (await eventCard.getAttribute(`data-graph-id`))!
+		await eventCard.press(`Enter`)
+		await ecology
+			.locator(
+				`timeline-history button[data-graph-id="${eventId}"][aria-pressed="true"]`,
+			)
+			.waitFor()
+		await undo.locator(`[data-editor-icon="undo"]`).waitFor()
+		await undo.click()
+		await expectWorker(18, 36)
+		const futureEvent = scene.locator(`[data-history="future"]`).first()
+		await futureEvent.waitFor()
+		const position = (node: Element) =>
+			Number(node.getAttribute(`data-position`)!.split(`,`)[1])
+		assert.ok(
+			(await futureEvent.evaluate(position)) <
+				(await timelineCard.locator(`..`).evaluate(position)),
+		)
+		await redo.click()
+		await expectWorker(25, 50)
+		await futureEvent.waitFor({ state: `detached` })
+		await timelineCard.press(`Enter`)
+		await transactionCard.press(`Enter`)
+		await ecology
+			.locator(`ecology-scene[data-history-connections="0"]`)
+			.waitFor()
 		assert.deepEqual(errors, [])
 		const screenshot = process.env[`SPA_DEVTOOLS_WORKER_SCREENSHOT`]
 		await picker.click()

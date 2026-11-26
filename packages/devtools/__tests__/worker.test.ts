@@ -397,10 +397,10 @@ it(`projects retained history and the observed graph and time travels in the wor
 			`[data-testid="timeline-count"]`,
 		)!
 		const undo = [...timeline.querySelectorAll(`button`)].find(
-			(button) => button.textContent === `undo`,
+			(button) => button.getAttribute(`aria-label`) === `undo`,
 		)!
 		const redo = [...timeline.querySelectorAll(`button`)].find(
-			(button) => button.textContent === `redo`,
+			(button) => button.getAttribute(`aria-label`) === `redo`,
 		)!
 		undo.click()
 		await flush()
@@ -996,6 +996,144 @@ it.each([1, 2])(
 		)
 	},
 )
+
+it(`reads legacy Ecology captures and resolves a previously absent timeline view`, async () => {
+	const { silo, page, worker } = fixture()
+	const { operations: _operations, ...snapshot } = captureEcologySnapshot(
+		silo.store,
+	)
+	expect(projectRemoteEcology(snapshot).read().operations).toBeUndefined()
+	const connection = connectRemoteStore(messagePortTransport(page.port))
+	const stop = exposeDevtoolsStore(worker.port, silo)
+	try {
+		const key = connection.worker.views.timelineLog(`later`).key
+		expect(connection.store.atoms.has(key)).toBe(false)
+		silo.timeline({ key: `later`, scope: [] })
+		await flush()
+		expect(connection.worker.views.timelineLog(`later`).key).toBe(key)
+		expect(connection.store.atoms.has(key)).toBe(true)
+	} finally {
+		connection.close()
+		stop()
+	}
+})
+
+it(`sends timeline cursor deltas without recapturing operations or notifying topology listeners`, async () => {
+	const { silo, page, worker } = fixture()
+	const countAtom = silo.atom<number>({ key: `count`, default: 2 })
+	silo.getState(countAtom)
+	const countTimeline = silo.timeline({ key: `count`, scope: [countAtom] })
+	silo.timeline({ key: `other`, scope: [] })
+	const connection = connectRemoteStore(messagePortTransport(page.port))
+	const stop = exposeDevtoolsStore(worker.port, silo)
+	const topology = vi.fn()
+	const unsubscribe = connection.worker.subscribeEcology(topology)
+	try {
+		await flush()
+		worker.postMessage.mockClear()
+		const scan = vi.spyOn(silo.store.timelines, `values`)
+		silo.setState(countAtom, 3)
+		await flush()
+		expect(worker.postMessage).toHaveBeenCalledOnce()
+		expect(worker.postMessage).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				update: expect.objectContaining({
+					ecology: expect.objectContaining({
+						operations: expect.objectContaining({
+							upsert: [
+								expect.objectContaining({
+									key: countTimeline.key,
+									at: 1,
+									historyLength: 1,
+								}),
+							],
+							remove: [],
+						}),
+					}),
+				}),
+			}),
+		)
+		expect(connection.worker.ecology()?.operations?.records).toContainEqual(
+			expect.objectContaining({
+				key: countTimeline.key,
+				at: 1,
+				historyLength: 1,
+			}),
+		)
+		expect(scan).not.toHaveBeenCalled()
+		expect(topology).not.toHaveBeenCalled()
+		silo.disposeTimeline(countTimeline)
+		await flush()
+		expect(topology).toHaveBeenCalledOnce()
+	} finally {
+		unsubscribe()
+		connection.close()
+		stop()
+	}
+})
+
+it(`notifies Ecology when a transaction changes targets with unchanged capture counts`, () => {
+	const { silo } = fixture()
+	silo.transaction({ key: `save`, do: () => {} })
+	const initial = captureEcologySnapshot(silo.store)
+	const { records, ...metadata } = initial.operations
+	const projected = projectRemoteEcology(initial)
+	const update = {
+		nodes: { upsert: [], remove: [] },
+		operations: {
+			...metadata,
+			upsert: [
+				{ ...records[0], targets: [{ kind: `state` as const, key: `other` }] },
+			],
+			remove: [],
+		},
+	}
+	expect(projected.update(update)).toBe(true)
+	expect(projected.update(update)).toBe(false)
+})
+
+it(`preserves the captured outcome identity in both remote histories`, async () => {
+	const { silo, page, worker } = fixture()
+	const countAtom = silo.atom<number>({ key: `count`, default: 0 })
+	silo.getState(countAtom)
+	const countTimeline = silo.timeline({ key: `count`, scope: [countAtom] })
+	const saveTransaction = silo.transaction({
+		key: `save`,
+		do: ({ set }, value: number) => {
+			set(countAtom, value)
+		},
+	})
+	const connection = connectRemoteStore(messagePortTransport(page.port))
+	const stop = exposeDevtoolsStore(worker.port, silo)
+	try {
+		await flush()
+		const run = silo.runTransaction(saveTransaction, `shared`)
+		run(1)
+		run(2)
+		await flush()
+		const outcomes = connection.store.valueMap.get(
+			connection.worker.views.transactionLog(saveTransaction.key).key,
+		) as { timelineOutcomeSequence?: number }[]
+		const sequences = outcomes.map((event) => event.timelineOutcomeSequence)
+		expect(sequences).toEqual([expect.any(Number), expect.any(Number)])
+		expect(sequences[0]).not.toBe(sequences[1])
+		expect(
+			structuredClone(
+				connection.store.valueMap.get(
+					connection.worker.views.timelineLog(countTimeline.key).key,
+				),
+			),
+		).toMatchObject({
+			at: 2,
+			history: sequences.map((timelineOutcomeSequence) => ({
+				timelineOutcomeSequence,
+			})),
+		})
+	} finally {
+		connection.close()
+		stop()
+	}
+})
 
 it(`projects initial timeline entries, history clear, and newly registered histories`, async () => {
 	const { silo, page, worker } = fixture()

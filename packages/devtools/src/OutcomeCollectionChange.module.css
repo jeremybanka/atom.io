@@ -1,0 +1,142 @@
+outcome-collection-change.class {
+	display: block;
+	min-width: 0;
+	> p[data-collection-summary] {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 6px;
+		min-height: 22px;
+		padding: 2px 6px;
+		line-height: 18px;
+		> strong {
+			min-width: 0;
+			overflow: hidden;
+			white-space: nowrap;
+			text-overflow: ellipsis;
+		}
+		> small {
+			color: var(--ink-muted);
+		}
+	}
+	> snapshot-comparison {
+		display: block;
+		min-width: 0;
+		border-top: 1px solid var(--line);
+		> table {
+			width: 100%;
+			table-layout: fixed;
+			border-spacing: 0;
+			line-height: 18px;
+		}
+	}
+	> snapshot-comparison[data-expanded="true"] {
+		max-height: 12rem;
+		overflow: auto;
+		> table > thead > tr > th {
+			position: sticky;
+			inset-block-start: 0;
+			z-index: 1;
+			background: var(--surface-inactive);
+		}
+	}
+	> snapshot-comparison > table > thead > tr > th {
+		padding: 2px 6px;
+		font-weight: 500;
+		text-align: start;
+		> snapshot-heading {
+			display: flex;
+			align-items: baseline;
+			justify-content: space-between;
+			flex-wrap: wrap;
+			column-gap: 4px;
+			> small {
+				color: var(--ink-muted);
+				font-variant-numeric: tabular-nums;
+			}
+		}
+	}
+	> snapshot-comparison > table > thead > tr > th + th,
+	> snapshot-comparison > table > tbody > tr > td + td {
+		border-inline-start: 1px solid var(--line);
+	}
+	> snapshot-comparison > table > tbody > tr > td {
+		padding: 1px 5px;
+		vertical-align: top;
+		> code {
+			padding-inline-start: 10px;
+			color: var(--ink-muted);
+			letter-spacing: 0.15em;
+		}
+		> snapshot-entry {
+			display: flex;
+			align-items: start;
+			gap: 4px;
+			&::before {
+				content: "";
+				flex: 0 0 6px;
+			}
+			> code {
+				flex: 0 0 min(45%, var(--snapshot-key-width));
+				min-width: 0;
+				overflow: hidden;
+				white-space: nowrap;
+				text-overflow: ellipsis;
+				color: var(--ink-muted);
+				&[data-quoted] {
+					flex-basis: min(55%, var(--snapshot-key-width));
+					white-space: normal;
+					overflow-wrap: anywhere;
+				}
+				&[data-index] {
+					text-align: end;
+					font-variant-numeric: tabular-nums;
+				}
+			}
+			> outcome-value {
+				flex: 1;
+			}
+			&[data-key-block],
+			&[data-field-preview],
+			&:has(> outcome-value button[aria-expanded="true"]) {
+				display: grid;
+				grid-template-columns: 6px minmax(0, 1fr);
+				row-gap: 0;
+				> code, > outcome-value {
+					grid-column: 2;
+				}
+				> code {
+					white-space: normal;
+					overflow-wrap: anywhere;
+				}
+			}
+			> outcome-value > button[aria-expanded="true"] > code {
+				max-block-size: 15rem;
+			}
+		}
+	}
+	> snapshot-comparison > table > tbody > tr > td[data-snapshot-diff="before"] {
+		background: var(--change-removed);
+		> snapshot-entry::before {
+			content: "-";
+		}
+	}
+	> snapshot-comparison > table > tbody > tr > td[data-snapshot-diff="after"] {
+		background: var(--change-added);
+		> snapshot-entry::before {
+			content: "+";
+		}
+	}
+	> button {
+		display: inline-flex;
+		align-items: center;
+		vertical-align: middle;
+		margin-inline-start: 10px;
+		color: var(--ink-muted);
+	}
+	> small:is([data-collection-note], [data-edit-count]) {
+		display: block;
+		padding: 2px 6px 3px 16px;
+		color: var(--ink-muted);
+	}
+}

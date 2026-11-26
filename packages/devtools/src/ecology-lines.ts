@@ -6,7 +6,11 @@ import { LineSegments2 } from "three/addons/lines/LineSegments2.js"
 // eslint-disable-next-line import/extensions -- Three addon exports require the .js suffix.
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js"
 
-import type { FamilyConnection, GraphPosition } from "./ecology-graph.ts"
+import type {
+	FamilyConnection,
+	GraphPosition,
+	OperationRelation,
+} from "./ecology-graph.ts"
 import type { EdgeRoutingMotion } from "./ecology-motion.ts"
 
 export interface EcologyLine {
@@ -19,13 +23,17 @@ export interface EcologyLine {
 	toCard?: GraphPosition | undefined
 	origin?: GraphPosition | undefined
 	traced: boolean
+	relation?: OperationRelation | undefined
 	fromCollapsed?: boolean | undefined
 	toCollapsed?: boolean | undefined
+	fromHistory?: boolean | undefined
+	toHistory?: boolean | undefined
 }
 export interface ProjectedEdge {
 	d: string
 	traced: boolean
 	order: number
+	relation?: OperationRelation | undefined
 }
 const segments = 16
 const cardinals = [
@@ -109,7 +117,14 @@ export function writeFamilySpine(
 
 interface CachedEdge extends Pick<
 	EcologyLine,
-	`fromCard` | `toCard` | `origin` | `fromCollapsed` | `toCollapsed`
+	| `fromCard`
+	| `toCard`
+	| `origin`
+	| `fromCollapsed`
+	| `toCollapsed`
+	| `fromHistory`
+	| `toHistory`
+	| `relation`
 > {
 	path: ProjectedEdge
 	angle: number | undefined
@@ -171,7 +186,10 @@ export function createEdgeProjector(routing?: EdgeRoutingMotion) {
 			const variant = variants.findIndex(
 				(candidate) =>
 					candidate.fromCollapsed === edge.fromCollapsed &&
-					candidate.toCollapsed === edge.toCollapsed,
+					candidate.toCollapsed === edge.toCollapsed &&
+					candidate.fromHistory === edge.fromHistory &&
+					candidate.toHistory === edge.toHistory &&
+					candidate.relation === edge.relation,
 			)
 			if (variant < 0)
 				variants.push({
@@ -180,6 +198,9 @@ export function createEdgeProjector(routing?: EdgeRoutingMotion) {
 					origin: edge.origin,
 					fromCollapsed: edge.fromCollapsed,
 					toCollapsed: edge.toCollapsed,
+					fromHistory: edge.fromHistory,
+					toHistory: edge.toHistory,
+					relation: edge.relation,
 					path,
 					angle,
 				})
@@ -197,9 +218,10 @@ export function createEdgeProjector(routing?: EdgeRoutingMotion) {
 			dx: number,
 			dy: number,
 			collapsed = false,
+			history = false,
 		) => {
-			const halfWidth = collapsed ? 43 : 91,
-				halfHeight = collapsed ? 15 : 29
+			const halfWidth = collapsed ? 43 : history ? 79 : 91,
+				halfHeight = collapsed ? 15 : history ? 22 : 29
 			const x = THREE.MathUtils.clamp(
 				((point.x - center.x) * width) / 2,
 				6 - halfWidth,
@@ -244,7 +266,10 @@ export function createEdgeProjector(routing?: EdgeRoutingMotion) {
 						candidate.toCard === edge.toCard &&
 						candidate.origin === edge.origin &&
 						candidate.fromCollapsed === edge.fromCollapsed &&
-						candidate.toCollapsed === edge.toCollapsed,
+						candidate.toCollapsed === edge.toCollapsed &&
+						candidate.fromHistory === edge.fromHistory &&
+						candidate.toHistory === edge.toHistory &&
+						candidate.relation === edge.relation,
 				)
 			if (cached) {
 				retain(
@@ -290,8 +315,15 @@ export function createEdgeProjector(routing?: EdgeRoutingMotion) {
 			const [dx, dy] = Number.isInteger(turn)
 				? cardinals[((turn % 4) + 4) % 4]
 				: [Math.cos((turn * Math.PI) / 2), Math.sin((turn * Math.PI) / 2)]
-			const start = port(a, fromCard, dx, dy, edge.fromCollapsed),
-				end = port(b, toCard, -dx, -dy, edge.toCollapsed)
+			const start = port(
+					a,
+					fromCard,
+					dx,
+					dy,
+					edge.fromCollapsed,
+					edge.fromHistory,
+				),
+				end = port(b, toCard, -dx, -dy, edge.toCollapsed, edge.toHistory)
 			const direction = right
 				.clone()
 				.multiplyScalar(dx)
@@ -348,22 +380,34 @@ export function createEdgeProjector(routing?: EdgeRoutingMotion) {
 				segment(previous, sample)
 				previous.copy(sample)
 			}
-			const tangent = end.clone().sub(controlB).normalize()
-			const depth = Math.abs(
-				end.clone().applyMatrix4(camera.matrixWorldInverse).z,
-			)
-			const pixel =
-				(2 * depth * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) / height
-			const side = new THREE.Vector3()
-				.crossVectors(tangent, camera.getWorldDirection(new THREE.Vector3()))
-				.normalize()
-			const back = end.clone().addScaledVector(tangent, -7 * pixel)
-			connected = false
-			const tip = view(end)
-			segment(view(back.clone().addScaledVector(side, 3 * pixel)), tip)
-			segment(tip, view(back.addScaledVector(side, -3 * pixel)))
+			if (!edge.relation) {
+				const tangent = end.clone().sub(controlB).normalize()
+				const depth = Math.abs(
+					end.clone().applyMatrix4(camera.matrixWorldInverse).z,
+				)
+				const pixel =
+					(2 * depth * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) /
+					height
+				const side = new THREE.Vector3()
+					.crossVectors(tangent, camera.getWorldDirection(new THREE.Vector3()))
+					.normalize()
+				const back = end.clone().addScaledVector(tangent, -7 * pixel)
+				connected = false
+				const tip = view(end)
+				segment(view(back.clone().addScaledVector(side, 3 * pixel)), tip)
+				segment(tip, view(back.addScaledVector(side, -3 * pixel)))
+			}
 			if (!d) continue
-			retain(edge, { d, traced: edge.traced, order: edgeOrder(edge) }, angle)
+			retain(
+				edge,
+				{
+					d,
+					traced: edge.traced,
+					order: edgeOrder(edge),
+					relation: edge.relation,
+				},
+				angle,
+			)
 		}
 		// Tracing prioritizes admission, but must not shuffle unchanged SVG path slots.
 		for (const outgoing of paths.values())

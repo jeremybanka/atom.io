@@ -43,7 +43,10 @@ export function addTimelineToTransactionGroup(
 export function getTimelineTransactionGroup(
 	event: TimelineEvent<any>,
 ): TimelineTransactionGroup | undefined {
-	return (event as Partial<GroupedTimelineTransactionEvent>)[
-		TIMELINE_TRANSACTION_GROUP
-	]
+	if (event.type !== `transaction_outcome`) return undefined
+	return (
+		(event as Partial<GroupedTimelineTransactionEvent>)[
+			TIMELINE_TRANSACTION_GROUP
+		] ?? timelineTransactionGroups.get(event)
+	)
 }

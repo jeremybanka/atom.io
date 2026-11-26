@@ -16,12 +16,18 @@ export interface StoreChanges {
 	readonly values: ReadonlySet<string>
 	/** State keys registered, replaced, or disposed. */
 	readonly states: ReadonlySet<string>
-	/** Family keys registered or replaced. */
+	/** State family keys registered or replaced. */
 	readonly families: ReadonlySet<string>
+	/** Timeline family keys registered in this batch, when present. */
+	readonly timelineFamilies?: ReadonlySet<string>
 	/** Selector keys whose observed incoming edges changed. */
 	readonly dependencies: ReadonlySet<string>
 	/** Timeline keys created, updated, or disposed. */
 	readonly timelines: ReadonlySet<string>
+	/** Timeline definitions created or disposed in this batch, when present. */
+	readonly timelineDefinitions?: ReadonlySet<string>
+	/** Transaction keys whose observed atom writes changed in this batch. */
+	readonly transactionWrites?: ReadonlySet<string>
 	/** Transaction registrations and committed outcomes since the previous batch. */
 	readonly transactions: ReadonlyMap<
 		string,
@@ -41,9 +47,12 @@ type Batch = {
 	values: Set<string>
 	states: Set<string>
 	families: Set<string>
+	timelineFamilies: Set<string>
 	edges: Map<string, Edge>
 	futures: Map<string, Set<FutureActivity>>
 	timelines: Set<string>
+	timelineDefinitions: Set<string>
+	transactionWrites: Set<string>
 	transactions: Map<string, TransactionChanges>
 }
 export type StoreObservation = { listeners: Set<Listener>; batch?: Batch }
@@ -74,9 +83,12 @@ function getBatch(store: Store, observation: StoreObservation): Batch {
 		values: new Set<string>(),
 		states: new Set<string>(),
 		families: new Set<string>(),
+		timelineFamilies: new Set<string>(),
 		edges: new Map<string, Edge>(),
 		futures: new Map<string, Set<FutureActivity>>(),
 		timelines: new Set<string>(),
+		timelineDefinitions: new Set<string>(),
+		transactionWrites: new Set<string>(),
 		transactions: new Map<string, TransactionChanges>(),
 	}
 	observation.batch = batch
@@ -94,13 +106,25 @@ function getBatch(store: Store, observation: StoreObservation): Batch {
 		}
 		for (const key of dependencies)
 			if (isReservedIntrospectionKey(key)) dependencies.delete(key)
-		const { values, states, families, futures, timelines, transactions } = batch
+		const {
+			values,
+			states,
+			families,
+			timelineFamilies,
+			futures,
+			timelines,
+			timelineDefinitions,
+			transactionWrites,
+			transactions,
+		} = batch
 		if (
 			values.size ||
 			states.size ||
 			families.size ||
+			timelineFamilies.size ||
 			dependencies.size ||
 			timelines.size ||
+			transactionWrites.size ||
 			transactions.size
 		)
 			for (const listener of [...observation.listeners])
@@ -109,9 +133,12 @@ function getBatch(store: Store, observation: StoreObservation): Batch {
 						values,
 						states,
 						families,
+						...(timelineFamilies.size > 0 && { timelineFamilies }),
 						dependencies,
 						futures,
 						timelines,
+						...(timelineDefinitions.size > 0 && { timelineDefinitions }),
+						...(transactionWrites.size > 0 && { transactionWrites }),
 						transactions,
 					})
 	})
@@ -134,7 +161,14 @@ export function recordFutureActivity(
 
 export function recordStoreChange(
 	store: Store,
-	kind: `values` | `states` | `families` | `timelines`,
+	kind:
+		| `values`
+		| `states`
+		| `families`
+		| `timelines`
+		| `timelineDefinitions`
+		| `timelineFamilies`
+		| `transactionWrites`,
 	key: string,
 ): void {
 	const observation = store.observation

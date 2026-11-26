@@ -19,7 +19,11 @@ import {
 	peekStateDefinition,
 } from "atom.io/introspection"
 
-import type { RecordedEvent } from "./history-event.ts"
+import {
+	appendTransactionHistory,
+	historyOutcomeSequence,
+	type RecordedEvent,
+} from "./history-event.ts"
 import { trackRemoteEcology } from "./remote-ecology.ts"
 import type {
 	PanelMessage,
@@ -78,6 +82,8 @@ function copyValue(value: unknown): unknown {
 
 function copyEvent<T extends RecordedEvent>(event: T): T {
 	const copy = { ...event }
+	const sequence = historyOutcomeSequence(event)
+	if (sequence !== undefined) copy.timelineOutcomeSequence = sequence
 	if (`subEvents` in copy)
 		copy.subEvents = copy.subEvents.map(copyEvent) as typeof copy.subEvents
 	if (`update` in copy)
@@ -126,6 +132,7 @@ export function exposeWholeStore(
 		TransactionOutcomeEvent<TransactionToken<any>>[]
 	>()
 	let timelineRevision = 0
+	let changedOperations = false
 	let closed = false
 	let sequence = 0
 	const subscriber = arbitrary()
@@ -218,12 +225,15 @@ export function exposeWholeStore(
 			states: changedDefinitions,
 			families: changedFamilies,
 			dependencies: changedDependencies,
+			operations: changedOperations,
+			timelines: changedTimelines,
 		})
 		if (graph) update.ecology = graph
 		changedStates.clear()
 		changedDefinitions.clear()
 		changedFamilies.clear()
 		changedDependencies.clear()
+		changedOperations = false
 		for (const key of changedTimelines) {
 			const timeline = store.timelines.get(key)
 			if (!timeline) {
@@ -368,6 +378,10 @@ export function exposeWholeStore(
 					watches.delete(key)
 				}
 				for (const key of families) changedFamilies.add(key)
+				changedOperations ||=
+					(changes.timelineFamilies?.size ?? 0) > 0 ||
+					(changes.timelineDefinitions?.size ?? 0) > 0 ||
+					(changes.transactionWrites?.size ?? 0) > 0
 				for (const key of dependencies) changedDependencies.add(key)
 				for (const key of timelines) {
 					if (!visible(key)) continue
@@ -376,12 +390,15 @@ export function exposeWholeStore(
 				}
 				for (const [key, { registeredAt, outcomes }] of changes.transactions) {
 					if (!visible(key)) continue
-					const previous =
-						registeredAt === undefined ? (transactions.get(key) ?? []) : []
-					const history = previous
-						.concat(outcomes.slice(registeredAt))
-						.slice(-200)
-					transactions.set(key, history)
+					changedOperations ||= registeredAt !== undefined
+					transactions.set(
+						key,
+						appendTransactionHistory(
+							transactions.get(key) ?? [],
+							outcomes,
+							registeredAt,
+						),
+					)
 					changedTransactions.add(key)
 				}
 				schedule()

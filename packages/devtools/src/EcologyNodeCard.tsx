@@ -2,13 +2,16 @@
 import { onCleanup, onMount, type SpaElement, useStore } from "@atom.io/spa"
 import type { MotionAttributes } from "@atom.io/spa/motion"
 import { bindScene } from "@atom.io/spa/renderer"
-import type { RootStore } from "atom.io/internal"
 import { peekState } from "atom.io/introspection"
 import type { Scene } from "three"
 // eslint-disable-next-line import/extensions -- Three addon exports require the .js suffix.
 import { CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js"
 
-import { ecologyLoadState } from "./ecology.ts"
+import {
+	ecologyLoadState,
+	ecologyOperationLabels,
+	ecologyTimelinePosition,
+} from "./ecology.ts"
 import { createCardFeedback } from "./ecology-card-feedback.ts"
 import type { GraphItem } from "./ecology-graph.ts"
 import type { ProjectedEdge } from "./ecology-lines.ts"
@@ -16,7 +19,7 @@ import { type createEcologyMotion, FAMILY_SPRING } from "./ecology-motion.ts"
 import css from "./EcologyNodeCard.module.css"
 import { EcologyPrimitiveIcon } from "./EcologyPrimitiveIcon.tsx"
 import type { EcologyActivity } from "./EcologyView.tsx"
-import { useLocal } from "./store.ts"
+import { type EditorTools, useLocal } from "./store.ts"
 import { cardValuePreview } from "./value.ts"
 
 export function EcologyNodeCard(props: {
@@ -26,7 +29,8 @@ export function EcologyNodeCard(props: {
 		paint: (paths: ReadonlyMap<string, readonly ProjectedEdge[]>) => void,
 	): () => void
 	item: GraphItem
-	store: RootStore
+	expanded?: boolean | undefined
+	tools: EditorTools
 	activity?: EcologyActivity | undefined
 	completedLoads: WeakSet<object>
 	reducedMotion: MediaQueryList
@@ -38,12 +42,17 @@ export function EcologyNodeCard(props: {
 	scene: Scene
 	invalidate(): void
 }): SpaElement {
+	const { source: initialSource, history } = props.item
+	const timeline =
+		initialSource.type === `timeline` && !history
+			? props.tools.history.useTimeline(initialSource.key)
+			: undefined
 	let previewed:
 		| { value: unknown; revision: number | undefined; text: string }
 		| undefined
 	const detailValue = () => {
 		const revision = props.activity?.revision
-		const cache = peekState(props.store, props.item.key)
+		const cache = peekState(props.tools.store, props.item.key)
 		if (!cache.present) return `–`
 		if (
 			previewed &&
@@ -56,17 +65,30 @@ export function EcologyNodeCard(props: {
 		return text
 	}
 	const detail = (source: GraphItem[`source`]) => {
-		if (`memberKeys` in source)
-			return `${source.type.includes(`selector`) ? `Selector Family` : `Atom Family`} · ${source.memberCount}${source.countComplete ? `` : `+`} members`
+		if (props.item.history) return props.item.detail
+		if (`memberKeys` in source) {
+			const label =
+				source.type === `timeline_family`
+					? ecologyOperationLabels.timeline_family
+					: source.type.includes(`selector`)
+						? `Selector Family`
+						: `Atom Family`
+			return `${label} · ${source.memberCount}${source.countComplete ? `` : `+`} members`
+		}
+		if (!(`kind` in source))
+			return source.type === `transaction`
+				? ecologyOperationLabels.transaction
+				: `${ecologyOperationLabels.timeline} · ${ecologyTimelinePosition(source, timeline?.())}`
 		return `${source.kind === `atom` ? `Atom` : `Selector`} · ${detailValue()}`
 	}
 	const description = () => {
 		const item = props.item
-		return `${item.key} · ${detail(item.source)}`
+		return `${item.history ? item.label : item.key} · ${detail(item.source)}`
 	}
 	const title = () => {
 		const item = props.item
-		return `${item.key}\n${item.source.type}\n${item.detail}`
+		if (item.history) return description()
+		return `${item.key}\n${item.source.type}\n${`at` in item.source ? ecologyTimelinePosition(item.source, timeline?.()) : item.detail}`
 	}
 	const position = () => {
 		const { x, y, z } = props.item
@@ -75,7 +97,7 @@ export function EcologyNodeCard(props: {
 	const uncached = () => {
 		const source = props.item.source
 		void props.activity
-		return `value` in source && !peekState(props.store, source.key).present
+		return `value` in source && !peekState(props.tools.store, source.key).present
 	}
 	const empty: readonly ProjectedEdge[] = []
 	const [pathCount, setPathCount] = useLocal(useStore(), 0)
@@ -88,6 +110,10 @@ export function EcologyNodeCard(props: {
 		if (path.d !== previous?.d) node.setAttribute(`d`, path.d)
 		if (path.traced !== previous?.traced)
 			node.setAttribute(`data-traced`, String(path.traced))
+		if (path.relation !== previous?.relation) {
+			if (path.relation) node.setAttribute(`data-relation`, path.relation)
+			else node.removeAttribute(`data-relation`)
+		}
 	}
 	let outgoing = empty,
 		id = ``
@@ -154,7 +180,7 @@ export function EcologyNodeCard(props: {
 				)
 			},
 		)
-		if (props.item.kind !== `family`) {
+		if (`kind` in props.item.source) {
 			const feedback = createCardFeedback(button!, props.reducedMotion)
 			let lastCaught: unknown
 			let feedbackRevision = 0
@@ -171,7 +197,7 @@ export function EcologyNodeCard(props: {
 					if (newRevision) feedbackRevision = activity.revision
 					feedbackItem = item
 					const { definition, raw, status } = ecologyLoadState(
-						props.store,
+						props.tools.store,
 						item.key,
 					)
 					if (definition && status) props.completedLoads.delete(definition)
@@ -218,6 +244,7 @@ export function EcologyNodeCard(props: {
 				element = node
 			}}
 			data-kind={props.item.kind}
+			data-history={props.item.history?.direction}
 			data-type={props.item.source.type}
 			data-family={props.item.familyLabel}
 			data-traced={props.traced}
@@ -255,8 +282,11 @@ export function EcologyNodeCard(props: {
 				type="button"
 				data-node
 				data-graph-id={props.item.id}
+				data-history-owner={props.item.history ? props.item.familyId : undefined}
+				data-history-event={props.item.history?.identity}
 				aria-label={description()}
 				aria-pressed={props.selected}
+				aria-expanded={props.expanded}
 				onPointerDown={(event) => {
 					event.stopPropagation()
 				}}

@@ -8,6 +8,7 @@ import css from "./EcologyNodeName.module.css"
 export function EcologyNodeName(props: {
 	item: GraphItem
 	selected: boolean
+	expanded?: boolean | undefined
 }): SpaElement {
 	return (
 		<ecology-node-name class={css.class}>
@@ -16,6 +17,7 @@ export function EcologyNodeName(props: {
 				data-action="select"
 				data-graph-id={props.item.id}
 				aria-pressed={props.selected}
+				aria-expanded={props.expanded}
 				aria-label={props.item.key}
 				title={`${props.item.key}\n${props.item.source.type}`}
 			>

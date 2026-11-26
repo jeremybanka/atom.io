@@ -1,16 +1,27 @@
-import type { EcologyFamily, EcologyNode } from "./ecology.ts"
+import type { EcologySource } from "./ecology-graph.ts"
+
+const hueRanges = {
+	atom: [50, 0],
+	selector: [182, 252],
+	transaction: [169, 68],
+	timeline: [315, 265],
+} as const
 
 /** A key digest owns a hue; members inherit their family's identity. */
-export function ecologyColor(source: EcologyNode | EcologyFamily): string {
+export function ecologyColor(source: EcologySource): string {
 	const key =
 		`family` in source && source.family ? source.family.key : source.key
 	let digest = 0x811c9dc5
 	for (let index = 0; index < key.length; index++)
 		digest = Math.imul(digest ^ key.charCodeAt(index), 0x01000193) >>> 0
-	const hue =
-		((source.type.includes(`selector`) ? 90 : 270) +
-			(digest / 0x1_0000_0000) * 180) %
-		360
+	const [start, end] = source.type.includes(`selector`)
+		? hueRanges.selector
+		: source.type === `transaction`
+			? hueRanges.transaction
+			: source.type.startsWith(`timeline`)
+				? hueRanges.timeline
+				: hueRanges.atom
+	const hue = start + (digest / 0x1_0000_0000) * (end - start)
 	// Constant saturation, balanced luminance: yellow and blue need different HSL lightness
 	// to remain visible against both debugger themes. Keep Three.js out of the metadata path.
 	let low = 0,

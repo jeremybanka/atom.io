@@ -9,6 +9,7 @@ import {
 	type EcologyEditorSection as Section,
 } from "./EcologyEditorRow.tsx"
 import type { EcologyPresentation } from "./EcologyView.tsx"
+import { historyGraphId } from "./history-event.ts"
 import type { EditorTools } from "./store.ts"
 
 type Entry =
@@ -21,6 +22,7 @@ export function EcologyEditor(props: {
 	state: EcologyPresentation
 	hovered?: string | undefined
 	onGenerate(key: string): void
+	onViewOutcome(owner: string, outcome: string): boolean
 }): SpaElement {
 	const layoutGroup = `ecology-editor-${useId()}`
 	let editor: HTMLElement | null = null
@@ -47,7 +49,12 @@ export function EcologyEditor(props: {
 				release={release}
 				item={entry.item}
 				section={entry.section}
-				hovered={props.hovered === entry.item.id}
+				hovered={
+					props.hovered === entry.id ||
+					props.hovered?.startsWith(historyGraphId(entry.id, ``))
+						? props.hovered
+						: undefined
+				}
 				hidden={
 					!props.state.rowIds.has(entry.item.id) &&
 					props.state.pinnedKey !== entry.item.key
@@ -58,6 +65,7 @@ export function EcologyEditor(props: {
 				}
 				state={props.state}
 				onGenerate={props.onGenerate}
+				onViewOutcome={props.onViewOutcome}
 			/>
 		)
 		Object.freeze(node.props)

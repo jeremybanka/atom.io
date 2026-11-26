@@ -1,5 +1,5 @@
-import { Silo } from "atom.io"
-import { attachIntrospectionStates } from "atom.io/introspection"
+import { scopeFamily, Silo } from "atom.io"
+import { attachIntrospectionStates, observeStore } from "atom.io/introspection"
 import { expect, it, vi } from "vitest"
 
 import type { EcologySnapshot } from "../src/ecology.ts"
@@ -10,6 +10,190 @@ const fixture = () =>
 	new Silo({ name: `ecology`, lifespan: `ephemeral`, isProduction: true })
 const byKey = (snapshot: EcologySnapshot, key: string) =>
 	snapshot.nodes.find((node) => node.key === key)!
+
+it(`captures commits and timeline scopes without running application code`, () => {
+	const silo = fixture()
+	const countAtom = silo.atom<number>({ key: `count`, default: 0 })
+	const draftAtoms = silo.atomFamily<number, string>({
+		key: `draft`,
+		default: 0,
+	})
+	const draft = silo.findState(draftAtoms, `first`)
+	silo.getState(draft)
+	silo.timeline({ key: `count`, scope: [countAtom] })
+	const historyTimelines = silo.timelineFamily<string>({
+		key: `history`,
+		scope: [scopeFamily(draftAtoms, { timelineKey: (key) => key })],
+	})
+	const history = silo.findTimeline(historyTimelines, `first`)
+	const saveTransaction = silo.transaction({
+		key: `save`,
+		do: ({ set }) => {
+			set(draft, 1)
+		},
+	})
+	const publishTransaction = silo.transaction({
+		key: `publish`,
+		do: ({ run, set }, abort: boolean) => {
+			run(saveTransaction)()
+			set(countAtom, 2)
+			if (abort) throw new Error(`aborted`)
+		},
+	})
+	const capture = () => captureEcologySnapshot(silo.store).operations.records
+	const stop = observeStore(silo.store, () => {})
+	expect(() => silo.runTransaction(publishTransaction)(true)).toThrow(`aborted`)
+	expect(capture().filter(({ type }) => type === `transaction`)).toEqual([
+		{ type: `transaction`, key: saveTransaction.key },
+		{ type: `transaction`, key: publishTransaction.key },
+	])
+	silo.runTransaction(publishTransaction)(false)
+	const observed = capture()
+	expect(observed).toEqual(
+		expect.arrayContaining([
+			expect.objectContaining({
+				type: `transaction`,
+				key: saveTransaction.key,
+				targets: [{ kind: `state`, key: draft.key }],
+			}),
+			expect.objectContaining({
+				type: `transaction`,
+				key: publishTransaction.key,
+				targets: [
+					{ kind: `state`, key: draft.key },
+					{ kind: `state`, key: countAtom.key },
+				],
+			}),
+			expect.objectContaining({
+				type: `timeline`,
+				key: countAtom.key,
+				targets: [{ kind: `state`, key: countAtom.key }],
+			}),
+			expect.objectContaining({
+				type: `timeline`,
+				key: history.key,
+				targets: [{ kind: `state`, key: draft.key }],
+			}),
+			expect.objectContaining({
+				type: `timeline_family`,
+				key: historyTimelines.key,
+				targets: [{ kind: `family`, key: draftAtoms.key }],
+			}),
+		]),
+	)
+	const limited = captureEcologySnapshot(silo.store, {
+		maxRelations: 0,
+	}).operations
+	expect(limited.relations).toEqual({ work: 0, truncated: true })
+	expect(limited.records.every((record) => !record.targets)).toBe(true)
+	silo.transaction({ key: `save`, do: () => {} })
+	expect(capture().find((record) => record.key === saveTransaction.key)).toEqual(
+		{
+			type: `transaction`,
+			key: saveTransaction.key,
+		},
+	)
+	stop()
+})
+
+it(`captures timeline scopes without reporting reserved or stale topic keys`, () => {
+	const silo = fixture()
+	const draftsAtoms = silo.atomFamily<number, string>({
+		key: `drafts`,
+		default: 0,
+	})
+	const reviewAtom = silo.atom<number>({ key: `review`, default: 0 })
+	silo.timeline({ key: `outer`, scope: [reviewAtom] })
+	const reviewTimeline = silo.timeline({
+		key: `review`,
+		scope: [draftsAtoms, silo.atom<number>({ key: `🔍 hidden`, default: 0 })],
+	})
+	silo.store.timelineTopics.set(
+		{ timelineKey: reviewTimeline.key, topicKey: `missing` },
+		{ topicType: `atom` },
+	)
+	const routedAtoms = silo.atomFamily<number, string>({
+		key: `routed`,
+		default: 0,
+	})
+	const routedTimelines = silo.timelineFamily<string>({
+		key: `routed`,
+		scope: [scopeFamily(routedAtoms, { timelineKey: (key) => key })],
+	})
+	const a = silo.findTimeline(routedTimelines, `a`)
+	const b = silo.findTimeline(routedTimelines, `b`)
+	const { records } = captureEcologySnapshot(silo.store).operations
+	expect(records.find(({ key }) => key === reviewTimeline.key)?.targets).toEqual(
+		[{ kind: `family`, key: draftsAtoms.key }],
+	)
+	expect(
+		records.find(
+			({ type, key }) =>
+				type === `timeline_family` && key === routedTimelines.key,
+		),
+	).toMatchObject({ memberKeys: [a.key, b.key] })
+})
+
+it(`captures bounded, detached transaction and timeline metadata`, () => {
+	const silo = fixture()
+	const run = vi.fn()
+	silo.transaction({ key: `save`, do: run })
+	const historyTimelines = silo.timelineFamily<string>({
+		key: `history`,
+		scope: [],
+	})
+	const member = silo.findTimeline(historyTimelines, `draft`)
+	silo.timeline({ key: `👁‍🗨 internal`, scope: [] })
+
+	const snapshot = captureEcologySnapshot(silo.store)
+	expect(snapshot.operations).toEqual({
+		records: [
+			{ type: `transaction`, key: `save` },
+			{
+				type: `timeline`,
+				key: member.key,
+				family: member.family,
+				at: 0,
+				historyLength: 0,
+			},
+			{
+				type: `timeline_family`,
+				key: historyTimelines.key,
+				memberKeys: [member.key],
+				memberCount: 1,
+				countComplete: true,
+			},
+		],
+		truncated: false,
+		work: 4,
+	})
+	expect(
+		captureEcologySnapshot(silo.store, { maxOperations: 2 }).operations,
+	).toMatchObject({
+		records: [
+			{ type: `transaction`, key: `save` },
+			{
+				type: `timeline_family`,
+				memberKeys: [],
+				memberCount: 0,
+				countComplete: false,
+			},
+		],
+		truncated: true,
+		work: 2,
+	})
+	expect(
+		captureEcologySnapshot(silo.store, { maxOperations: 0 }).operations,
+	).toEqual({ records: [], truncated: true, work: 0 })
+	expect(() =>
+		captureEcologySnapshot(silo.store, { maxOperations: -1 }),
+	).toThrow(RangeError)
+	silo.disposeTimeline(member)
+	expect(snapshot.operations?.records[1]).toMatchObject({
+		family: member.family,
+	})
+	expect(run).not.toHaveBeenCalled()
+})
 
 it(`captures detached metadata without evaluating dormant defaults or selectors or attaching introspection`, () => {
 	const silo = fixture()

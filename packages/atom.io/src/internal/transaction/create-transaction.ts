@@ -13,10 +13,13 @@ import { abortTransaction } from "./abort-transaction.ts"
 import { applyTransaction } from "./apply-transaction.ts"
 import { buildTransaction } from "./build-transaction.ts"
 import type { RootStore } from "./is-root-store.ts"
+import { isRootStore } from "./is-root-store.ts"
+import { forgetTransactionWrites } from "./record-transaction-writes.ts"
 
 export type Transaction<F extends Fn> = {
 	key: string
 	type: `transaction`
+	observedWrites?: { keys: Set<string>; truncated: boolean }
 	install: (store: RootStore) => void
 	subject: Subject<TransactionOutcomeEvent<TransactionToken<F>>>
 	run: (parameters: Parameters<F>, id?: string) => ReturnType<F>
@@ -49,6 +52,7 @@ export function createTransaction<F extends Fn>(
 		subject: new Subject(),
 	}
 	const target = newest(store)
+	if (isRootStore(target)) forgetTransactionWrites(target, key)
 	target.transactions.set(key, newTransaction)
 	recordTransactionRegistration(target, key)
 	const token = deposit(newTransaction)

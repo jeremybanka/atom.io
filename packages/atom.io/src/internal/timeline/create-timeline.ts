@@ -162,6 +162,7 @@ export function createTimeline<ManagedAtom extends TimelineManageable>(
 
 	store.timelines.set(options.key, tl)
 	recordStoreChange(store, `timelines`, tl.key)
+	recordStoreChange(store, `timelineDefinitions`, tl.key)
 	const token: TimelineToken<ManagedAtom> = {
 		key: timelineKey,
 		type: `timeline`,

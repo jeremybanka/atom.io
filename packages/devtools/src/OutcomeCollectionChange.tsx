@@ -84,6 +84,8 @@ export function OutcomeCollectionChange(props: {
 		side: `before` | `after`,
 	) => {
 		const slot = entry[side]
+		const label =
+			(side === `before` ? entry.beforeLabel : entry.afterLabel) ?? entry.label
 		return (
 			<td
 				data-snapshot-side={side}
@@ -91,12 +93,9 @@ export function OutcomeCollectionChange(props: {
 			>
 				{slot && (
 					<snapshot-entry>
-						{entry.label && (
-							<code
-								title={entry.label}
-								data-index={kind === `Array` || undefined}
-							>
-								{entry.label}
+						{label && (
+							<code title={label} data-index={kind === `Array` || undefined}>
+								{label}
 							</code>
 						)}
 						<OutcomeValue

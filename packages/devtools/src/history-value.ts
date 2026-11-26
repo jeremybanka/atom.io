@@ -159,6 +159,8 @@ export function describeOutcomeValue(
 type HistorySnapshotEntry = {
 	position: number
 	label: string
+	beforeLabel?: string
+	afterLabel?: string
 	before?: Slot | undefined
 	after?: Slot | undefined
 	changed: boolean
@@ -198,6 +200,51 @@ function arrayComparisonPositions(
 	return prefix
 }
 
+/** Align one dense insertion or removal while keeping each snapshot's real indexes. */
+function alignArraySplice(
+	before: Collection,
+	after: Collection,
+	digits: number,
+): HistorySnapshotEntry[] | undefined {
+	const beforeSize = before.size!,
+		afterSize = after.size!
+	const size = Math.max(beforeSize, afterSize)
+	const shared = Math.min(beforeSize, afterSize)
+	if (shared === 0 || size > limit || size - shared !== 1) return undefined
+	const previous = indices(0, beforeSize).map(before.read)
+	const next = indices(0, afterSize).map(after.read)
+	if ([...previous, ...next].some((slot) => slot?.value === empty))
+		return undefined
+	const added = afterSize > beforeSize
+	const shorter = added ? previous : next
+	const longer = added ? next : previous
+	if (
+		shorter.every((slot, index) => sameValue(slot?.value, longer[index]?.value))
+	)
+		return undefined
+	if (
+		!shorter.every((slot, index) =>
+			sameValue(slot?.value, longer[index + 1]?.value),
+		)
+	)
+		return undefined
+	const label = (index: number) => String(index).padStart(digits, `0`)
+	return indices(0, size).map((position) => {
+		const shortIndex = position - 1
+		const beforeIndex = added ? shortIndex : position
+		const afterIndex = added ? position : shortIndex
+		return {
+			position,
+			label: label(position),
+			beforeLabel: label(beforeIndex),
+			afterLabel: label(afterIndex),
+			before: previous[beforeIndex],
+			after: next[afterIndex],
+			changed: shortIndex < 0,
+		}
+	})
+}
+
 export function historyCollectionChanges(
 	previous: unknown,
 	next: unknown,
@@ -209,8 +256,11 @@ export function historyCollectionChanges(
 		const array = before.kind === `Array`
 		const length = Math.max(before.size ?? 0, after.size ?? 0)
 		const digits = String(Math.max(0, length - 1)).length
+		const aligned = array ? alignArraySplice(before, after, digits) : undefined
 		const keys = array
-			? arrayComparisonPositions(before.size!, after.size!)
+			? aligned
+				? []
+				: arrayComparisonPositions(before.size!, after.size!)
 			: [...new Set([...before.keys, ...after.keys])]
 		const entries: HistorySnapshotEntry[] = []
 		const changedEntries: HistorySnapshotEntry[] = []
@@ -239,11 +289,13 @@ export function historyCollectionChanges(
 				changed,
 			})
 		}
-		const snapshot = array
-			? changedEntries
-					.concat(entries.slice(0, limit - changedEntries.length))
-					.sort((a, b) => a.position - b.position)
-			: entries
+		const snapshot =
+			aligned ??
+			(array
+				? changedEntries
+						.concat(entries.slice(0, limit - changedEntries.length))
+						.sort((a, b) => a.position - b.position)
+				: entries)
 		return {
 			kind: before.kind,
 			beforeSize: before.size,
@@ -260,7 +312,7 @@ export function historyCollectionChanges(
 			truncated: array
 				? snapshot.length < length
 				: before.truncated || after.truncated,
-			comparisonLimited: array && keys.length < length,
+			comparisonLimited: array && !aligned && keys.length < length,
 		}
 	} catch {
 		return undefined

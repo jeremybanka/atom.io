@@ -262,3 +262,27 @@ it(`renders bounded literal previews without reading getters or calling custom f
 	})
 	expect(historyCollectionChanges([], blocked)).toBeUndefined()
 })
+
+it(`keeps existing array values aligned when prepending one item`, () => {
+	const before = [`filters`, `mug`]
+	const after = [`coffee`, ...before]
+	for (const [previous, next] of [
+		[before, after],
+		[after, before],
+	] as const) {
+		const entries = historyCollectionChanges(previous, next)!.entries
+		expect(
+			entries.map((entry) => [
+				entry.before?.value,
+				entry.after?.value,
+				entry.changed,
+			]),
+		).toEqual([
+			previous === before
+				? [undefined, `coffee`, true]
+				: [`coffee`, undefined, true],
+			[`filters`, `filters`, false],
+			[`mug`, `mug`, false],
+		])
+	}
+})

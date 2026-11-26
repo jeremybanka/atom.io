@@ -130,10 +130,19 @@ event-view.class {
 		min-height: 22px;
 		padding: 2px 6px 2px 18px;
 		color: var(--ink-muted);
+		&[data-metadata-only] > span {
+			flex-basis: 100%;
+			> span {
+				min-inline-size: 6ch;
+			}
+		}
 		> span {
 			display: flex;
 			gap: 4px;
 			min-width: 0;
+			> span {
+				flex: 0 0 auto;
+			}
 			&[data-metadata-block] {
 				flex-basis: 100%;
 			}

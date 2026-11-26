@@ -132,7 +132,10 @@ export function EventView(props: {
 		<>
 			{descendants.length > 0 && impact()}
 			{hasMetadata && (
-				<p data-outcome-metadata>
+				<p
+					data-outcome-metadata
+					data-metadata-only={writeCount === 0 || undefined}
+				>
 					{params.length > 0 && (
 						<span>
 							<span>Args</span>
@@ -142,6 +145,7 @@ export function EventView(props: {
 								label="arguments"
 								preview={args(params)}
 								full={() => args(params, true)}
+								wrap={writeCount === 0}
 							/>
 						</span>
 					)}

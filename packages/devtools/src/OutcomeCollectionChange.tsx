@@ -265,7 +265,7 @@ export function OutcomeCollectionChange(props: {
 			{truncated && (
 				<small data-collection-note>
 					{comparisonLimited
-						? `Large array · comparison sampled`
+						? `Large array · comparison sampled. Changes may be missing.`
 						: `Large value · showing sampled entries`}
 				</small>
 			)}

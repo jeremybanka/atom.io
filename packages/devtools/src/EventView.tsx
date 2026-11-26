@@ -15,6 +15,7 @@ import {
 import {
 	describeOutcomeValue,
 	historyCollectionChanges,
+	historySnapshotShape,
 } from "./history-value.ts"
 import { historyValuePair } from "./history-value-pair.ts"
 import { OutcomeCollectionChange } from "./OutcomeCollectionChange.tsx"
@@ -89,12 +90,13 @@ export function EventView(props: {
 			{nested()}
 		</event-impact>
 	)
-	const value = (caption: string, data: unknown) => (
+	const value = (caption: string, data: unknown, wrap?: boolean) => (
 		<OutcomeValue
 			tools={props.tools}
 			eventId={identity}
 			label={caption}
 			value={data}
+			wrap={wrap}
 		/>
 	)
 	const change = (update: Extract<RecordedEvent, { update: unknown }>) => (
@@ -144,9 +146,17 @@ export function EventView(props: {
 						</span>
 					)}
 					{output !== undefined && (
-						<span>
+						<span
+							data-metadata-block={
+								historySnapshotShape(output) ? true : undefined
+							}
+						>
 							<span>Result</span>
-							{value(`result`, output)}
+							{value(
+								`result`,
+								output,
+								historySnapshotShape(output) !== undefined,
+							)}
 						</span>
 					)}
 				</p>

@@ -17,6 +17,10 @@ outcome-value.class {
 		white-space: nowrap;
 		text-overflow: ellipsis;
 	}
+	&[data-wrap] :is(code, button > code) {
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
+	}
 	> small[data-circular] {
 		display: block;
 		color: var(--ink-muted);

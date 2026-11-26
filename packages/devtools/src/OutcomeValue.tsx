@@ -11,6 +11,7 @@ export function OutcomeValue(
 		eventId: string
 		label: string
 		summary?: string | undefined
+		wrap?: boolean | undefined
 		sharedExpansion?: string | undefined
 	} & ({ value: unknown } | { preview: string; full(): string }),
 ): SpaElement {
@@ -23,9 +24,10 @@ export function OutcomeValue(
 		`value` in props
 			? describeOutcomeValue(props.value)
 			: { text: props.preview, truncated: false, circular: false }
+	const limit = props.wrap ? 64 : 16
 	return (
-		<outcome-value class={css.class}>
-			{props.summary !== undefined || text.length > 16 || truncated ? (
+		<outcome-value class={css.class} data-wrap={props.wrap ? true : undefined}>
+			{props.summary !== undefined || text.length > limit || truncated ? (
 				<button
 					type="button"
 					aria-label={`${open() ? `Collapse` : `Show full`} ${props.label}`}
@@ -42,7 +44,7 @@ export function OutcomeValue(
 									).text
 								: props.full()
 							: (props.summary ??
-								(text.length > 16 ? `${text.slice(0, 15)}…` : text))}
+								(text.length > limit ? `${text.slice(0, limit - 1)}…` : text))}
 					</code>
 				</button>
 			) : (

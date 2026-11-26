@@ -102,9 +102,10 @@ outcome-collection-change.class {
 			content: "+";
 		}
 	}
-	> button[aria-expanded] {
+	> button {
 		display: inline-flex;
 		align-items: center;
+		vertical-align: middle;
 		margin-inline-start: 10px;
 		color: var(--ink-muted);
 	}

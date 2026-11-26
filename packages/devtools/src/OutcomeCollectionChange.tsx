@@ -123,6 +123,35 @@ export function OutcomeCollectionChange(props: {
 			</td>
 		)
 	}
+	let comparison: HTMLElement | null = null
+	const jumpToEdit = (fromStart = false) => {
+		if (!comparison?.isConnected) return
+		const bounds = comparison.getBoundingClientRect()
+		const headingHeight = comparison
+			.querySelector(`thead`)!
+			.getBoundingClientRect().height
+		const edits = Array.from(
+			comparison.querySelectorAll(`tr[data-snapshot-changed]`),
+		)
+		const next = fromStart
+			? undefined
+			: edits.find(
+					(row) =>
+						row.getBoundingClientRect().top > bounds.top + headingHeight + 2,
+				)
+		const target = next ?? edits[0]
+		if (target)
+			comparison.scrollTop +=
+				target.getBoundingClientRect().top - bounds.top - headingHeight
+	}
+	const toggleRows = (event: MouseEvent) => {
+		const reveal = !open()
+		toggle(event)
+		if (reveal)
+			comparison?.ownerDocument.defaultView?.requestAnimationFrame(() => {
+				jumpToEdit(true)
+			})
+	}
 	const rows = () => {
 		const visible = open() ? entries : preview
 		const result: SpaElement[] = []
@@ -131,7 +160,11 @@ export function OutcomeCollectionChange(props: {
 			const index = entry.position
 			if (position < index) result.push(gap(position))
 			result.push(
-				<tr key={index} data-snapshot-entry>
+				<tr
+					key={index}
+					data-snapshot-entry
+					data-snapshot-changed={entry.changed || undefined}
+				>
 					{cell(entry, index, `before`)}
 					{cell(entry, index, `after`)}
 				</tr>,
@@ -149,6 +182,9 @@ export function OutcomeCollectionChange(props: {
 			</p>
 			<snapshot-comparison
 				data-expanded={open()}
+				ref={(element) => {
+					comparison = element
+				}}
 				style={`--snapshot-key-width: ${keyWidth}ch`}
 			>
 				<table aria-label={`${props.name} snapshots`}>
@@ -166,9 +202,19 @@ export function OutcomeCollectionChange(props: {
 				</table>
 			</snapshot-comparison>
 			{more > 0 && (
-				<button type="button" aria-expanded={open()} onClick={toggle}>
+				<button type="button" aria-expanded={open()} onClick={toggleRows}>
 					<EditorIcon name={open() ? `collapse` : `expand`} />
 					{open() ? `Show fewer rows` : `Show ${more} more rows`}
+				</button>
+			)}
+			{more > 0 && changes.length > 1 && open() && (
+				<button
+					type="button"
+					onClick={() => {
+						jumpToEdit()
+					}}
+				>
+					Next edit
 				</button>
 			)}
 			{truncated && (

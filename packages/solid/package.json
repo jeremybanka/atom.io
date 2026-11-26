@@ -45,7 +45,7 @@
 	"devDependencies": {
 		"@breakage/changesets": "0.1.0",
 		"@solidjs/signals": "2.0.4",
-		"@types/node": "26.6.7",
+		"@types/node": "26.6.10",
 		"@vitest/coverage-v8": "5.1.1",
 		"atom.io": "workspace:*",
 		"breakage": "0.10.2",

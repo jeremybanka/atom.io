@@ -46,7 +46,7 @@ const timelineKinds: Partial<Record<RecordedEvent[`type`], string>> = {
 	atom_creation: `Created`,
 	atom_disposal: `Disposed`,
 	selector_update: `Selector update`,
-	transaction_outcome: `Transaction`,
+	transaction_outcome: `Transaction outcome`,
 }
 
 export function timelineEventKind(event: RecordedEvent): string {

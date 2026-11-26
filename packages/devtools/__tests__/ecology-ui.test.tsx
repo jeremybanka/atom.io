@@ -2078,7 +2078,7 @@ it(`opens the retained source outcome after inspecting a scoped timeline event`,
 
 	// Selecting the linked outcome also works when the active filter only matches its timeline.
 	await f.search(`cart history`)
-	await f.click(`View outcome`)
+	await f.click(`Transaction outcome`)
 	const source = f.host.querySelector(
 		`ecology-editor transaction-outcomes event-view`,
 	)!

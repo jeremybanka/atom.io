@@ -311,19 +311,23 @@ describe(`spa debugger`, () => {
 		expect(host.textContent).toContain(`Current position`)
 		const timeline = host.querySelector(`timeline-history`)!
 		expect(timeline.querySelector(`[data-compact-write]`)).toBeNull()
+		const outcomeLink = `timeline-history event-heading > button[data-outcome-link]`
+		expect(
+			host.querySelector(`${outcomeLink} [data-editor-icon="externalLink"]`),
+		).not.toBeNull()
+		await click(outcomeLink)
+		expect(
+			timeline.querySelector(`[data-original-outcome] [data-compact-write]`)
+				?.textContent,
+		).toBe(`count02`)
+		await click(outcomeLink)
+		expect(
+			timeline.querySelector(`[data-original-outcome] [data-compact-write]`),
+		).toBeNull()
 		await click(`timeline-history [aria-label="Expand 1 · increment"]`)
 		expect(timeline.querySelector(`[data-compact-write]`)?.textContent).toBe(
 			`count02`,
 		)
-		await click(`timeline-outcome-link > button`)
-		expect(
-			timeline.querySelector(`timeline-outcome-link [data-compact-write]`)
-				?.textContent,
-		).toBe(`count02`)
-		await click(`timeline-outcome-link > button`)
-		expect(
-			timeline.querySelector(`timeline-outcome-link [data-compact-write]`),
-		).toBeNull()
 		const undo = [...host.querySelectorAll(`button`)].find(
 			(button) => button.getAttribute(`aria-label`) === `undo`,
 		)!

@@ -291,13 +291,22 @@ if (process.argv.includes(`--serve`)) {
 			),
 		)
 		assert.ok(Math.max(...positions) - Math.min(...positions) < 1)
+		const arrowCenter = await write
+			.locator(`[data-editor-icon="arrow"]`)
+			.evaluate((element) => {
+				const { y, height } = (element as SVGSVGElement).getBBox()
+				return y + height / 2
+			})
+		assert.equal(arrowCenter, 6)
 		assert.equal(await outcomeEntry.getAttribute(`aria-pressed`), `true`)
 
 		const timelineCard = operationCard(`timeline:count`)
 		await timelineCard.press(`Enter`)
 		const eventCard = scene
 			.locator(`ecology-node-card[data-history="past"]`)
-			.getByRole(`button`, { name: /^\d+ · increment · Applied · Transaction$/ })
+			.getByRole(`button`, {
+				name: /^\d+ · increment · Applied · Transaction outcome$/,
+			})
 			.first()
 		await eventCard
 			.locator(`..`)

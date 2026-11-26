@@ -2,6 +2,7 @@ import { render } from "@atom.io/spa"
 import { Silo } from "atom.io"
 import { expect, it } from "vitest"
 
+import type { RecordedEvent } from "../src/history-event.ts"
 import { useTools } from "../src/store.ts"
 import { TimelineHistory } from "../src/TimelineHistory.tsx"
 
@@ -14,6 +15,16 @@ it(`shows lifecycle values, grouped writes, and the checkpoint range at the curs
 	const itemAtom = silo.atom<unknown>({ key: `item`, default: undefined })
 	const statusSelector = silo.selector<number>({ key: `status`, get: () => 0 })
 	const groupTransaction = silo.transaction({ key: `group`, do: () => {} })
+	const prunedOutcome: RecordedEvent = {
+		type: `transaction_outcome`,
+		token: groupTransaction,
+		timestamp: 6,
+		id: `pruned`,
+		timelineOutcomeSequence: 2,
+		subEvents: [],
+		params: [],
+		output: undefined,
+	}
 	const host = document.createElement(`div`)
 	const view = render(
 		() => (
@@ -67,6 +78,7 @@ it(`shows lifecycle values, grouped writes, and the checkpoint range at the curs
 							params: [],
 							output: undefined,
 						},
+						prunedOutcome,
 					],
 				}}
 			/>
@@ -111,7 +123,12 @@ it(`shows lifecycle values, grouped writes, and the checkpoint range at the curs
 		expect(rows[4].querySelector(`[data-lifecycle]`)?.textContent).toBe(
 			`itemDisposed`,
 		)
-		expect(rows[4].querySelector(`timeline-outcome-link button`)).toBeNull()
+		for (const row of rows.slice(4)) {
+			expect(row.querySelector(`[data-timeline-kind]`)?.textContent).toBe(
+				`Transaction outcome`,
+			)
+			expect(row.querySelector(`button[data-outcome-link]`)).toBeNull()
+		}
 	} finally {
 		view.dispose()
 	}

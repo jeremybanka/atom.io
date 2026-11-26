@@ -5,6 +5,8 @@ timeline-history.class {
 		var(--ink)
 	);
 	display: block;
+	margin-inline-start: 12px;
+	border-inline-start: 1px solid var(--ink-muted);
 	> section {
 		min-width: 0;
 	}
@@ -16,6 +18,9 @@ timeline-history.class {
 		padding-inline: 7px;
 		color: var(--timeline-accent);
 		font-size: 11px;
+		&::before, &::after {
+			translate: 0 -2px;
+		}
 		&::before {
 			content: "";
 			width: 5px;

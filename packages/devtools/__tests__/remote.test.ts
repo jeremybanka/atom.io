@@ -315,13 +315,11 @@ it(`ships initial and incremental Ecology operations over the remote protocol`, 
 			expect(
 				host.querySelector(`timeline-history [data-compact-write]`)?.textContent,
 			).toBe(`count01`)
-			expect(
-				host.querySelector(`timeline-outcome-link button`)?.textContent,
-			).toBe(`View outcome`)
+			expect(host.querySelector(`button[data-outcome-link]`)?.textContent).toBe(
+				`Transaction outcome`,
+			)
 		})
-		host
-			.querySelector<HTMLButtonElement>(`timeline-outcome-link button`)!
-			.click()
+		host.querySelector<HTMLButtonElement>(`button[data-outcome-link]`)!.click()
 		await vi.waitFor(() => {
 			expect(
 				host.querySelector(

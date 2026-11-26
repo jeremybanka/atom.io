@@ -19,7 +19,7 @@ import { describeOutcomeValue, historySnapshotShape } from "./history-value.ts"
 import { HistoryWrite } from "./HistoryWrite.tsx"
 import { OutcomeValue } from "./OutcomeValue.tsx"
 import { type EditorTools, useExpanded } from "./store.ts"
-import { TimelineOutcomeLink } from "./TimelineOutcomeLink.tsx"
+import { useTimelineOutcomeLink } from "./timeline-outcome-link.ts"
 
 export interface EcologyEventInteraction {
 	owner: string
@@ -53,6 +53,15 @@ export function EventView(props: {
 	const graphId = owner ? historyGraphId(owner, identity) : undefined
 	const standaloneTimelineEvent = timelineEvent && !owner
 	const outcome = event.type === `transaction_outcome` ? event : undefined
+	const outcomeLink =
+		timelineEvent && outcome
+			? useTimelineOutcomeLink({
+					tools: props.tools,
+					event: outcome,
+					timelineKey: props.timeline!.key,
+					navigate: props.ecology?.viewOutcome,
+				})
+			: undefined
 	const topOutcome = !timelineEvent && compact && owner !== undefined
 	const name = timelineEvent
 		? timelineEventTitle(event, props.index)
@@ -78,15 +87,59 @@ export function EventView(props: {
 	const label = () => (
 		<>
 			<strong title={timelineEvent ? name : undefined}>{name}</strong>
-			{timelineEvent ? (
-				<small data-timeline-kind>{timelineEventKind(event)}</small>
-			) : (
-				!(compact && outcome) && (
-					<small>{compact ? event.type.replaceAll(`_`, ` `) : event.type}</small>
-				)
-			)}
+			{timelineEvent
+				? !outcomeLink && (
+						<small data-timeline-kind>{timelineEventKind(event)}</small>
+					)
+				: !(compact && outcome) && (
+						<small>
+							{compact ? event.type.replaceAll(`_`, ` `) : event.type}
+						</small>
+					)}
 		</>
 	)
+	const outcomeKind = () => {
+		if (!outcomeLink) return
+		const kind = timelineEventKind(event)
+		const source = outcomeLink.source()
+		return source ? (
+			<button
+				type="button"
+				data-outcome-link
+				aria-expanded={
+					props.ecology?.viewOutcome && !outcomeLink.open()
+						? undefined
+						: outcomeLink.open()
+				}
+				onClick={(click) => {
+					outcomeLink.follow(click, source.event)
+				}}
+			>
+				<span>{kind}</span>
+				<EditorIcon name="externalLink" />
+			</button>
+		) : (
+			<small data-timeline-kind>{kind}</small>
+		)
+	}
+	const shownOutcome = () => outcomeLink?.open() && outcomeLink.source()
+	const originalOutcome = () => {
+		const source = shownOutcome()
+		return (
+			source && (
+				<event-impact data-compact data-original-outcome>
+					<EventView
+						key={historyIdentity(source.event)}
+						tools={props.tools}
+						event={source.event}
+						index={source.index}
+						compact
+						initialOpen
+					/>
+				</event-impact>
+			)
+		)
+	}
 	const descendants = `subEvents` in event ? event.subEvents : []
 	const [getOpen, toggle] = useExpanded(
 		props.tools,
@@ -114,7 +167,7 @@ export function EventView(props: {
 	const impact = () => (
 		<event-impact
 			data-compact={compact || undefined}
-			data-indented={topOutcome || timelineEvent || undefined}
+			data-indented={topOutcome || undefined}
 		>
 			{nested()}
 		</event-impact>
@@ -197,32 +250,7 @@ export function EventView(props: {
 		)
 	const details = () => {
 		if (outcome) {
-			if (compact)
-				return (
-					<>
-						{compactOutcome(outcome)}
-						{timelineEvent && (
-							<TimelineOutcomeLink
-								tools={props.tools}
-								event={outcome}
-								timelineKey={props.timeline!.key}
-								navigate={props.ecology?.viewOutcome}
-								render={(source, index) => (
-									<event-impact data-compact data-indented>
-										<EventView
-											key={historyIdentity(source)}
-											tools={props.tools}
-											event={source}
-											index={index}
-											compact
-											initialOpen
-										/>
-									</event-impact>
-								)}
-							/>
-						)}
-					</>
-				)
+			if (compact) return compactOutcome(outcome)
 			return (
 				<>
 					<p>
@@ -287,7 +315,7 @@ export function EventView(props: {
 				lifecycleDetails()
 			) : (
 				<>
-					<event-heading>
+					<event-heading data-timeline-outcome={outcomeLink ? true : undefined}>
 						<button
 							type="button"
 							aria-label={`${getOpen() ? `Collapse` : `Expand`} ${headingName}`}
@@ -334,6 +362,7 @@ export function EventView(props: {
 						) : (
 							!standaloneTimelineEvent && label()
 						)}
+						{outcomeKind()}
 						{props.timeline?.redoNext && <small data-redo-next>Redo next</small>}
 						{writeCount !== undefined && (
 							<small
@@ -341,7 +370,14 @@ export function EventView(props: {
 							>{`${writeCount} ${writeCount === 1 ? `write` : `writes`}`}</small>
 						)}
 					</event-heading>
-					{getOpen() && details()}
+					{timelineEvent
+						? (getOpen() || shownOutcome()) && (
+								<event-details>
+									{getOpen() && details()}
+									{originalOutcome()}
+								</event-details>
+							)
+						: getOpen() && details()}
 				</>
 			)}
 		</event-view>

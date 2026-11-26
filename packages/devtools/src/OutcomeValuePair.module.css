@@ -1,0 +1,52 @@
+outcome-value-pair.class {
+	display: block;
+	min-width: 0;
+	> strong {
+		display: block;
+		padding: 2px 6px;
+		line-height: 18px;
+		overflow-wrap: anywhere;
+	}
+	> [data-value-columns] {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		border-inline: 1px solid var(--line);
+		> [data-value-side] {
+			min-width: 0;
+			& + [data-value-side] {
+				border-inline-start: 1px solid var(--line);
+			}
+			> p {
+				display: flex;
+				flex-wrap: wrap;
+				justify-content: space-between;
+				column-gap: 4px;
+				padding: 2px 6px;
+				background: var(--surface-inactive);
+				line-height: 18px;
+				> small {
+					color: var(--ink-muted);
+				}
+			}
+			> code {
+				display: block;
+				padding: 2px 6px;
+				white-space: pre-wrap;
+				overflow-wrap: anywhere;
+				line-height: 18px;
+			}
+			&[data-value-side="before"] > code {
+				background: var(--change-removed);
+			}
+			&[data-value-side="after"] > code {
+				background: var(--change-added);
+			}
+		}
+	}
+	> button {
+		display: inline-flex;
+		align-items: center;
+		margin-inline-start: 10px;
+		color: var(--ink-muted);
+	}
+}

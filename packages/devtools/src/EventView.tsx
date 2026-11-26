@@ -16,8 +16,10 @@ import {
 	describeOutcomeValue,
 	historyCollectionChanges,
 } from "./history-value.ts"
+import { historyValuePair } from "./history-value-pair.ts"
 import { OutcomeCollectionChange } from "./OutcomeCollectionChange.tsx"
 import { OutcomeValue } from "./OutcomeValue.tsx"
+import { OutcomeValuePair } from "./OutcomeValuePair.tsx"
 import { type EditorTools, useExpanded } from "./store.ts"
 
 export interface EcologyEventInteraction {
@@ -116,6 +118,10 @@ export function EventView(props: {
 	const structured = compactWrite
 		? historyCollectionChanges(event.update.oldValue, event.update.newValue)
 		: undefined
+	const pair =
+		compactWrite && !structured
+			? historyValuePair(event.update.oldValue, event.update.newValue)
+			: undefined
 	const args = (params: readonly unknown[], full = false) =>
 		historyParams(params, full, (data) => describeOutcomeValue(data, full).text)
 	const hasMetadata =
@@ -185,6 +191,13 @@ export function EventView(props: {
 						eventId={identity}
 						name={event.token.key}
 						change={structured}
+					/>
+				) : pair ? (
+					<OutcomeValuePair
+						tools={props.tools}
+						eventId={identity}
+						name={event.token.key}
+						pair={pair}
 					/>
 				) : (
 					change(event)

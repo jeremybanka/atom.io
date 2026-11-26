@@ -10,7 +10,7 @@ const paths = {
 	clearSelection: `M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4M6 6l4 4m0-4-4 4`,
 	expand: `m6 4 4 4-4 4`,
 	collapse: `m4 6 4 4 4-4`,
-	arrow: `M2.5 6h11m-4-4 4 4-4 4`,
+	arrow: `M2.5 8h11m-4-4 4 4-4 4`,
 	externalLink: `M8 3H3v10h10V8m-3-5h3v3m0-3L7 9`,
 	undo: `m6 3-4 4 4 4M2 7h7a4 4 0 0 1 4 4v2`,
 	redo: `m10 3 4 4-4 4m4-4H7a4 4 0 0 0-4 4v2`,

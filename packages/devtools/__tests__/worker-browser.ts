@@ -291,13 +291,18 @@ if (process.argv.includes(`--serve`)) {
 			),
 		)
 		assert.ok(Math.max(...positions) - Math.min(...positions) < 1)
-		const arrowCenter = await write
-			.locator(`[data-editor-icon="arrow"]`)
-			.evaluate((element) => {
-				const { y, height } = (element as SVGSVGElement).getBBox()
-				return y + height / 2
-			})
-		assert.equal(arrowCenter, 6)
+		const arrowXHeightOffset = await write.evaluate((element) => {
+			const value = element.querySelector(`ins code`)!
+			const reference = document.createElement(`span`)
+			reference.style.cssText = `display:inline-block;width:0;height:1ex;vertical-align:baseline`
+			value.append(reference)
+			const center = ({ top, height }: DOMRect) => top + height / 2
+			const xHeightCenter = center(reference.getBoundingClientRect())
+			const arrow = element.querySelector(`[data-editor-icon="arrow"] path`)!
+			reference.remove()
+			return center(arrow.getBoundingClientRect()) - xHeightCenter
+		})
+		assert.ok(Math.abs(arrowXHeightOffset) <= 1)
 		assert.equal(await outcomeEntry.getAttribute(`aria-pressed`), `true`)
 
 		const timelineCard = operationCard(`timeline:count`)

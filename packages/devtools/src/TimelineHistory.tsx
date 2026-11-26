@@ -25,7 +25,12 @@ export function TimelineHistory(props: {
 			redoNext: index === at,
 		}))
 	}
-	const cursor = () => <p data-cursor>Current position</p>
+	const cursor = () => (
+		<p data-cursor>
+			<span data-cursor-label>Current position</span>
+			<span data-cursor-track aria-hidden="true" />
+		</p>
+	)
 	return (
 		<timeline-history class={css.class}>
 			{props.timeline.history.length === 0 ? (

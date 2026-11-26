@@ -90,7 +90,6 @@ event-view.class {
 		gap: 4px;
 	}
 	& > p[data-change] > span {
-		display: inline-flex;
 		color: var(--ink-muted);
 	}
 	& > p[data-change] > ins {

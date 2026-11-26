@@ -18,20 +18,24 @@ timeline-history.class {
 		padding-inline: 7px;
 		color: var(--timeline-accent);
 		font-size: 11px;
-		&::before, &::after {
-			translate: 0 -2px;
-		}
-		&::before {
+		> span::before {
 			content: "";
+			display: inline-block;
+			vertical-align: middle;
+		}
+		> [data-cursor-label]::before {
 			width: 5px;
 			height: 5px;
+			margin-inline-end: 6px;
 			background: currentColor;
 			border-radius: 50%;
 		}
-		&::after {
-			content: "";
+		> [data-cursor-track] {
 			flex: 1;
-			border-block-start: 1px solid currentColor;
+			&::before {
+				width: 100%;
+				border-block-start: 1px solid currentColor;
+			}
 		}
 		& + event-view {
 			border-top-color: transparent;

@@ -17,7 +17,6 @@ history-write.class {
 			text-overflow: ellipsis;
 		}
 		> span {
-			display: inline-flex;
 			color: var(--ink-muted);
 		}
 		> :is(del, ins) {

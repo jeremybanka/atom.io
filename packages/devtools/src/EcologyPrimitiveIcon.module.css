@@ -1,0 +1,17 @@
+ecology-primitive-icon.class {
+	&:is([data-placement="row"], [data-placement="heading"]) {
+		display: flex;
+		align-self: start;
+		justify-self: center;
+		margin-block-start: 4px;
+	}
+	&[data-placement="heading"] {
+		margin-block-start: 6px;
+	}
+	&[data-placement="detail"] > svg {
+		width: 12px;
+		height: 12px;
+		vertical-align: -2px;
+		margin-inline-end: 3px;
+	}
+}

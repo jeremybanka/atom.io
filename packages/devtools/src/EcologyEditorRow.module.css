@@ -1,6 +1,7 @@
 ecology-editor-row.class {
 	& {
-		display: block;
+		display: grid;
+		grid-template-columns: 20px minmax(0, 1fr);
 		border-left: 3px solid var(--ecology-color);
 		border-bottom: 1px solid var(--line);
 		min-width: 0;
@@ -39,6 +40,7 @@ ecology-editor-row.class {
 	}
 	> small[data-pinned] {
 		display: block;
+		grid-column: 2;
 		padding: 3px;
 		color: var(--ink-muted);
 		font-size: 10px;

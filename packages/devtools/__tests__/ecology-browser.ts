@@ -345,7 +345,7 @@ try {
 				)!
 			const source = card(`price`),
 				other = card(`lazy`),
-				path = source.querySelector<SVGPathElement>(`path`)!
+				path = source.querySelector<SVGPathElement>(`:scope > svg > path`)!
 			const length = path.getTotalLength(),
 				matrix = path.getScreenCTM()!
 			let point = new DOMPoint()
@@ -376,7 +376,7 @@ try {
 				front: top.querySelector<HTMLElement>(`button`)!.dataset[`graphId`],
 				sourceZ: Number(source.style.zIndex),
 				otherZ: Number(other.style.zIndex),
-				interactive: getComputedStyle(source.querySelector(`svg`)!)
+				interactive: getComputedStyle(source.querySelector(`:scope > svg`)!)
 					.pointerEvents,
 			}
 			other.style.transform = transform
@@ -591,20 +591,39 @@ try {
 						.getPropertyValue(`--ecology-color`)
 						.trim(),
 					border: getComputedStyle(node.querySelector(`button`)!).borderTopColor,
+					iconFill: getComputedStyle(
+						node.querySelector(`ecology-primitive-icon rect`)!,
+					).fill,
 				})),
 			)
-		for (const card of cards)
+		for (const card of cards) {
 			assert.equal(
 				card.border.replaceAll(` `, ``),
 				new Color(card.color).getStyle(),
 				`Border must retain its key color: ${card.id}`,
 			)
+			assert.equal(card.iconFill, card.border, `Card icon color: ${card.id}`)
+		}
 		return cards
 	}
 	for (const colorScheme of [`light`, `dark`] as const) {
 		await page.emulateMedia({ colorScheme })
 		const cards = await palette()
 		assert.equal(new Set(cards.map((card) => card.color)).size, cards.length)
+		const rows = await page
+			.locator(`ecology-editor-row:not([hidden])`)
+			.evaluateAll((nodes) =>
+				nodes.map((node) => ({
+					id: node.getAttribute(`data-row-id`),
+					border: getComputedStyle(node).borderLeftColor,
+					iconFill: getComputedStyle(
+						node.querySelector(`ecology-primitive-icon rect`)!,
+					).fill,
+				})),
+			)
+		assert.ok(rows.length > 0)
+		for (const { id, iconFill, border } of rows)
+			assert.equal(iconFill, border, `Editor icon color: ${id}`)
 	}
 	assert.equal(await page.locator(`ecology-view nav[data-workspace]`).count(), 0)
 	assert.equal(
@@ -651,7 +670,7 @@ try {
 	const camera = () => scene.getAttribute(`data-camera`)
 	const resetView = page.getByRole(`button`, { name: `Reset view`, exact: true })
 	await resetView.click()
-	const arrow = scene.locator(`svg > path`).first()
+	const arrow = scene.locator(`ecology-node-card > svg > path`).first()
 	const arrowBefore = await arrow.getAttribute(`d`)
 	const pose = await camera(),
 		bounds = (await scene.boundingBox())!
@@ -662,8 +681,9 @@ try {
 	assert.notEqual(await camera(), pose, `Mouse drag must orbit`)
 	await page.waitForFunction(
 		(previous) =>
-			document.querySelector(`ecology-scene svg > path`)!.getAttribute(`d`) !==
-			previous,
+			document
+				.querySelector(`ecology-scene ecology-node-card > svg > path`)!
+				.getAttribute(`d`) !== previous,
 		arrowBefore,
 	)
 	const orbited = await camera()

@@ -36,6 +36,31 @@ export function historyIdentity(record: object): string {
 	if (!id) identities.set(record, (id = `history-${identity++}`))
 	return id
 }
+export function timelineEventTitle(event: RecordedEvent, index: number): string {
+	const name = `token` in event ? event.token.key : timelineEventKind(event)
+	return `${index + 1} · ${name}`
+}
+
+const timelineKinds: Partial<Record<RecordedEvent[`type`], string>> = {
+	atom_update: `Atom update`,
+	atom_creation: `Created`,
+	atom_disposal: `Disposed`,
+	selector_update: `Selector update`,
+	transaction_outcome: `Transaction`,
+}
+
+export function timelineEventKind(event: RecordedEvent): string {
+	return timelineKinds[event.type] ?? event.type.replaceAll(`_`, ` `)
+}
+
+export function timelinePosition(at: number, length: number): string {
+	return `${at} of ${length} ${length === 1 ? `event` : `events`} applied`
+}
+
+export function compactOutcomePath(eventId: string): readonly string[] {
+	return [`ecology-outcome`, eventId]
+}
+
 export function historyGraphId(owner: string, eventId: string): string {
 	return `history:${owner}:${eventId}`
 }

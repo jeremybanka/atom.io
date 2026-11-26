@@ -43,6 +43,7 @@ export function createEcologyController(
 	committed(): void
 	refresh(generatedKey?: string): void
 	setHistory(id: string, history?: GraphHistory): void
+	viewOutcome(owner: string, outcome: string): boolean
 } {
 	const document = host.ownerDocument
 	const input = host.querySelector(`input`)!
@@ -826,6 +827,12 @@ export function createEcologyController(
 	})
 	return {
 		refresh,
+		viewOutcome(owner, outcome) {
+			if (!model?.all.has(owner)) return false
+			context.expanded.add(owner)
+			select(owner, false, { id: outcome, reveal: true })
+			return true
+		},
 		setHistory(id, history) {
 			const selected = context.selectedHistory
 			const removedSelection =

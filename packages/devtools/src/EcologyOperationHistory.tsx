@@ -49,7 +49,6 @@ export function EcologyOperationHistory(props: {
 						tools={props.tools}
 						timelineKey={key}
 						timeline={timeline()}
-						icons
 					/>
 				)}
 			</node-heading>
@@ -64,6 +63,7 @@ export function EcologyOperationHistory(props: {
 					timeline?.() && (
 						<TimelineHistory
 							tools={props.tools}
+							timelineKey={key}
 							timeline={timeline()!}
 							ecology={props.events}
 						/>

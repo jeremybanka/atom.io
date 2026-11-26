@@ -1,9 +1,52 @@
 timeline-history.class {
+	--timeline-accent: color-mix(
+		in srgb,
+		var(--ecology-color, light-dark(#873475, #dc91ca)) 65%,
+		var(--ink)
+	);
 	display: block;
-	[data-cursor] {
-		background: var(--ink);
-		color: var(--bg-color);
-		text-align: center;
-		line-height: 21px;
+	> section {
+		min-width: 0;
 	}
+	[data-cursor] {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		min-height: 19px;
+		padding-inline: 7px;
+		color: var(--timeline-accent);
+		font-size: 11px;
+		&::before {
+			content: "";
+			width: 5px;
+			height: 5px;
+			background: currentColor;
+			border-radius: 50%;
+		}
+		&::after {
+			content: "";
+			flex: 1;
+			border-block-start: 1px solid currentColor;
+		}
+		& + event-view {
+			border-top-color: transparent;
+		}
+	}
+	> p[data-empty-history] {
+		padding: 3px 6px 3px 22px;
+		color: var(--ink-muted);
+		line-height: 18px;
+	}
+}
+
+:is(timeline-log, ecology-operation-history):has(> node-heading timeline-travel button[data-undo]:enabled:is(:hover, :focus-visible))
+	> timeline-history.class
+	> section[data-undo-range]
+	> event-view > event-heading {
+	background: color-mix(
+		in srgb,
+		var(--timeline-accent) 14%,
+		var(--surface-inactive)
+	);
+	box-shadow: inset 2px 0 var(--timeline-accent);
 }

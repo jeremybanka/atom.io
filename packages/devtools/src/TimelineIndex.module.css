@@ -46,3 +46,12 @@ timeline-index.class {
 		font-variant-numeric: tabular-nums;
 	}
 }
+
+timeline-index.class timeline-log > node-heading > button {
+	display: grid;
+	place-items: center;
+	width: 22px;
+	height: 22px;
+	padding: 0;
+	flex-shrink: 0;
+}

@@ -649,7 +649,11 @@ try {
 			await operations.emulateMedia({ colorScheme })
 			for (const [id, kind, detail] of [
 				[`transaction:save`, `transaction`, `Transaction`],
-				[`timeline:price history`, `timeline`, `Timeline · 0/0 steps`],
+				[
+					`timeline:price history`,
+					`timeline`,
+					`Timeline · 0 of 0 events applied`,
+				],
 				[
 					`timeline_family:histories`,
 					`timeline-family`,
@@ -822,9 +826,9 @@ try {
 			.click()
 		assert.equal(
 			await operations
-				.locator(`ecology-editor timeline-history [data-cursor]`)
+				.locator(`ecology-editor timeline-history [data-empty-history]`)
 				.textContent(),
-			`you are here`,
+			`No recorded events`,
 		)
 		assert.deepEqual(
 			await operations

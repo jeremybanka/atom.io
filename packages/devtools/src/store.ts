@@ -253,7 +253,7 @@ export function useExpanded(
 	tools: EditorTools,
 	path: Path,
 	initial = false,
-): [Accessor<boolean>, (event: MouseEvent) => void] {
+): [Accessor<boolean>, (event: Pick<MouseEvent, `shiftKey`>) => void] {
 	const getExpanded = useGetter(tools.expanded)
 	const setExpanded = useSetter(tools.expanded)
 	const key = JSON.stringify(path)

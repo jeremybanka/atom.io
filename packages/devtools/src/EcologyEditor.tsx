@@ -22,6 +22,7 @@ export function EcologyEditor(props: {
 	state: EcologyPresentation
 	hovered?: string | undefined
 	onGenerate(key: string): void
+	onViewOutcome(owner: string, outcome: string): boolean
 }): SpaElement {
 	const layoutGroup = `ecology-editor-${useId()}`
 	let editor: HTMLElement | null = null
@@ -64,6 +65,7 @@ export function EcologyEditor(props: {
 				}
 				state={props.state}
 				onGenerate={props.onGenerate}
+				onViewOutcome={props.onViewOutcome}
 			/>
 		)
 		Object.freeze(node.props)

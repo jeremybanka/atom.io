@@ -337,6 +337,9 @@ export function EcologyView(props: {
 					tools={props.tools}
 					state={state()}
 					hovered={hovered()}
+					onViewOutcome={(owner, outcome) =>
+						controller!.viewOutcome(owner, outcome)
+					}
 					onGenerate={(key) => {
 						controller?.refresh(key)
 					}}

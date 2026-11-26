@@ -11,6 +11,7 @@ export function OutcomeValuePair(props: {
 	tools: EditorTools
 	eventId: string
 	name: string
+	showName: boolean
 	pair: HistoryValuePair
 }): SpaElement {
 	const [open, toggle] = useExpanded(props.tools, [
@@ -33,7 +34,7 @@ export function OutcomeValuePair(props: {
 	}
 	return (
 		<outcome-value-pair class={css.class}>
-			<strong title={props.name}>{props.name}</strong>
+			{props.showName && <strong title={props.name}>{props.name}</strong>}
 			<value-snapshots
 				data-value-columns
 				data-full-comparison={open() || undefined}

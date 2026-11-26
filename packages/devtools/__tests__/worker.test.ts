@@ -397,10 +397,10 @@ it(`projects retained history and the observed graph and time travels in the wor
 			`[data-testid="timeline-count"]`,
 		)!
 		const undo = [...timeline.querySelectorAll(`button`)].find(
-			(button) => button.textContent === `undo`,
+			(button) => button.getAttribute(`aria-label`) === `undo`,
 		)!
 		const redo = [...timeline.querySelectorAll(`button`)].find(
-			(button) => button.textContent === `redo`,
+			(button) => button.getAttribute(`aria-label`) === `redo`,
 		)!
 		undo.click()
 		await flush()

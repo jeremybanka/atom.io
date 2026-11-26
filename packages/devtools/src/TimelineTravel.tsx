@@ -10,7 +10,6 @@ export function TimelineTravel(props: {
 	tools: EditorTools
 	timelineKey: string
 	timeline: TimelineView | undefined
-	icons?: boolean
 }): SpaElement {
 	const enabled = (action: `undo` | `redo`) => {
 		const timeline = props.timeline
@@ -35,17 +34,18 @@ export function TimelineTravel(props: {
 		})
 	}
 	return (
-		<timeline-travel class={css.class} data-icons={props.icons}>
+		<timeline-travel class={css.class}>
 			<button
 				type="button"
 				aria-label="undo"
+				data-undo
 				title="Undo"
 				disabled={!enabled(`undo`)}
 				onClick={() => {
 					travel(`undo`)
 				}}
 			>
-				{props.icons ? <EditorIcon name="undo" /> : `undo`}
+				<EditorIcon name="undo" />
 			</button>
 			<button
 				type="button"
@@ -56,7 +56,7 @@ export function TimelineTravel(props: {
 					travel(`redo`)
 				}}
 			>
-				{props.icons ? <EditorIcon name="redo" /> : `redo`}
+				<EditorIcon name="redo" />
 			</button>
 		</timeline-travel>
 	)

@@ -14,6 +14,8 @@ import {
 	historyIdentity,
 	historyOutcomeSequence,
 	type RecordedEvent,
+	timelineEventKind,
+	timelineEventTitle,
 } from "./history-event.ts"
 import { scheduleTask } from "./task.ts"
 
@@ -509,13 +511,11 @@ function* projectHistory(
 			label:
 				direction === `outcome`
 					? `Outcome ${index + 1}`
-					: `token` in event
-						? event.token.key
-						: event.type.replaceAll(`_`, ` `),
+					: timelineEventTitle(event, index),
 			detail:
 				direction === `outcome`
 					? `Transaction outcome`
-					: `${direction === `past` ? `Past` : `Future`} · ${event.type.replaceAll(`_`, ` `)}`,
+					: `${direction === `past` ? `Applied` : `Future`} · ${timelineEventKind(event)}`,
 		}
 		endpoints.set(item.id, { item, card: flyout ? item : card, event })
 		if (!flyout) return
@@ -947,7 +947,10 @@ export function* projectEcology(
 			rowRecords.add(record)
 			yield
 		}
-	if (selected && (!matchedIds || matchedIds.has(selected.id)))
+	if (
+		selected &&
+		(context.selectedHistory || !matchedIds || matchedIds.has(selected.id))
+	)
 		rowRecords.add(selected)
 	const priority = (record: GraphRecord) =>
 		selection?.selectedIds.has(record.id)

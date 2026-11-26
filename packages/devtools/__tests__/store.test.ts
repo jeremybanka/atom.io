@@ -33,7 +33,9 @@ it(`disables a timeline entry while its history is unavailable`, () => {
 		{ store: silo.store },
 	)
 	try {
-		expect(host.querySelector(`timeline-log small`)?.textContent).toBe(`(0/0)`)
+		expect(host.querySelector(`timeline-log small`)?.textContent).toBe(
+			`0 of 0 events applied`,
+		)
 		const disabled = host.querySelectorAll<HTMLButtonElement>(
 			`timeline-travel button:disabled`,
 		)

@@ -308,15 +308,30 @@ describe(`spa debugger`, () => {
 		expect(host.textContent).toContain(`output: 2`)
 		await click(`[data-testid="view-timelines"]`)
 		await click(`[data-testid="open-close-timeline-history"]`)
-		expect(host.textContent).toContain(`you are here`)
+		expect(host.textContent).toContain(`Current position`)
+		const timeline = host.querySelector(`timeline-history`)!
+		expect(timeline.querySelector(`[data-compact-write]`)).toBeNull()
+		await click(`timeline-history [aria-label="Expand 1 · increment"]`)
+		expect(timeline.querySelector(`[data-compact-write]`)?.textContent).toBe(
+			`count02`,
+		)
+		await click(`timeline-outcome-link > button`)
+		expect(
+			timeline.querySelector(`timeline-outcome-link [data-compact-write]`)
+				?.textContent,
+		).toBe(`count02`)
+		await click(`timeline-outcome-link > button`)
+		expect(
+			timeline.querySelector(`timeline-outcome-link [data-compact-write]`),
+		).toBeNull()
 		const undo = [...host.querySelectorAll(`button`)].find(
-			(button) => button.textContent === `undo`,
+			(button) => button.getAttribute(`aria-label`) === `undo`,
 		)!
 		undo.click()
 		await tick()
 		expect(silo.getState(countAtom)).toBe(0)
 		const redo = [...host.querySelectorAll(`button`)].find(
-			(button) => button.textContent === `redo`,
+			(button) => button.getAttribute(`aria-label`) === `redo`,
 		)!
 		redo.click()
 		await tick()

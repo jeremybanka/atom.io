@@ -4,6 +4,8 @@ import { useGetter } from "@atom.io/spa"
 import type { TimelineToken } from "atom.io"
 import { isReservedIntrospectionKey } from "atom.io/internal"
 
+import { EditorIcon } from "./EditorIcon.tsx"
+import { timelinePosition } from "./history-event.ts"
 import { type Tools, useExpanded } from "./store.ts"
 import { TimelineHistory } from "./TimelineHistory.tsx"
 import css from "./TimelineIndex.module.css"
@@ -57,14 +59,18 @@ function TimelineLog(props: {
 				<button
 					type="button"
 					aria-expanded={getOpen()}
+					aria-label={`${getOpen() ? `Collapse` : `Expand`} timeline ${props.token.key}`}
 					data-testid={`open-close-timeline-${props.token.key}`}
 					onClick={toggle}
 				>
-					{getOpen() ? `▾` : `▸`}
+					<EditorIcon name={getOpen() ? `collapse` : `expand`} />
 				</button>
 				<h2>{props.token.family?.subKey ?? props.token.key}</h2>
 				<small>
-					({getTimeline()?.at ?? 0}/{getTimeline()?.history.length ?? 0})
+					{timelinePosition(
+						getTimeline()?.at ?? 0,
+						getTimeline()?.history.length ?? 0,
+					)}
 				</small>
 				<TimelineTravel
 					tools={props.tools}
@@ -73,7 +79,11 @@ function TimelineLog(props: {
 				/>
 			</node-heading>
 			{getOpen() && getTimeline() ? (
-				<TimelineHistory tools={props.tools} timeline={getTimeline()!} />
+				<TimelineHistory
+					tools={props.tools}
+					timelineKey={props.token.key}
+					timeline={getTimeline()!}
+				/>
 			) : null}
 		</timeline-log>
 	)

@@ -757,7 +757,10 @@ it(`shares the paint cap with live history and keeps both sides of the timeline 
 	expect(model.historyConnections).toMatchObject([
 		{
 			family: `timeline:a`,
-			from: { label: `molecule creation`, history: { direction: `future` } },
+			from: {
+				label: `548 · molecule creation`,
+				history: { direction: `future` },
+			},
 			to: { history: { direction: `past` } },
 		},
 	])

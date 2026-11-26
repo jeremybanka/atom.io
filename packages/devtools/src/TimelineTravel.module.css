@@ -1,7 +1,7 @@
 timeline-travel.class {
 	display: inline-flex;
 	flex-shrink: 0;
-	&[data-icons="true"] > button {
+	> button {
 		display: grid;
 		place-items: center;
 		width: 26px;

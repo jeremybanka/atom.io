@@ -258,7 +258,7 @@ it(`ships initial and incremental Ecology operations over the remote protocol`, 
 		await vi.waitFor(() => {
 			expect(card(`transaction:save`)?.textContent).toContain(`Transaction`)
 			expect(card(`timeline:${countTimeline.key}`)?.textContent).toContain(
-				`0/0 steps`,
+				`0 of 0 events applied`,
 			)
 		})
 
@@ -274,7 +274,7 @@ it(`ships initial and incremental Ecology operations over the remote protocol`, 
 			).toContain(`0 members`)
 			expect(card(`transaction:publish`)).not.toBeNull()
 			expect(card(`timeline:${countTimeline.key}`)?.textContent).toContain(
-				`1/1 steps`,
+				`1 of 1 event applied`,
 			)
 		})
 		for (const label of [`Expand transaction save`, `Expand timeline count`])
@@ -288,7 +288,7 @@ it(`ships initial and incremental Ecology operations over the remote protocol`, 
 			expect(
 				host.querySelector(`ecology-editor timeline-history [data-cursor]`)
 					?.textContent,
-			).toBe(`you are here`)
+			).toBe(`Current position`)
 			expect(
 				host.querySelectorAll(`ecology-editor timeline-travel button:disabled`),
 			).toHaveLength(2)
@@ -308,6 +308,27 @@ it(`ships initial and incremental Ecology operations over the remote protocol`, 
 				)?.textContent,
 			).toBe(`"coffee-beans"`)
 		})
+		host
+			.querySelector<HTMLButtonElement>(`[aria-label="Expand 1 · save"]`)!
+			.click()
+		await vi.waitFor(() => {
+			expect(
+				host.querySelector(`timeline-history [data-compact-write]`)?.textContent,
+			).toBe(`count01`)
+			expect(
+				host.querySelector(`timeline-outcome-link button`)?.textContent,
+			).toBe(`View outcome`)
+		})
+		host
+			.querySelector<HTMLButtonElement>(`timeline-outcome-link button`)!
+			.click()
+		await vi.waitFor(() => {
+			expect(
+				host.querySelector(
+					`transaction-outcomes event-view[data-selected="true"]`,
+				),
+			).not.toBeNull()
+		})
 		const member = silo.findTimeline(draftTimelines, `first`)
 		await vi.waitFor(() => {
 			expect(
@@ -320,7 +341,9 @@ it(`ships initial and incremental Ecology operations over the remote protocol`, 
 			)!
 			.click()
 		await vi.waitFor(() => {
-			expect(card(`timeline:${member.key}`)?.textContent).toContain(`0/0 steps`)
+			expect(card(`timeline:${member.key}`)?.textContent).toContain(
+				`0 of 0 events applied`,
+			)
 		})
 		const memberRow = host.querySelector(
 			`[data-row-id='timeline:${member.key}']`,

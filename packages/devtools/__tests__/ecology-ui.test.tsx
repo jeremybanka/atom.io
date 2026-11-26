@@ -272,7 +272,7 @@ it(`searches and expands timeline families independently of state families with 
 		.click()
 	await settle()
 	expect(card(`timeline:${timeline.key}`)?.textContent).toContain(
-		`Timeline · 0/0 steps`,
+		`Timeline · 0 of 0 events applied`,
 	)
 	expect(
 		row(`timeline:${timeline.key}`)?.firstElementChild?.getAttribute(
@@ -374,7 +374,7 @@ it(`opens recorded transaction outcomes and timeline controls in the standalone 
 	expect(scene.getAttribute(`data-history-connections`)).toBe(`2`)
 	expect(
 		editor.querySelector(`timeline-history [data-cursor]`)?.textContent,
-	).toBe(`you are here`)
+	).toBe(`Current position`)
 	await f.click(`undo`)
 	expect(f.silo.getState(countAtom)).toBe(2)
 	const past = scene.querySelector(`[data-history="past"] > button`)!
@@ -542,12 +542,12 @@ it(`updates a timeline cursor without recapturing the graph`, async () => {
 		f.host.querySelector(
 			`ecology-node-card button[data-graph-id="timeline:count"]`,
 		)?.textContent,
-	).toContain(`1/1 steps`)
+	).toContain(`1 of 1 event applied`)
 	expect(
 		f.host.querySelector(
 			`ecology-editor-row[data-row-id="timeline:count"] node-heading small`,
 		)?.textContent,
-	).toBe(`1/1 steps`)
+	).toBe(`1 of 1 event applied`)
 	expect(Number(view.dataset[`jobs`])).toBeGreaterThan(Number(jobs))
 	expect(scan).not.toHaveBeenCalled()
 })
@@ -1225,6 +1225,9 @@ it(`defers a hidden controller and suspends live updates before the visibility o
 	try {
 		await settle()
 		expect(update).not.toHaveBeenCalled()
+		expect(
+			controller.viewOutcome(`transaction:missing`, `history:missing`),
+		).toBe(false)
 		panel.hidden = false
 		await settle()
 		expect(update).toHaveBeenCalledWith({ busy: true })
@@ -1997,4 +2000,94 @@ it(`focuses generated controls even when the new value leaves the filter, and re
 	expect(document.activeElement?.getAttribute(`aria-label`)).toBe(
 		`Search ecology`,
 	)
+})
+
+it(`opens the retained source outcome after inspecting a scoped timeline event`, async () => {
+	const f = setup()
+	const cartItemsAtom = f.silo.atom<string[]>({ key: `cartItems`, default: [] })
+	const sessionSavedAtom = f.silo.atom<boolean>({
+		key: `sessionSaved`,
+		default: false,
+	})
+	f.silo.getState(cartItemsAtom)
+	f.silo.getState(sessionSavedAtom)
+	f.silo.timeline({ key: `cart history`, scope: [cartItemsAtom] })
+	const saveCartTransaction = f.silo.transaction({
+		key: `saveCart`,
+		do: ({ set }) => {
+			set(cartItemsAtom, [`beans`, `mug`])
+			set(sessionSavedAtom, true)
+		},
+	})
+	f.mount()
+	await settle()
+	f.silo.setState(cartItemsAtom, [`beans`])
+	f.silo.runTransaction(saveCartTransaction)()
+	await settle()
+	await f.click(`Expand timeline cart history`)
+	const history = f.host.querySelector(`timeline-history`)!
+	const [first, second] = history.querySelectorAll<HTMLElement>(
+		`event-view[data-timeline-event]`,
+	)
+	expect(first.textContent).toContain(`1 · cartItems`)
+	expect(second.textContent).toContain(`2 · saveCart`)
+	expect(history.querySelector(`outcome-collection-change`)).toBeNull()
+	await f.click(`Expand 1 · cartItems`)
+	expect(
+		first.querySelector(`[data-snapshot-diff="after"] outcome-value`)
+			?.textContent,
+	).toBe(`"beans"`)
+	expect(first.querySelector(`button[data-graph-id]`)).not.toBeNull()
+	const title = second.querySelector<HTMLButtonElement>(`button[data-graph-id]`)!
+	title.focus()
+	for (const modifiers of [{ repeat: true }, { ctrlKey: true }]) {
+		title.dispatchEvent(
+			new KeyboardEvent(`keydown`, {
+				key: `Enter`,
+				bubbles: true,
+				cancelable: true,
+				...modifiers,
+			}),
+		)
+		await settle()
+		expect(second.querySelector(`outcome-collection-change`)).toBeNull()
+	}
+	title.dispatchEvent(
+		new KeyboardEvent(`keydown`, {
+			key: `Enter`,
+			bubbles: true,
+			cancelable: true,
+		}),
+	)
+	await settle()
+	expect(
+		second.querySelector(`[data-snapshot-diff="after"] outcome-value`)
+			?.textContent,
+	).toBe(`"mug"`)
+	expect(second.textContent).not.toContain(`sessionSaved`)
+	await f.click(`undo`)
+	expect(second.dataset[`timelineState`]).toBe(`future`)
+	expect(second.querySelector(`[data-redo-next]`)?.textContent).toBe(`Redo next`)
+	expect(
+		second.querySelector(`[data-snapshot-diff="after"] outcome-value`)
+			?.textContent,
+	).toBe(`"mug"`)
+	expect(
+		f.host.querySelector(`[data-history="future"] strong`)?.textContent,
+	).toBe(`2 · saveCart`)
+
+	// Selecting the linked outcome also works when the active filter only matches its timeline.
+	await f.search(`cart history`)
+	await f.click(`View outcome`)
+	const source = f.host.querySelector(
+		`ecology-editor transaction-outcomes event-view`,
+	)!
+	expect(source.textContent).toContain(`sessionSaved`)
+	expect(source.querySelector(`button[data-graph-id]`)).toBe(
+		document.activeElement,
+	)
+	expect(source.getAttribute(`data-selected`)).toBe(`true`)
+	expect(
+		f.host.querySelector(`[data-history="outcome"] button[aria-pressed="true"]`),
+	).not.toBeNull()
 })

@@ -26,6 +26,7 @@ export function EcologyEditorRow(props: {
 	pinned: boolean
 	state: EcologyPresentation
 	onGenerate(key: string): void
+	onViewOutcome(owner: string, outcome: string): boolean
 }): SpaElement {
 	const rowId = props.item.id
 	onCleanup(() => {
@@ -55,6 +56,7 @@ export function EcologyEditorRow(props: {
 	const hasSelectedEvent = () => expanded() && selectedHistory() !== undefined
 	const events = {
 		owner: rowId,
+		viewOutcome: props.onViewOutcome,
 		get hovered() {
 			return props.hovered
 		},

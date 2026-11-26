@@ -8,6 +8,7 @@ import {
 	peekStateDefinition,
 } from "atom.io/introspection"
 
+import { timelinePosition } from "./history-event.ts"
 import { preview } from "./value.ts"
 
 export type EcologyValueType =
@@ -135,7 +136,10 @@ export function ecologyTimelinePosition(
 	timeline: EcologyTimeline,
 	live?: { at: number; history: readonly unknown[] },
 ): string {
-	return `${live?.at ?? timeline.at}/${live?.history.length ?? timeline.historyLength} steps`
+	return timelinePosition(
+		live?.at ?? timeline.at,
+		live?.history.length ?? timeline.historyLength,
+	)
 }
 
 export function captureEcologyOperations(

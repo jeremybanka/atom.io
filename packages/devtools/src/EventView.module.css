@@ -17,7 +17,7 @@ event-view.class {
 		padding: 0;
 		flex-shrink: 0;
 	}
-	& > event-heading > button[data-graph-id] {
+	& > event-heading > :is(button[data-graph-id], button[data-timeline-label]) {
 		display: flex;
 		align-items: center;
 		flex: 1;
@@ -30,6 +30,15 @@ event-view.class {
 			outline-offset: -2px;
 		}
 	}
+	& > event-heading > button[data-timeline-label] {
+		width: auto;
+		> editor-icon {
+			display: grid;
+			place-items: center;
+			width: 22px;
+			flex-shrink: 0;
+		}
+	}
 	&[data-hovered="true"] {
 		--surface-inactive: var(--surface-hover);
 		background: var(--surface-hover);
@@ -38,7 +47,7 @@ event-view.class {
 		outline: 2px solid var(--ink-strong);
 		outline-offset: -2px;
 	}
-	& > p[data-change] > [data-kind="number"] {
+	:is(&, & > history-write) > p[data-change] > [data-kind="number"] {
 		display: inline-block;
 		min-width: 3ch;
 		text-align: right;
@@ -50,14 +59,16 @@ event-view.class {
 		border-left: 1px solid var(--ink-muted);
 	}
 	& > event-heading > strong,
-	& > event-heading > button[data-graph-id] > strong {
+	& > event-heading > :is(button[data-graph-id], button[data-timeline-label])
+		> strong {
 		min-width: 0;
 		padding-right: 6px;
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
 	& > event-heading > small,
-	& > event-heading > button[data-graph-id] > small {
+	& > event-heading > :is(button[data-graph-id], button[data-timeline-label])
+		> small {
 		font-size: 11px;
 	}
 	& > event-heading > small[data-write-count] {
@@ -72,22 +83,22 @@ event-view.class {
 		line-height: 18px;
 		overflow-wrap: anywhere;
 	}
-	& > p[data-change] {
+	:is(&, & > history-write) > p[data-change] {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 4px;
 	}
-	& > p[data-change] > span {
+	:is(&, & > history-write) > p[data-change] > span {
 		display: inline-flex;
 		color: var(--ink-muted);
 	}
-	& > p[data-change] > ins {
+	:is(&, & > history-write) > p[data-change] > ins {
 		color: var(--ink);
 		text-decoration: none;
 		background: var(--change-added);
 	}
-	& > p[data-change] > del {
+	:is(&, & > history-write) > p[data-change] > del {
 		color: var(--ink-muted);
 		background: var(--change-removed);
 	}
@@ -98,12 +109,19 @@ event-view.class {
 			margin-inline-start: 12px;
 		}
 	}
-	& > p[data-compact-write] {
+	& > history-write {
+		display: contents;
+	}
+	& > history-write > p[data-compact-write] {
 		display: grid;
 		grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) auto minmax(0, 2fr);
 		align-items: center;
 		min-height: 22px;
 		padding: 2px 6px;
+		line-height: 18px;
+		&[data-unnamed] {
+			grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+		}
 		> strong {
 			overflow: hidden;
 			white-space: nowrap;
@@ -146,6 +164,45 @@ event-view.class {
 			&[data-metadata-block] {
 				flex-basis: 100%;
 			}
+		}
+	}
+	&[data-timeline-event] > event-heading {
+		> [data-redo-next] {
+			margin-inline-start: auto;
+			padding-inline-end: 6px;
+			color: var(--timeline-accent);
+			flex-shrink: 0;
+		}
+		> [data-write-count] {
+			flex-shrink: 0;
+		}
+		> [data-redo-next] + [data-write-count] {
+			margin-inline-start: 0;
+		}
+	}
+	&[data-timeline-state="future"]
+		> event-heading :is(strong, [data-timeline-kind]) {
+		color: var(--ink-muted);
+	}
+	[data-timeline-kind] {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		color: var(--ink-muted);
+	}
+	& > p[data-lifecycle] {
+		display: flex;
+		align-items: baseline;
+		gap: 6px;
+		> small {
+			color: var(--ink-muted);
+		}
+	}
+	& > timeline-outcome-link {
+		display: block;
+		padding-inline-start: 12px;
+		> button {
+			color: var(--accent);
 		}
 	}
 	&[data-search-selected="true"] > event-heading {

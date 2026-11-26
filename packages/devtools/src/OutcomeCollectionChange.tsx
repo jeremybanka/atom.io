@@ -16,6 +16,7 @@ export function OutcomeCollectionChange(props: {
 	tools: EditorTools
 	eventId: string
 	name: string
+	showName: boolean
 	change: HistoryCollectionChange
 }): SpaElement {
 	const {
@@ -243,10 +244,12 @@ export function OutcomeCollectionChange(props: {
 	}
 	return (
 		<outcome-collection-change class={css.class}>
-			<p data-collection-summary>
-				<strong title={props.name}>{props.name}</strong>
-				<small>{kind}</small>
-			</p>
+			{props.showName && (
+				<p data-collection-summary>
+					<strong title={props.name}>{props.name}</strong>
+					<small>{kind}</small>
+				</p>
+			)}
 			<snapshot-comparison
 				data-expanded={open()}
 				ref={(element) => {

@@ -89,15 +89,17 @@ export function OutcomeCollectionChange(props: {
 					String(index).padStart(keyWidth, `0`),
 				)
 			: undefined
-	const [left, right] = kind === `Array` ? [`[`, `]`] : [`{`, `}`]
-	const heading = (side: string, size: number | undefined) => (
+	const showBounds = kind === `Map` || kind === `Set`
+	const heading = (side: string, size: number | undefined, empty: boolean) => (
 		<th scope="col">
 			<snapshot-heading>
 				<span>{side}</span>
-				{size !== undefined && (
+				{size !== undefined ? (
 					<small>
 						{kind === `Array` ? `length` : `size`} {size}
 					</small>
+				) : (
+					empty && <small>empty</small>
 				)}
 			</snapshot-heading>
 		</th>
@@ -260,14 +262,14 @@ export function OutcomeCollectionChange(props: {
 				<table aria-label={`${props.name} snapshots`}>
 					<thead>
 						<tr>
-							{heading(`Before`, beforeSize)}
-							{heading(`After`, afterSize)}
+							{heading(`Before`, beforeSize, beforeEmpty)}
+							{heading(`After`, afterSize, afterEmpty)}
 						</tr>
 					</thead>
 					<tbody>
-						{punctuationRow(left, left + right)}
+						{showBounds && punctuationRow(`{`, `{}`)}
 						{rows()}
-						{(!beforeEmpty || !afterEmpty) && punctuationRow(right)}
+						{showBounds && (!beforeEmpty || !afterEmpty) && punctuationRow(`}`)}
 					</tbody>
 				</table>
 			</snapshot-comparison>

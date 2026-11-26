@@ -779,14 +779,10 @@ try {
 			`length 0`,
 			`length 1`,
 		])
+		assert.equal(await cartChange.locator(`tbody tr`).count(), 1)
 		assert.equal(
-			await cartChange
-				.locator(
-					`[data-snapshot-punctuation] [data-snapshot-side="before"] code`,
-				)
-				.first()
-				.textContent(),
-			`[]`,
+			await cartChange.locator(`[data-snapshot-punctuation]`).count(),
+			0,
 		)
 		assert.equal(
 			await cartChange

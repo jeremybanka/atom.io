@@ -273,6 +273,9 @@ it(`aligns collection snapshots with unchanged context and discloses larger samp
 		[`sampled`, Array(5000), Array(5001)],
 		[`extended`, [`stock`], sparse],
 		[`shortened`, sparse, [`stock`]],
+		[`objectAdded`, {}, { added: null }],
+		[`emptyObject`, {}, {}],
+		[`emptySet`, new Set(), new Set()],
 		[`raw`, 0, { cart: [`coffee-beans`] }],
 		[`truncated`, 0, [[[]]]],
 	] as const
@@ -331,6 +334,9 @@ it(`aligns collection snapshots with unchanged context and discloses larger samp
 			sampled,
 			extended,
 			shortened,
+			objectAdded,
+			emptyObject,
+			emptySet,
 		] = host.querySelectorAll(`outcome-collection-change`)
 		expect(
 			cart.querySelector(`[data-collection-summary] small`)?.textContent,
@@ -338,11 +344,8 @@ it(`aligns collection snapshots with unchanged context and discloses larger samp
 		const headings = (view: Element) =>
 			[...view.querySelectorAll(`th`)].map((cell) => cell.textContent)
 		expect(headings(cart)).toEqual([`Beforelength 0`, `Afterlength 1`])
-		expect(
-			cart.querySelector(
-				`[data-snapshot-punctuation] [data-snapshot-side="before"]`,
-			)?.textContent,
-		).toBe(`[]`)
+		expect(cart.querySelectorAll(`tbody tr`)).toHaveLength(1)
+		expect(cart.querySelector(`[data-snapshot-punctuation]`)).toBeNull()
 		expect(cart.querySelector(`[data-snapshot-diff="after"]`)?.textContent).toBe(
 			`0"coffee-beans"`,
 		)
@@ -350,6 +353,11 @@ it(`aligns collection snapshots with unchanged context and discloses larger samp
 		expect(
 			record.querySelector(`[data-collection-summary] small`)?.textContent,
 		).toBe(`Object`)
+		expect(record.querySelector(`[data-snapshot-punctuation]`)).toBeNull()
+		expect(headings(objectAdded)).toEqual([`Beforeempty`, `After`])
+		expect(objectAdded.querySelectorAll(`tbody tr`)).toHaveLength(1)
+		expect(headings(emptyObject)).toEqual([`Beforeempty`, `Afterempty`])
+		expect(emptyObject.querySelectorAll(`tbody tr`)).toHaveLength(0)
 		expect(
 			record.querySelector(`[data-snapshot-diff="before"] outcome-value`)
 				?.textContent,
@@ -362,6 +370,11 @@ it(`aligns collection snapshots with unchanged context and discloses larger samp
 		).toEqual([`0`, `1`])
 		expect(headings(market)).toEqual([`Beforesize 1`, `Aftersize 2`])
 		expect(headings(members)).toEqual([`Beforesize 1`, `Aftersize 1`])
+		expect(market.querySelectorAll(`[data-snapshot-punctuation]`)).toHaveLength(
+			2,
+		)
+		expect(headings(emptySet)).toEqual([`Beforesize 0`, `Aftersize 0`])
+		expect(emptySet.querySelector(`tbody`)?.textContent).toBe(`{}{}`)
 		const shared = market.querySelector(`tr:has(code[title='"same"'])`)!
 		expect(
 			[...shared.querySelectorAll(`outcome-value`)].map(
@@ -371,9 +384,8 @@ it(`aligns collection snapshots with unchanged context and discloses larger samp
 		expect(shared.querySelector(`[data-snapshot-diff]`)).toBeNull()
 		expect(same.querySelector(`[data-snapshot-entry]`)?.textContent).toBe(`0101`)
 		expect(same.querySelector(`[data-snapshot-diff]`)).toBeNull()
-		expect(
-			[...empty.querySelectorAll(`tbody td`)].map((cell) => cell.textContent),
-		).toEqual([`[]`, `[]`])
+		expect(headings(empty)).toEqual([`Beforelength 0`, `Afterlength 0`])
+		expect(empty.querySelectorAll(`tbody tr`)).toHaveLength(0)
 		expect(late.querySelectorAll(`[data-snapshot-entry]`)).toHaveLength(1)
 		expect(
 			late.querySelector(`[data-snapshot-diff="after"] code`)?.textContent,
@@ -384,9 +396,7 @@ it(`aligns collection snapshots with unchanged context and discloses larger samp
 			),
 		).toContain(`…`)
 		const afterRows = [
-			...distant.querySelectorAll(
-				`tbody tr:not([data-snapshot-punctuation]) [data-snapshot-side="after"]`,
-			),
+			...distant.querySelectorAll(`tbody [data-snapshot-side="after"]`),
 		]
 		expect(afterRows.map((entry) => entry.textContent)).toEqual([
 			`…`,

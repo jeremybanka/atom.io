@@ -382,6 +382,7 @@ it(`opens recorded transaction outcomes and timeline controls in the standalone 
 	expect(
 		editor.querySelector(`timeline-history [data-cursor]`)?.textContent,
 	).toBe(`Current position`)
+	await f.click(`Reset view`)
 	await f.click(`undo`)
 	expect(f.silo.getState(countAtom)).toBe(2)
 	const past = scene.querySelector(`[data-history="past"] > button`)!

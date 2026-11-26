@@ -32,6 +32,8 @@ const cardLimit = 500
 const operationAnchorReserve = 25
 const operationEdgeReserve = 100
 const historyWorkLimit = 10_000
+export const stateHelixRadius = 8
+export const operationHelixRadius = stateHelixRadius * 4
 
 export interface GraphHistory {
 	events: readonly RecordedEvent[]
@@ -177,7 +179,7 @@ export function createGraphContext(): GraphContext {
 	}
 }
 
-/** Equal arc-length steps around the same cylinder. */
+/** Equal steps along each lane, with operations on the outer cylinder. */
 function helixPosition(
 	slot: number,
 	lane: GraphLane,
@@ -185,12 +187,13 @@ function helixPosition(
 ): GraphPosition {
 	const selector = lane === `selector`
 	const depth = selector ? height / 2 - slot : slot
-	const phase = selector ? Math.PI : lane === `operation` ? Math.PI / 2 : 0
+	const phase = lane === `atom` ? 0 : Math.PI
 	const angle = (depth * Math.PI) / 4 + phase
+	const radius = lane === `operation` ? operationHelixRadius : stateHelixRadius
 	return {
-		x: 8 * Math.cos(angle),
+		x: radius * Math.cos(angle),
 		y: selector ? -height / 2 + slot * 2 : height / 2 - slot * 2,
-		z: 8 * Math.sin(angle),
+		z: radius * Math.sin(angle),
 	}
 }
 /** Fan out on the horizontal tangent, leaving the family card at its anchor. */
@@ -198,11 +201,11 @@ function familyOffset(member: number): number {
 	return (Math.floor(member / 2) + 1) * (member % 2 ? -1 : 1) * 12
 }
 function familyPosition(anchor: GraphPosition, member: number): GraphPosition {
-	const offset = familyOffset(member)
+	const offset = familyOffset(member) / Math.hypot(anchor.x, anchor.z)
 	return {
-		x: anchor.x - (anchor.z / 8) * offset,
+		x: anchor.x - anchor.z * offset,
 		y: anchor.y,
-		z: anchor.z + (anchor.x / 8) * offset,
+		z: anchor.z + anchor.x * offset,
 	}
 }
 

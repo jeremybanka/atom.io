@@ -8,11 +8,14 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js"
 // eslint-disable-next-line import/extensions -- Three addon exports require the .js suffix.
 import { CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js"
 
+import { ecologyOperationLabels } from "./ecology.ts"
 import {
 	type FamilyConnection,
 	type GraphContext,
 	type GraphItem,
 	isHistoryOwner,
+	operationHelixRadius,
+	stateHelixRadius,
 } from "./ecology-graph.ts"
 import {
 	createEdgeProjector,
@@ -153,6 +156,13 @@ export function EcologyScene(props: {
 		const horizontal =
 			tangent * camera.aspect * Math.max(0.2, 1 - 192 / size().width)
 		const vertical = tangent * Math.max(0.2, 1 - 100 / size().height)
+		// Allow the extra zoom needed to frame the outer operation helix.
+		const extraRadius = props.items.some((item) =>
+			Object.hasOwn(ecologyOperationLabels, item.source.type),
+		)
+			? operationHelixRadius - stateHelixRadius
+			: 0
+		const maxDistance = 90 + (extraRadius * scale.x) / horizontal
 		let distance = 18
 		// Fit the actual projected cylinder points, including perspective depth and DOM card margins.
 		for (const item of props.items) {
@@ -163,11 +173,11 @@ export function EcologyScene(props: {
 				offset.dot(direction) + Math.abs(offset.dot(up)) / vertical,
 			)
 		}
-		if (distance > 90) center.copy(point(props.items[0]))
+		if (distance > maxDistance) center.copy(point(props.items[0]))
 		target.copy(center)
 		camera.position
 			.copy(center)
-			.addScaledVector(direction, Math.min(distance, 90))
+			.addScaledVector(direction, Math.min(distance, maxDistance))
 	}
 	const pan = (x: number, y: number) => {
 		camera.updateMatrixWorld()

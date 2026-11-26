@@ -144,6 +144,10 @@ it(`projects operation links through collapsed families and highlights their dir
 		]),
 	)
 	expect(expanded.selection?.edges.size).toBe(0)
+	const family = expanded.all.get(`timeline_family:histories`)!
+	const member = expanded.all.get(`timeline:history`)!
+	expect(Math.hypot(family.x, family.z)).toBeCloseTo(32)
+	expect(Math.hypot(member.x - family.x, member.z - family.z)).toBeCloseTo(12)
 	const crowded = {
 		...data,
 		nodes: [
@@ -187,6 +191,63 @@ it(`keeps operation relationships within the card and edge budgets`, () => {
 	const selected = drain(projectEcology(data, context))
 	expect(selected.items).toHaveLength(500)
 	expect(selected.edges.filter((edge) => edge.traced)).toHaveLength(499)
+})
+
+it(`moves history flyouts outside the state helix at shared angles and heights`, () => {
+	const data: EcologySnapshot = {
+		...snapshot(Array.from({ length: 9 }, (_, slot) => node(`state${slot}`))),
+		operations: {
+			records: [
+				{ type: `transaction`, key: `save` },
+				{
+					type: `timeline`,
+					key: `history`,
+					family: null,
+					at: 1,
+					historyLength: 2,
+				},
+			],
+			work: 2,
+			truncated: false,
+		},
+	}
+	const histories = new Map<string, GraphHistory>([
+		[`transaction:save`, { events: [outcome([update(`state4`)])] }],
+		[
+			`timeline:history`,
+			{ events: [update(`state0`), update(`state1`)], at: 1 },
+		],
+	])
+	const context = createGraphContext()
+	for (const id of histories.keys()) context.expanded.add(id)
+	const model = drain(
+		projectEcology(data, context, undefined, undefined, histories),
+	)
+	const firstState = model.all.get(`state:state0`)!
+	const transaction = model.all.get(`transaction:save`)!
+	expect(transaction.x).toBeCloseTo(-firstState.x * 4)
+	expect(transaction.z).toBeCloseTo(-firstState.z * 4)
+	const state = model.all.get(`state:state4`)!
+	const stateRadius = Math.hypot(state.x, state.z)
+	const transactionOutcome = model.items.find(
+		(item) => item.history?.direction === `outcome`,
+	)!
+	expect(transactionOutcome.y).toBe(state.y)
+	expect(
+		Math.hypot(transactionOutcome.x - state.x, transactionOutcome.z - state.z),
+	).toBeCloseTo(stateRadius * 3)
+
+	const flyouts = model.items.filter((item) => item.history)
+	expect(flyouts.map((item) => item.history!.direction)).toEqual([
+		`outcome`,
+		`past`,
+		`future`,
+	])
+	for (const item of flyouts) {
+		const { anchor } = item.history!
+		expect(Math.hypot(anchor.x, anchor.z)).toBeCloseTo(stateRadius * 4)
+		expect([item.x, item.z]).toEqual([anchor.x, anchor.z])
+	}
 })
 
 it(`emphasizes ancestors and descendants independently, excluding side branches and bypass edges`, () => {

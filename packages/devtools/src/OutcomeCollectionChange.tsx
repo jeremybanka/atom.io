@@ -29,6 +29,7 @@ export function OutcomeCollectionChange(props: {
 		comparisonLimited,
 		changeCount,
 		orderChanged,
+		objectKeys,
 	} = props.change
 	const [open, toggle] = useExpanded(props.tools, [
 		`outcome-change`,
@@ -149,9 +150,7 @@ export function OutcomeCollectionChange(props: {
 						data-field-preview={
 							(kind === `Object` && field !== undefined) || undefined
 						}
-						data-key-block={
-							(kind === `Object` && label.length > 10) || undefined
-						}
+						data-key-block={(kind !== `Array` && label.length > 10) || undefined}
 					>
 						{label && (
 							<code
@@ -286,6 +285,9 @@ export function OutcomeCollectionChange(props: {
 			)}
 			{orderChanged && (
 				<small data-collection-note>Iteration order changed</small>
+			)}
+			{objectKeys && (
+				<small data-collection-note># identifies each key object</small>
 			)}
 			{discarded && (
 				<small data-collection-note>

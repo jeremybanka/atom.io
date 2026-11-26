@@ -203,6 +203,7 @@ export type HistoryCollectionChange = {
 	comparisonLimited: boolean
 	changeCount?: number
 	orderChanged?: true
+	objectKeys?: true
 }
 
 /** Extract a single changed field without invoking getters or custom formatters. */
@@ -361,13 +362,18 @@ export function historyCollectionChanges(
 		const array = before.kind === `Array`
 		const length = Math.max(before.size ?? 0, after.size ?? 0)
 		const digits = String(Math.max(0, length - 1)).length
+		const objectKeys = new Map<object, number>()
+		const mapLabel = (key: unknown): string => {
+			const text = describeOutcomeValue(key).text
+			if (key === null || (typeof key !== `object` && typeof key !== `function`))
+				return text
+			const id = objectKeys.get(key) ?? objectKeys.size + 1
+			objectKeys.set(key, id)
+			return `#${id} ${text}`
+		}
 		const order =
 			before.kind === `Map`
-				? orderedCollectionRows(
-						before,
-						after,
-						(key) => describeOutcomeValue(key).text,
-					)
+				? orderedCollectionRows(before, after, mapLabel)
 				: undefined
 		const aligned = array ? alignArraySplice(before, after, digits) : order
 		const keys = array
@@ -397,7 +403,7 @@ export function historyCollectionChanges(
 				: before.kind === `Object`
 					? recordKey(key)
 					: before.kind === `Map`
-						? describeOutcomeValue(key).text
+						? mapLabel(key)
 						: ``
 			rows.push({
 				position: array ? (key as number) : entries.length,
@@ -448,6 +454,7 @@ export function historyCollectionChanges(
 			comparisonLimited: array && !aligned && keys.length < length,
 			...(changeCount > 3 ? { changeCount } : {}),
 			...(order ? { orderChanged: true } : {}),
+			...(objectKeys.size ? { objectKeys: true } : {}),
 		}
 	} catch {
 		return undefined

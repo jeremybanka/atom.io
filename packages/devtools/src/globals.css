@@ -114,7 +114,7 @@
 	editor-icon > svg {
 		display: block;
 	}
-	editor-icon:has(> [data-editor-icon="arrow"]) {
+	editor-icon:has(> :is([data-editor-icon="arrow"], [data-editor-icon="externalLink"])) {
 		display: inline-block;
 		vertical-align: middle;
 	}

@@ -213,11 +213,15 @@ event-view.class {
 			padding-inline: 0 4px;
 			color: var(--accent);
 			font-size: 11px;
-			> span {
+			line-height: 16px;
+			> [data-outcome-link-label] {
 				overflow: hidden;
 				text-overflow: ellipsis;
 			}
-			&:hover > span {
+			> [data-outcome-link-icon] {
+				flex-shrink: 0;
+			}
+			&:hover > [data-outcome-link-label] {
 				text-decoration: underline;
 			}
 		}

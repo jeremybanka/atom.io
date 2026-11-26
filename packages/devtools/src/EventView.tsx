@@ -160,8 +160,10 @@ export function EventView(props: {
 					outcomeLink.follow(click, source.event)
 				}}
 			>
-				<span>{kind}</span>
-				<EditorIcon name="externalLink" />
+				<span data-outcome-link-label>{kind}</span>
+				<span data-outcome-link-icon>
+					<EditorIcon name="externalLink" />
+				</span>
 			</button>
 		) : (
 			<small data-timeline-kind>{kind}</small>

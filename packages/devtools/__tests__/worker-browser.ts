@@ -291,16 +291,23 @@ if (process.argv.includes(`--serve`)) {
 			),
 		)
 		assert.ok(Math.max(...positions) - Math.min(...positions) < 1)
-		const arrowXHeightOffset = await write.evaluate((element) => {
-			const value = element.querySelector(`ins code`)!
+		const iconXHeightOffset = (
+			element: Element,
+			targets: { label: string; icon: string },
+		) => {
+			const label = element.querySelector(targets.label)!
 			const reference = document.createElement(`span`)
 			reference.style.cssText = `display:inline-block;width:0;height:1ex;vertical-align:baseline`
-			value.append(reference)
+			label.append(reference)
 			const center = ({ top, height }: DOMRect) => top + height / 2
 			const xHeightCenter = center(reference.getBoundingClientRect())
-			const arrow = element.querySelector(`[data-editor-icon="arrow"] path`)!
+			const icon = element.querySelector(targets.icon)!
 			reference.remove()
-			return center(arrow.getBoundingClientRect()) - xHeightCenter
+			return center(icon.getBoundingClientRect()) - xHeightCenter
+		}
+		const arrowXHeightOffset = await write.evaluate(iconXHeightOffset, {
+			label: `ins code`,
+			icon: `[data-editor-icon="arrow"] path`,
 		})
 		assert.ok(Math.abs(arrowXHeightOffset) <= 1)
 		assert.equal(await outcomeEntry.getAttribute(`aria-pressed`), `true`)
@@ -321,6 +328,17 @@ if (process.argv.includes(`--serve`)) {
 		await expectWorker(25, 50)
 		assert.equal(await history.count(), 0)
 		await timelineCard.press(`Enter`)
+		const outcomeLink = history
+			.getByRole(`button`, { name: `Transaction outcome`, exact: true })
+			.first()
+		const outcomeLinkXHeightOffset = await outcomeLink.evaluate(
+			iconXHeightOffset,
+			{
+				label: `[data-outcome-link-label]`,
+				icon: `[data-editor-icon="externalLink"] path`,
+			},
+		)
+		assert.ok(Math.abs(outcomeLinkXHeightOffset) <= 0.5)
 		const eventCard = scene
 			.locator(`ecology-node-card[data-history="past"]`)
 			.getByRole(`button`, {

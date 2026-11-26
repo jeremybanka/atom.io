@@ -30,9 +30,15 @@ export function OutcomeCollectionChange(props: {
 		props.eventId,
 	])
 	const changes = entries.filter((entry) => entry.changed)
-	const preview = (
-		entries.length > inlineLimit && changes.length ? changes : entries
-	).slice(0, inlineLimit)
+	const keepSpliceContext =
+		entries.length <= inlineLimit + 1 &&
+		entries.some((entry) => entry.beforeLabel !== entry.afterLabel)
+	const preview = keepSpliceContext
+		? entries
+		: (entries.length > inlineLimit && changes.length ? changes : entries).slice(
+				0,
+				inlineLimit,
+			)
 	const more = entries.length - preview.length
 	const keyWidth = Math.min(
 		32,

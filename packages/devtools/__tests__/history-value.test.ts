@@ -286,3 +286,18 @@ it(`keeps existing array values aligned when prepending one item`, () => {
 		])
 	}
 })
+
+it(`retains index labels on both sides of a middle insertion`, () => {
+	const entries = historyCollectionChanges(
+		[`coffee`, `mug`, `kettle`],
+		[`coffee`, `filters`, `mug`, `kettle`],
+	)!.entries
+	expect(
+		entries.map((entry) => [entry.beforeLabel, entry.afterLabel, entry.changed]),
+	).toEqual([
+		[`0`, `0`, false],
+		[`1`, `1`, true],
+		[`1`, `2`, false],
+		[`2`, `3`, false],
+	])
+})

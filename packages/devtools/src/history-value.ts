@@ -218,19 +218,21 @@ function alignArraySplice(
 	const added = afterSize > beforeSize
 	const shorter = added ? previous : next
 	const longer = added ? next : previous
-	if (
-		shorter.every((slot, index) => sameValue(slot?.value, longer[index]?.value))
+	let insertion = 0
+	while (
+		insertion < shared &&
+		sameValue(shorter[insertion]?.value, longer[insertion]?.value)
 	)
-		return undefined
-	if (
-		!shorter.every((slot, index) =>
-			sameValue(slot?.value, longer[index + 1]?.value),
-		)
-	)
-		return undefined
+		insertion++
+	if (insertion === shared) return undefined
+	for (let index = insertion; index < shared; index++) {
+		if (!sameValue(shorter[index]?.value, longer[index + 1]?.value))
+			return undefined
+	}
 	const label = (index: number) => String(index).padStart(digits, `0`)
 	return indices(0, size).map((position) => {
-		const shortIndex = position - 1
+		const shortIndex = position > insertion ? position - 1 : position
+		const shortSlot = position === insertion ? undefined : shorter[shortIndex]
 		const beforeIndex = added ? shortIndex : position
 		const afterIndex = added ? position : shortIndex
 		return {
@@ -238,9 +240,9 @@ function alignArraySplice(
 			label: label(position),
 			beforeLabel: label(beforeIndex),
 			afterLabel: label(afterIndex),
-			before: previous[beforeIndex],
-			after: next[afterIndex],
-			changed: shortIndex < 0,
+			before: added ? shortSlot : previous[position],
+			after: added ? next[position] : shortSlot,
+			changed: position === insertion,
 		}
 	})
 }

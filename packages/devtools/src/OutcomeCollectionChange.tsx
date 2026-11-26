@@ -27,6 +27,7 @@ export function OutcomeCollectionChange(props: {
 		entries,
 		truncated,
 		comparisonLimited,
+		changeCount,
 	} = props.change
 	const [open, toggle] = useExpanded(props.tools, [
 		`outcome-change`,
@@ -231,6 +232,12 @@ export function OutcomeCollectionChange(props: {
 				>
 					Next edit
 				</button>
+			)}
+			{changeCount !== undefined && changeCount > inlineLimit && (
+				<small data-edit-count>
+					{changeCount} edited {kind === `Array` ? `indexes` : `entries`}
+					{comparisonLimited ? ` found` : ``}
+				</small>
 			)}
 			{discarded && (
 				<small data-collection-note>

@@ -175,6 +175,7 @@ export type HistoryCollectionChange = {
 	entries: HistorySnapshotEntry[]
 	truncated: boolean
 	comparisonLimited: boolean
+	changeCount?: number
 }
 
 /** Extract a single changed field without invoking getters or custom formatters. */
@@ -305,6 +306,7 @@ export function historyCollectionChanges(
 			: [...new Set([...before.keys, ...after.keys])]
 		const entries: HistorySnapshotEntry[] = []
 		const changedEntries: HistorySnapshotEntry[] = []
+		let changeCount = 0
 		for (const key of keys) {
 			const old = before.read(key),
 				current = after.read(key)
@@ -313,6 +315,7 @@ export function historyCollectionChanges(
 				old ? old.value : empty,
 				current ? current.value : empty,
 			)
+			if (changed) changeCount++
 			const rows = array && changed ? changedEntries : entries
 			if (array && rows.length === limit) continue
 			const label = array
@@ -354,6 +357,7 @@ export function historyCollectionChanges(
 				? snapshot.length < length
 				: before.truncated || after.truncated,
 			comparisonLimited: array && !aligned && keys.length < length,
+			...(changeCount > 3 ? { changeCount } : {}),
 		}
 	} catch {
 		return undefined

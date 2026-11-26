@@ -60,6 +60,12 @@ export function OutcomeCollectionChange(props: {
 		kind === `Array`
 			? Math.max(beforeSize!, afterSize!)
 			: entries.length + Number(truncated)
+	const discarded =
+		kind === `Array` && beforeSize! > afterSize! && changes.length === 0
+			? [afterSize!, beforeSize! - 1].map((index) =>
+					String(index).padStart(keyWidth, `0`),
+				)
+			: undefined
 	const [left, right] = kind === `Array` ? [`[`, `]`] : [`{`, `}`]
 	const heading = (side: string, size: number | undefined) => (
 		<th scope="col">
@@ -225,6 +231,13 @@ export function OutcomeCollectionChange(props: {
 				>
 					Next edit
 				</button>
+			)}
+			{discarded && (
+				<small data-collection-note>
+					{discarded[0] === discarded[1]
+						? `Index ${discarded[0]} removed`
+						: `Indexes ${discarded[0]}–${discarded[1]} removed`}
+				</small>
 			)}
 			{truncated && (
 				<small data-collection-note>

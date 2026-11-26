@@ -10,6 +10,7 @@ outcome-value-pair.class {
 	> [data-value-columns] {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-template-rows: auto auto;
 		border-inline: 1px solid var(--line);
 		&[data-full-comparison] {
 			> [data-value-side] > code {
@@ -19,6 +20,9 @@ outcome-value-pair.class {
 			}
 		}
 		> [data-value-side] {
+			display: grid;
+			grid-row: span 2;
+			grid-template-rows: subgrid;
 			min-width: 0;
 			& + [data-value-side] {
 				border-inline-start: 1px solid var(--line);
@@ -53,6 +57,10 @@ outcome-value-pair.class {
 	@container atom-io-devtools (max-width: 360px) {
 		> [data-value-columns][data-full-comparison] {
 			grid-template-columns: 1fr;
+			> [data-value-side] {
+				display: block;
+				grid-row: auto;
+			}
 			> [data-value-side] + [data-value-side] {
 				border-inline-start: 0;
 				border-block-start: 1px solid var(--line);

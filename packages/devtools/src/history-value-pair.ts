@@ -80,11 +80,13 @@ export function historyValuePair(
 			disclose: sameTime,
 		}
 	}
-	const oldShape = historySnapshotShape(before),
-		newShape = historySnapshotShape(after)
+	const oldShape = historySnapshotShape(before)
+	const newShape = historySnapshotShape(after)
 	if (
-		(oldShape?.kind === `Array` && !newShape) ||
-		(newShape?.kind === `Array` && !oldShape)
+		oldShape?.kind !== newShape?.kind &&
+		(oldShape?.kind === `Array` ||
+			newShape?.kind === `Array` ||
+			(oldShape && newShape))
 	) {
 		return {
 			before: typedSnapshot(

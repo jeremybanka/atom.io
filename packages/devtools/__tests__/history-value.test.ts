@@ -198,6 +198,7 @@ it(`renders bounded literal previews without reading getters or calling custom f
 		text: `{"value": "quoted \\"string\\"", "toJSON": [opaque], "self": [circular], "computed": [accessor]}`,
 		complete: false,
 		truncated: false,
+		circular: true,
 	})
 	const source: unknown[] = Array(2)
 	Object.defineProperty(source, `1`, { get: getter })

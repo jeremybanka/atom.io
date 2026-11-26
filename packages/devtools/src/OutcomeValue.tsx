@@ -19,10 +19,10 @@ export function OutcomeValue(
 		props.eventId,
 		props.sharedExpansion ?? props.label,
 	])
-	const { text, truncated } =
+	const { text, truncated, circular } =
 		`value` in props
 			? describeOutcomeValue(props.value)
-			: { text: props.preview, truncated: false }
+			: { text: props.preview, truncated: false, circular: false }
 	return (
 		<outcome-value class={css.class}>
 			{props.summary !== undefined || text.length > 16 || truncated ? (
@@ -48,6 +48,7 @@ export function OutcomeValue(
 			) : (
 				<code title={text}>{text}</code>
 			)}
+			{circular && !open() && <small data-circular>↻ Circular</small>}
 		</outcome-value>
 	)
 }

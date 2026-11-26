@@ -17,6 +17,10 @@ outcome-value.class {
 		white-space: nowrap;
 		text-overflow: ellipsis;
 	}
+	> small[data-circular] {
+		display: block;
+		color: var(--ink-muted);
+	}
 	> button[aria-expanded="true"] {
 		text-decoration: none;
 	}

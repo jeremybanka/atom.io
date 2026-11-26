@@ -87,7 +87,12 @@ function collection(value: unknown): Collection | undefined {
 	return { kind: map ? `Map` : `Set`, size, keys, truncated: size > limit, read }
 }
 
-type Description = { text: string; complete: boolean; truncated: boolean }
+type Description = {
+	text: string
+	complete: boolean
+	truncated: boolean
+	circular?: true
+}
 
 function describe(
 	value: unknown,
@@ -98,6 +103,7 @@ function describe(
 	let budget = expanded ? 96 : 12
 	let complete = true
 	let truncated = false
+	let circular = false
 	const shorten = (text: string) => {
 		complete = false
 		return text
@@ -119,7 +125,10 @@ function describe(
 			return typeof item === `string` && item.length > stringLimit
 				? omit(primitive)
 				: primitive
-		if (path.has(item)) return shorten(`[circular]`)
+		if (path.has(item)) {
+			circular = true
+			return shorten(`[circular]`)
+		}
 		try {
 			if (item instanceof Date) {
 				const time = Date.prototype.getTime.call(item)
@@ -160,7 +169,7 @@ function describe(
 		}
 	}
 	const text = visit(value, 0)
-	return { text, complete, truncated }
+	return { text, complete, truncated, ...(circular ? { circular: true } : {}) }
 }
 
 export function describeOutcomeValue(

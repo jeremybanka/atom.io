@@ -1,3 +1,6 @@
+import { resolve } from "node:path"
+
+import { build } from "esbuild"
 import type { UserConfig } from "tsdown"
 import { defineConfig } from "tsdown"
 
@@ -8,6 +11,8 @@ const config: UserConfig = defineConfig({
 		index: `src/index.ts`,
 		ecology: `src/ecology-entry.ts`,
 		react: `src/react.ts`,
+		cli: `src/cli.ts`,
+		standalone: `src/standalone.ts`,
 		remote: `src/remote.ts`,
 		worker: `src/worker.ts`,
 	},
@@ -16,6 +21,7 @@ const config: UserConfig = defineConfig({
 	dts: { sourcemap: true },
 	deps: {
 		neverBundle: [
+			/^node:/,
 			/^atom\.io(?:\/|$)/,
 			/^@atom\.io\//,
 			/^react(?:\/|$)/,
@@ -47,6 +53,23 @@ const config: UserConfig = defineConfig({
 			},
 		},
 	],
+	hooks: {
+		async "build:done"({ options }) {
+			await build({
+				entryPoints: [`src/standalone-browser.ts`],
+				outfile: resolve(options.outDir, `standalone-browser.js`),
+				alias: { "@atom.io/devtools": resolve(options.outDir, `index.js`) },
+				bundle: true,
+				format: `esm`,
+				platform: `browser`,
+				target: `es2022`,
+				minify: true,
+				legalComments: `eof`,
+				tsconfigRaw: {},
+				define: { "import.meta.env.DEV": `false` },
+			})
+		},
+	},
 	copy: [
 		`src/css.d.ts`,
 		{ from: `src/fonts/*`, to: `dist/fonts` },

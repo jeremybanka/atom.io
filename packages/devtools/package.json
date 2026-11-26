@@ -35,6 +35,10 @@
 			"types": "./dist/remote.d.ts",
 			"import": "./dist/remote.js"
 		},
+		"./standalone": {
+			"types": "./dist/standalone.d.ts",
+			"node": "./dist/standalone.js"
+		},
 		"./worker": {
 			"types": "./dist/worker.d.ts",
 			"import": "./dist/worker.js"
@@ -43,6 +47,9 @@
 	},
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
+	"bin": {
+		"atom-io-devtools": "./dist/cli.js"
+	},
 	"files": [
 		"dist",
 		"src"
@@ -66,14 +73,18 @@
 		"test:story:integration": "node __tests__/order-story-browser.ts",
 		"demo:worker": "node __tests__/worker-browser.ts --serve",
 		"test:browser:worker": "node __tests__/worker-browser.ts",
-		"test:browser": "node __tests__/window-browser.ts && node __tests__/ecology-browser.ts && node __tests__/polish-browser.ts && pnpm test:browser:worker",
+		"test:browser": "node __tests__/window-browser.ts && node __tests__/ecology-browser.ts && node __tests__/polish-browser.ts && pnpm test:browser:worker && node __tests__/standalone-browser.ts",
 		"test:browser:performance": "node __tests__/ecology-browser.ts --strict-performance",
 		"test:browser:throttled": "node __tests__/window-browser.ts --cpu-throttle=6 && node __tests__/ecology-browser.ts --cpu-throttle=6 && node __tests__/polish-browser.ts --cpu-throttle=6",
 		"test:browser:peers": "pnpm --dir peer-environments/coordinated-react18 install --frozen-lockfile --ignore-scripts && pnpm --dir peer-environments/coordinated-react19 install --frozen-lockfile --ignore-scripts"
 	},
 	"dependencies": {
+		"arktype": "2.2.10",
+		"comline": "0.9.3",
+		"devalue": "6.0.3",
 		"motion": "14.14.0",
-		"three": "0.187.0"
+		"three": "0.187.0",
+		"ws": "8.23.0"
 	},
 	"devDependencies": {
 		"@atom.io/react": "workspace:*",
@@ -84,6 +95,7 @@
 		"@types/react": "19.3.0",
 		"@types/react-dom": "19.3.0",
 		"@types/three": "0.187.0",
+		"@types/ws": "8.18.1",
 		"@vitest/coverage-v8": "5.1.1",
 		"atom.io": "workspace:*",
 		"breakage": "0.10.2",

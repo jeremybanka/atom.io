@@ -598,12 +598,24 @@ importers:
 
   packages/devtools:
     dependencies:
+      arktype:
+        specifier: 2.2.10
+        version: 2.2.10
+      comline:
+        specifier: 0.9.3
+        version: 0.9.3(arktype@2.2.10)(zod@4.6.7)
+      devalue:
+        specifier: 6.0.3
+        version: 6.0.3
       motion:
         specifier: 14.14.0
         version: 14.14.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       three:
         specifier: 0.187.0
         version: 0.187.0
+      ws:
+        specifier: 8.23.0
+        version: 8.23.0
     devDependencies:
       '@atom.io/react':
         specifier: workspace:*
@@ -629,6 +641,9 @@ importers:
       '@types/three':
         specifier: 0.187.0
         version: 0.187.0
+      '@types/ws':
+        specifier: 8.18.1
+        version: 8.18.1
       '@vitest/coverage-v8':
         specifier: 5.1.1
         version: 5.1.1(@vitest/browser@5.1.1)(vitest@5.1.1)

@@ -1,5 +1,7 @@
 import { resolve } from "node:path"
 
+import { configDefaults } from "vitest/config"
+
 import { defineOurVitestConfig } from "../../scripts/define-vitest-config.ts"
 import spa from "../spa/src/vite.ts"
 
@@ -7,7 +9,6 @@ const config = defineOurVitestConfig({
 	name: `devtools`,
 	target: `src`,
 	test: {
-		include: [`__tests__/**/*.test.{ts,tsx}`],
 		setupFiles: [`__tests__/setup.ts`],
 		coverage: {
 			thresholds: { 100: true },
@@ -17,6 +18,26 @@ const config = defineOurVitestConfig({
 })
 config.root = import.meta.dirname
 config.plugins = [spa({ include: /\/(?:devtools|spa)\/.*\.tsx$/ })]
+const socketsTest = `__tests__/standalone-remote.test.ts`
+config.test!.projects = [
+	{
+		extends: true,
+		test: {
+			name: `devtools`,
+			include: [`__tests__/**/*.test.{ts,tsx}`],
+			exclude: [...configDefaults.exclude, socketsTest],
+		},
+	},
+	{
+		extends: true,
+		test: {
+			name: `devtools-sockets`,
+			include: [socketsTest],
+			environment: `node`,
+			pool: `forks`,
+		},
+	},
+]
 config.resolve!.alias = [
 	{
 		find: /^@atom\.io\/spa\/brand$/,

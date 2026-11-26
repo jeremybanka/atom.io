@@ -23,16 +23,25 @@ export function OutcomeCollectionChange(props: {
 		afterEmpty,
 		entries,
 		truncated,
+		comparisonLimited,
 	} = props.change
 	const [open, toggle] = useExpanded(props.tools, [
 		`outcome-change`,
 		props.eventId,
 	])
-	const firstChange = entries.findIndex((entry) => entry.changed)
-	const start = Math.max(0, firstChange - inlineLimit + 1)
-	const visibleStart = () => (open() ? 0 : start)
-	const visibleEnd = () =>
-		open() ? entries.length : Math.min(entries.length, start + inlineLimit)
+	const changes = entries.filter((entry) => entry.changed)
+	const preview = (
+		entries.length > inlineLimit && changes.length ? changes : entries
+	).slice(0, inlineLimit)
+	const more = entries.length - preview.length
+	const keyWidth = Math.min(
+		32,
+		Math.max(0, ...entries.map((entry) => entry.label.length)),
+	)
+	const length =
+		kind === `Array`
+			? Math.max(beforeSize!, afterSize!)
+			: entries.length + Number(truncated)
 	const [left, right] = kind === `Array` ? [`[`, `]`] : [`{`, `}`]
 	const heading = (side: string, size: number | undefined) => (
 		<th scope="col">
@@ -57,6 +66,18 @@ export function OutcomeCollectionChange(props: {
 			{punctuation(`after`, afterEmpty ? empty : value)}
 		</tr>
 	)
+	const gap = (start: number) => (
+		<tr key={`gap:${start}`} data-snapshot-gap>
+			{punctuation(
+				`before`,
+				beforeEmpty || (kind === `Array` && start >= beforeSize!) ? `` : `…`,
+			)}
+			{punctuation(
+				`after`,
+				afterEmpty || (kind === `Array` && start >= afterSize!) ? `` : `…`,
+			)}
+		</tr>
+	)
 	const cell = (
 		entry: HistoryCollectionChange[`entries`][number],
 		index: number,
@@ -70,7 +91,14 @@ export function OutcomeCollectionChange(props: {
 			>
 				{slot && (
 					<snapshot-entry>
-						{entry.label && <code title={entry.label}>{entry.label}</code>}
+						{entry.label && (
+							<code
+								title={entry.label}
+								data-index={kind === `Array` || undefined}
+							>
+								{entry.label}
+							</code>
+						)}
 						<OutcomeValue
 							tools={props.tools}
 							eventId={`${props.eventId}:${index}`}
@@ -82,13 +110,34 @@ export function OutcomeCollectionChange(props: {
 			</td>
 		)
 	}
+	const rows = () => {
+		const visible = open() ? entries : preview
+		const result: SpaElement[] = []
+		let position = 0
+		for (const entry of visible) {
+			const index = entry.position
+			if (position < index) result.push(gap(position))
+			result.push(
+				<tr key={index} data-snapshot-entry>
+					{cell(entry, index, `before`)}
+					{cell(entry, index, `after`)}
+				</tr>,
+			)
+			position = index + 1
+		}
+		if (position < length) result.push(gap(position))
+		return result
+	}
 	return (
 		<outcome-collection-change class={css.class}>
 			<p data-collection-summary>
 				<strong title={props.name}>{props.name}</strong>
 				<small>{kind}</small>
 			</p>
-			<snapshot-comparison data-expanded={open()}>
+			<snapshot-comparison
+				data-expanded={open()}
+				style={`--snapshot-key-width: ${keyWidth}ch`}
+			>
 				<table aria-label={`${props.name} snapshots`}>
 					<thead>
 						<tr>
@@ -98,31 +147,23 @@ export function OutcomeCollectionChange(props: {
 					</thead>
 					<tbody>
 						{punctuationRow(left, left + right)}
-						{visibleStart() > 0 && punctuationRow(`…`)}
-						{entries.slice(visibleStart(), visibleEnd()).map((entry, offset) => {
-							const index = visibleStart() + offset
-							return (
-								<tr key={index} data-snapshot-entry>
-									{cell(entry, index, `before`)}
-									{cell(entry, index, `after`)}
-								</tr>
-							)
-						})}
-						{(visibleEnd() < entries.length || truncated) && punctuationRow(`…`)}
+						{rows()}
 						{(!beforeEmpty || !afterEmpty) && punctuationRow(right)}
 					</tbody>
 				</table>
 			</snapshot-comparison>
-			{entries.length > inlineLimit && (
+			{more > 0 && (
 				<button type="button" aria-expanded={open()} onClick={toggle}>
 					<EditorIcon name={open() ? `collapse` : `expand`} />
-					{open()
-						? `Show fewer rows`
-						: `Show ${entries.length - inlineLimit} more rows`}
+					{open() ? `Show fewer rows` : `Show ${more} more rows`}
 				</button>
 			)}
 			{truncated && (
-				<small data-collection-note>Large value · showing sampled entries</small>
+				<small data-collection-note>
+					{comparisonLimited
+						? `Large array · comparison sampled`
+						: `Large value · showing sampled entries`}
+				</small>
 			)}
 		</outcome-collection-change>
 	)

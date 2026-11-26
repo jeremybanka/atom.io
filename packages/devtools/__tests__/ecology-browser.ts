@@ -788,7 +788,7 @@ try {
 			await cartChange
 				.locator(`[data-snapshot-diff="after"] snapshot-entry`)
 				.textContent(),
-			`[0]"coffee-beans"`,
+			`0"coffee-beans"`,
 		)
 		assert.equal(
 			await cartChange.locator(`[data-snapshot-diff="before"]`).count(),
@@ -804,6 +804,19 @@ try {
 			)
 		assert.equal(beforePosition.y, afterPosition.y)
 		assert.ok(beforePosition.x < afterPosition.x)
+		assert.deepEqual(
+			await cartChange.locator(`snapshot-comparison`).evaluate((element) => {
+				const style = getComputedStyle(element)
+				return [
+					style.marginLeft,
+					style.marginRight,
+					style.marginBottom,
+					style.borderTopWidth,
+					style.borderBottomWidth,
+				]
+			}),
+			[`0px`, `0px`, `0px`, `0px`, `0px`],
+		)
 		await operations
 			.getByRole(`button`, { name: `Expand timeline price history` })
 			.click()

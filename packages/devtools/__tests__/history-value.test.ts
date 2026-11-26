@@ -13,9 +13,11 @@ it(`reports array lengths and actual indexed changes, including holes and long a
 		beforeEmpty: true,
 		afterEmpty: false,
 		truncated: false,
+		comparisonLimited: false,
 		entries: [
 			{
-				label: `[0]`,
+				position: 0,
+				label: `0`,
 				before: undefined,
 				after: { value: `coffee-beans` },
 				changed: true,
@@ -36,10 +38,10 @@ it(`reports array lengths and actual indexed changes, including holes and long a
 			entry.changed,
 		]),
 	).toEqual([
-		[`[0]`, `<empty>`, `undefined`, true],
-		[`[1]`, `undefined`, `<empty>`, true],
-		[`[2]`, `2`, `3`, true],
-		[`[3]`, `<empty>`, `<empty>`, false],
+		[`0`, `<empty>`, `undefined`, true],
+		[`1`, `undefined`, `<empty>`, true],
+		[`2`, `2`, `3`, true],
+		[`3`, `<empty>`, `<empty>`, false],
 	])
 	const large = Array.from({ length: 100 }, (_, index) => index)
 	const append = historyCollectionChanges(large, [...large, 100])!
@@ -48,18 +50,63 @@ it(`reports array lengths and actual indexed changes, including holes and long a
 		afterSize: 101,
 		truncated: true,
 	})
-	expect(append.entries[0]).toMatchObject({ label: `[0]`, changed: false })
+	expect(append.entries[0]).toMatchObject({ label: `000`, changed: false })
 	expect(append.entries.at(-1)).toMatchObject({
-		label: `[100]`,
+		label: `100`,
 		after: { value: 100 },
 		changed: true,
 	})
 	expect(
 		historyCollectionChanges([...large, 100], large)?.entries.at(-1),
 	).toMatchObject({
-		label: `[100]`,
+		label: `100`,
 		before: { value: 100 },
 	})
+})
+
+it(`keeps distant edits inside the array preview and reports sampled comparisons`, () => {
+	const before: string[] = Array.from({ length: 110 }, () => `stock`)
+	const after = [...before]
+	after[7] = `tomato`
+	after[100] = `eggplant`
+	const changes = historyCollectionChanges(before, after)!
+	expect(changes.entries).toHaveLength(32)
+	expect(changes.comparisonLimited).toBe(false)
+	expect(changes.entries.filter((entry) => entry.changed)).toEqual([
+		{
+			position: 7,
+			label: `007`,
+			before: { value: `stock` },
+			after: { value: `tomato` },
+			changed: true,
+		},
+		{
+			position: 100,
+			label: `100`,
+			before: { value: `stock` },
+			after: { value: `eggplant` },
+			changed: true,
+		},
+	])
+	const large: string[] = Array(5000)
+	const appended: string[] = Array(5001)
+	appended[5000] = `eggplant`
+	const sampled = historyCollectionChanges(large, appended)!
+	expect(sampled.comparisonLimited).toBe(true)
+	expect(sampled.entries.at(-1)).toMatchObject({
+		position: 5000,
+		label: `5000`,
+		changed: true,
+	})
+	const sparse: string[] = Array(110)
+	sparse[100] = `eggplant`
+	expect(
+		historyCollectionChanges([], sparse)?.entries.filter(
+			(entry) => entry.changed,
+		),
+	).toMatchObject([
+		{ position: 100, label: `100`, after: { value: `eggplant` } },
+	])
 })
 
 it(`reports changed record properties, map entries and set membership`, () => {
@@ -68,7 +115,7 @@ it(`reports changed record properties, map entries and set membership`, () => {
 			{ same: { x: 1 }, changed: 1, gone: false },
 			{ same: { x: 1 }, changed: 2, added: null },
 		)?.entries,
-	).toEqual([
+	).toMatchObject([
 		{
 			label: `same`,
 			before: { value: { x: 1 } },
@@ -95,7 +142,7 @@ it(`reports changed record properties, map entries and set membership`, () => {
 				[`fresh`, 4],
 			]),
 		)?.entries,
-	).toEqual([
+	).toMatchObject([
 		{
 			label: `"count"`,
 			before: { value: 1 },
@@ -108,7 +155,7 @@ it(`reports changed record properties, map entries and set membership`, () => {
 	expect(
 		historyCollectionChanges(new Set([`old`, `same`]), new Set([`same`, `new`]))
 			?.entries,
-	).toEqual([
+	).toMatchObject([
 		{ label: ``, before: { value: `old` }, after: undefined, changed: true },
 		{
 			label: ``,
@@ -178,10 +225,10 @@ it(`renders bounded literal previews without reading getters or calling custom f
 	expect(describeOutcomeValue(invalid).text).toBe(`[opaque]`)
 	expect(describeOutcomeValue(-0).text).toBe(`-0`)
 	expect(describeOutcomeValue([0, 1, 2, 3, 4]).text).toBe(`[0, 1, 2, 3, …]`)
-	expect(historyCollectionChanges([0], [-0])?.entries[0]?.label).toBe(`[0]`)
+	expect(historyCollectionChanges([0], [-0])?.entries[0]?.changed).toBe(true)
 	expect(
-		historyCollectionChanges([{ a: 1 }], [{ a: 2 }])?.entries[0]?.label,
-	).toBe(`[0]`)
+		historyCollectionChanges([{ a: 1 }], [{ a: 2 }])?.entries[0]?.changed,
+	).toBe(true)
 	expect(describeOutcomeValue(/test/).text).toBe(`[opaque]`)
 	expect(describeOutcomeValue({ a: { b: { c: 1 } } })).toMatchObject({
 		text: `{"a": {"b": Object(…)}}`,

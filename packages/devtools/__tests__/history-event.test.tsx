@@ -245,6 +245,14 @@ it(`aligns collection snapshots with unchanged context and discloses larger samp
 		isProduction: true,
 	})
 	const saveTransaction = app.transaction({ key: `save`, do: () => {} })
+	const produce: string[] = Array.from({ length: 110 }, () => `stock`)
+	const revised = [...produce]
+	revised[7] = `tomato`
+	revised[100] = `eggplant`
+	const sparse: string[] = Array(110)
+	sparse[0] = `stock`
+	sparse[7] = `tomato`
+	sparse[100] = `eggplant`
 	const updates = [
 		[`cartItems`, [], [`coffee-beans`]],
 		[`record`, { removed: true, changed: 0 }, { added: null, changed: 1 }],
@@ -261,6 +269,10 @@ it(`aligns collection snapshots with unchanged context and discloses larger samp
 		[`same`, [1], [1]],
 		[`empty`, [], []],
 		[`late`, [0, 1, 2, 3, 4, 5], [0, 1, 2, 3, 4, 5, 6]],
+		[`produce`, produce, revised],
+		[`sampled`, Array(5000), Array(5001)],
+		[`extended`, [`stock`], sparse],
+		[`shortened`, sparse, [`stock`]],
 		[`raw`, 0, { cart: [`coffee-beans`] }],
 		[`truncated`, 0, [[[]]]],
 	] as const
@@ -306,8 +318,20 @@ it(`aligns collection snapshots with unchanged context and discloses larger samp
 				`button[aria-label="Expand outcome 1"]`,
 			)!,
 		)
-		const [cart, record, market, members, large, same, empty, late] =
-			host.querySelectorAll(`outcome-collection-change`)
+		const [
+			cart,
+			record,
+			market,
+			members,
+			large,
+			same,
+			empty,
+			late,
+			distant,
+			sampled,
+			extended,
+			shortened,
+		] = host.querySelectorAll(`outcome-collection-change`)
 		expect(
 			cart.querySelector(`[data-collection-summary] small`)?.textContent,
 		).toBe(`Array`)
@@ -320,7 +344,7 @@ it(`aligns collection snapshots with unchanged context and discloses larger samp
 			)?.textContent,
 		).toBe(`[]`)
 		expect(cart.querySelector(`[data-snapshot-diff="after"]`)?.textContent).toBe(
-			`[0]"coffee-beans"`,
+			`0"coffee-beans"`,
 		)
 		expect(cart.querySelector(`[data-snapshot-diff="before"]`)).toBeNull()
 		expect(
@@ -345,32 +369,63 @@ it(`aligns collection snapshots with unchanged context and discloses larger samp
 			),
 		).toEqual([`1`, `1`])
 		expect(shared.querySelector(`[data-snapshot-diff]`)).toBeNull()
-		expect(same.querySelector(`[data-snapshot-entry]`)?.textContent).toBe(
-			`[0]1[0]1`,
-		)
+		expect(same.querySelector(`[data-snapshot-entry]`)?.textContent).toBe(`0101`)
 		expect(same.querySelector(`[data-snapshot-diff]`)).toBeNull()
 		expect(
 			[...empty.querySelectorAll(`tbody td`)].map((cell) => cell.textContent),
 		).toEqual([`[]`, `[]`])
-		expect(late.querySelector(`[data-snapshot-entry] code`)?.textContent).toBe(
-			`[4]`,
-		)
+		expect(late.querySelectorAll(`[data-snapshot-entry]`)).toHaveLength(1)
 		expect(
 			late.querySelector(`[data-snapshot-diff="after"] code`)?.textContent,
-		).toBe(`[6]`)
+		).toBe(`6`)
 		expect(
-			[...late.querySelectorAll(`[data-snapshot-punctuation] code`)].map(
+			[...late.querySelectorAll(`[data-snapshot-gap] code`)].map(
 				(item) => item.textContent,
 			),
 		).toContain(`…`)
+		const afterRows = [
+			...distant.querySelectorAll(
+				`tbody tr:not([data-snapshot-punctuation]) [data-snapshot-side="after"]`,
+			),
+		]
+		expect(afterRows.map((entry) => entry.textContent)).toEqual([
+			`…`,
+			`007"tomato"`,
+			`…`,
+			`100"eggplant"`,
+			`…`,
+		])
+		const showContext =
+			distant.querySelector<HTMLButtonElement>(`:scope > button`)!
+		expect(showContext.textContent).toBe(`Show 30 more rows`)
+		await click(showContext)
+		expect(distant.querySelectorAll(`[data-snapshot-entry]`)).toHaveLength(32)
+		expect(
+			[
+				...distant.querySelectorAll(
+					`[data-snapshot-diff="after"] > snapshot-entry > code`,
+				),
+			].map((entry) => entry.textContent),
+		).toEqual([`007`, `100`])
+		expect(
+			sampled.querySelector(`[data-collection-note]`)?.textContent,
+		).toContain(`comparison sampled`)
+		const gaps = (view: Element, side: string) =>
+			[
+				...view.querySelectorAll(
+					`[data-snapshot-gap] [data-snapshot-side="${side}"]`,
+				),
+			].map((entry) => entry.textContent)
+		expect(gaps(extended, `before`)).toEqual([`…`, ``, ``])
+		expect(gaps(shortened, `after`)).toEqual([`…`, ``, ``])
 		expect(large.querySelector(`[data-collection-note]`)?.textContent).toContain(
 			`sampled entries`,
 		)
 		expect(large.querySelectorAll(`[data-snapshot-entry]`)).toHaveLength(3)
 		const disclosure = large.querySelector<HTMLButtonElement>(`:scope > button`)!
-		expect(disclosure.textContent).toBe(`Show 37 more rows`)
+		expect(disclosure.textContent).toBe(`Show 29 more rows`)
 		await click(disclosure)
-		expect(large.querySelectorAll(`[data-snapshot-entry]`)).toHaveLength(40)
+		expect(large.querySelectorAll(`[data-snapshot-entry]`)).toHaveLength(32)
 		expect(disclosure.textContent).toBe(`Show fewer rows`)
 		await click(disclosure)
 		expect(large.querySelectorAll(`[data-snapshot-entry]`)).toHaveLength(3)

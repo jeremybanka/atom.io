@@ -22,8 +22,7 @@ outcome-collection-change.class {
 	> snapshot-comparison {
 		display: block;
 		min-width: 0;
-		margin: 0 6px 4px 12px;
-		border: 1px solid var(--line);
+		border-inline: 1px solid var(--line);
 		> table {
 			width: 100%;
 			table-layout: fixed;
@@ -75,11 +74,16 @@ outcome-collection-change.class {
 				flex: 0 0 6px;
 			}
 			> code {
-				max-width: 45%;
+				flex: 0 0 min(45%, var(--snapshot-key-width));
+				min-width: 0;
 				overflow: hidden;
 				white-space: nowrap;
 				text-overflow: ellipsis;
 				color: var(--ink-muted);
+				&[data-index] {
+					text-align: end;
+					font-variant-numeric: tabular-nums;
+				}
 			}
 			> outcome-value {
 				flex: 1;
@@ -89,7 +93,7 @@ outcome-collection-change.class {
 	> snapshot-comparison > table > tbody > tr > td[data-snapshot-diff="before"] {
 		background: var(--change-removed);
 		> snapshot-entry::before {
-			content: "−";
+			content: "-";
 		}
 	}
 	> snapshot-comparison > table > tbody > tr > td[data-snapshot-diff="after"] {

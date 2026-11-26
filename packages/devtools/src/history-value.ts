@@ -1,6 +1,7 @@
 import { historyValue } from "./history-event.ts"
 
 const limit = 32
+const arrayComparisonLimit = 4096
 const accessor = Symbol(`recorded accessor`)
 const empty = Symbol(`array hole`)
 const mapSize = Object.getOwnPropertyDescriptor(Map.prototype, `size`)!.get!
@@ -156,6 +157,7 @@ export function describeOutcomeValue(
 }
 
 type HistorySnapshotEntry = {
+	position: number
 	label: string
 	before?: Slot | undefined
 	after?: Slot | undefined
@@ -170,6 +172,7 @@ export type HistoryCollectionChange = {
 	afterEmpty: boolean
 	entries: HistorySnapshotEntry[]
 	truncated: boolean
+	comparisonLimited: boolean
 }
 
 function sameValue(before: unknown, after: unknown): boolean {
@@ -180,6 +183,21 @@ function sameValue(before: unknown, after: unknown): boolean {
 	return a.complete && b.complete && a.text === b.text
 }
 
+function arrayComparisonPositions(
+	beforeSize: number,
+	afterSize: number,
+): number[] {
+	const size = Math.max(beforeSize, afterSize)
+	const prefix = indices(0, Math.min(size, arrayComparisonLimit))
+	const boundary = Math.max(
+		arrayComparisonLimit,
+		Math.min(beforeSize, afterSize),
+	)
+	const end = Math.min(size, boundary + 8)
+	if (boundary < end) prefix.push(...indices(boundary, end))
+	return prefix
+}
+
 export function historyCollectionChanges(
 	previous: unknown,
 	next: unknown,
@@ -188,44 +206,61 @@ export function historyCollectionChanges(
 		const before = collection(previous),
 			after = collection(next)
 		if (!before || !after || before.kind !== after.kind) return undefined
-		const keys = new Set([...before.keys, ...after.keys])
-		if (before.kind === `Array` && before.size !== after.size) {
-			const low = Math.max(limit, Math.min(before.size!, after.size!))
-			const high = Math.max(before.size!, after.size!)
-			for (const index of indices(low, Math.max(low, Math.min(high, low + 8))))
-				keys.add(index)
-		}
+		const array = before.kind === `Array`
+		const length = Math.max(before.size ?? 0, after.size ?? 0)
+		const digits = String(Math.max(0, length - 1)).length
+		const keys = array
+			? arrayComparisonPositions(before.size!, after.size!)
+			: [...new Set([...before.keys, ...after.keys])]
 		const entries: HistorySnapshotEntry[] = []
+		const changedEntries: HistorySnapshotEntry[] = []
 		for (const key of keys) {
 			const old = before.read(key),
 				current = after.read(key)
 			if (!old && !current) continue
-			const label =
-				before.kind === `Array`
-					? `[${key as number}]`
-					: before.kind === `Object`
-						? String(key)
-						: before.kind === `Map`
-							? describeOutcomeValue(key).text
-							: ``
-			entries.push({
+			const changed = !sameValue(
+				old ? old.value : empty,
+				current ? current.value : empty,
+			)
+			const rows = array && changed ? changedEntries : entries
+			if (array && rows.length === limit) continue
+			const label = array
+				? String(key).padStart(digits, `0`)
+				: before.kind === `Object`
+					? String(key)
+					: before.kind === `Map`
+						? describeOutcomeValue(key).text
+						: ``
+			rows.push({
+				position: array ? (key as number) : entries.length,
 				label,
 				before: old,
 				after: current,
-				changed: !old || !current || !sameValue(old.value, current.value),
+				changed,
 			})
 		}
+		const snapshot = array
+			? changedEntries
+					.concat(entries.slice(0, limit - changedEntries.length))
+					.sort((a, b) => a.position - b.position)
+			: entries
 		return {
 			kind: before.kind,
 			beforeSize: before.size,
 			afterSize: after.size,
-			beforeEmpty:
-				!before.truncated &&
-				entries.every((entry) => entry.before === undefined),
-			afterEmpty:
-				!after.truncated && entries.every((entry) => entry.after === undefined),
-			entries,
-			truncated: before.truncated || after.truncated,
+			beforeEmpty: array
+				? before.size === 0
+				: !before.truncated &&
+					entries.every((entry) => entry.before === undefined),
+			afterEmpty: array
+				? after.size === 0
+				: !after.truncated &&
+					entries.every((entry) => entry.after === undefined),
+			entries: snapshot,
+			truncated: array
+				? snapshot.length < length
+				: before.truncated || after.truncated,
+			comparisonLimited: array && keys.length < length,
 		}
 	} catch {
 		return undefined

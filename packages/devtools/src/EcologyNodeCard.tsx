@@ -267,7 +267,7 @@ export function EcologyNodeCard(props: {
 				)}
 				<strong>{props.item.label}</strong>
 				<small data-uncached={uncached()}>
-					<EcologyPrimitiveIcon source={props.item.source} />
+					<EcologyPrimitiveIcon source={props.item.source} placement="detail" />
 					{detail(props.item.source)}
 				</small>
 			</button>

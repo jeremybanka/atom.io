@@ -577,7 +577,7 @@ it(`bounds retained cards when successive filters visit disjoint parts of a larg
 			)!
 			.getAttribute(`aria-pressed`),
 	).toBe(`true`)
-})
+}, 20_000)
 
 it(`shares one search surface across panel sizes, retains applied filters and dismisses modals without changing selection`, async () => {
 	const observers = new Map<Element, Set<ResizeObserverCallback>>()

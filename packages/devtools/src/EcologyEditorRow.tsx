@@ -64,7 +64,10 @@ export function EcologyEditorRow(props: {
 			}
 			style={`--ecology-color: ${props.item.color}`}
 		>
-			<EcologyPrimitiveIcon source={props.item.source} />
+			<EcologyPrimitiveIcon
+				source={props.item.source}
+				placement={family() ? `heading` : `row`}
+			/>
 			{family() ? (
 				<node-heading>
 					<button

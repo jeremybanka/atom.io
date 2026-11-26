@@ -6,15 +6,6 @@ ecology-editor-row.class {
 		border-bottom: 1px solid var(--line);
 		min-width: 0;
 	}
-	> ecology-primitive-icon {
-		display: flex;
-		align-self: start;
-		justify-self: center;
-		margin-block-start: 4px;
-	}
-	&:has(> node-heading) > ecology-primitive-icon {
-		margin-block-start: 6px;
-	}
 	&[hidden] {
 		display: none;
 	}

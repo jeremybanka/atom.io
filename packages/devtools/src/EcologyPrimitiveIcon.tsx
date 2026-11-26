@@ -2,6 +2,7 @@
 import type { SpaElement } from "@atom.io/spa"
 
 import type { GraphItem } from "./ecology-graph.ts"
+import css from "./EcologyPrimitiveIcon.module.css"
 
 // Filled outlines from the atom.io primitive icon set.
 const glyphs = {
@@ -44,6 +45,7 @@ const glyphs = {
 
 export function EcologyPrimitiveIcon(props: {
 	source: GraphItem[`source`]
+	placement: `row` | `heading` | `detail`
 }): SpaElement {
 	const kind = () => {
 		const { source } = props
@@ -53,7 +55,11 @@ export function EcologyPrimitiveIcon(props: {
 	}
 	const glyph = () => glyphs[kind()]
 	return (
-		<ecology-primitive-icon data-primitive={kind()}>
+		<ecology-primitive-icon
+			class={css.class}
+			data-primitive={kind()}
+			data-placement={props.placement}
+		>
 			<svg
 				viewBox="0 0 24 24"
 				width="14"

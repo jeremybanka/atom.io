@@ -26,6 +26,12 @@ function property(
 	return { value: `value` in descriptor ? descriptor.value : accessor }
 }
 
+function recordKey(key: unknown): string {
+	const name = String(key)
+	if (typeof key === `symbol` || /^[a-zA-Z_$][\w$]*$/.test(name)) return name
+	return JSON.stringify(name)
+}
+
 function indices(from: number, to: number): number[] {
 	return Array.from({ length: to - from }, (_, index) => from + index)
 }
@@ -208,7 +214,7 @@ export function changedRecordField(
 		const old = previous.read(key),
 			current = next.read(key)
 		return {
-			label: String(key),
+			label: recordKey(key),
 			before: old ? describeOutcomeValue(old.value).text : `<absent>`,
 			after: current ? describeOutcomeValue(current.value).text : `<absent>`,
 		}
@@ -329,7 +335,7 @@ export function historyCollectionChanges(
 			const label = array
 				? String(key).padStart(digits, `0`)
 				: before.kind === `Object`
-					? String(key)
+					? recordKey(key)
 					: before.kind === `Map`
 						? describeOutcomeValue(key).text
 						: ``

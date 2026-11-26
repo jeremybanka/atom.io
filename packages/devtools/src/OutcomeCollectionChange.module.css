@@ -80,6 +80,11 @@ outcome-collection-change.class {
 				white-space: nowrap;
 				text-overflow: ellipsis;
 				color: var(--ink-muted);
+				&[data-quoted] {
+					flex-basis: min(55%, var(--snapshot-key-width));
+					white-space: normal;
+					overflow-wrap: anywhere;
+				}
 				&[data-index] {
 					text-align: end;
 					font-variant-numeric: tabular-nums;

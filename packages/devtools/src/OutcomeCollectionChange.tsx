@@ -139,7 +139,13 @@ export function OutcomeCollectionChange(props: {
 				{slot && (
 					<snapshot-entry>
 						{label && (
-							<code title={label} data-index={kind === `Array` || undefined}>
+							<code
+								title={label}
+								data-index={kind === `Array` || undefined}
+								data-quoted={
+									(kind === `Object` && label.startsWith(`"`)) || undefined
+								}
+							>
 								{label}
 							</code>
 						)}

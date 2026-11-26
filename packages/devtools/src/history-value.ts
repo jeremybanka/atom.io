@@ -177,6 +177,45 @@ export type HistoryCollectionChange = {
 	comparisonLimited: boolean
 }
 
+/** Extract a single changed field without invoking getters or custom formatters. */
+export function changedRecordField(
+	before: unknown,
+	after: unknown,
+): { label: string; before: string; after: string } | undefined {
+	try {
+		const previous = collection(before),
+			next = collection(after)
+		if (
+			previous?.kind !== `Object` ||
+			next?.kind !== `Object` ||
+			previous.truncated ||
+			next.truncated
+		)
+			return undefined
+		const changes = [...new Set([...previous.keys, ...next.keys])].filter(
+			(key) => {
+				const old = previous.read(key),
+					current = next.read(key)
+				return (
+					Boolean(old) !== Boolean(current) ||
+					!sameValue(old?.value, current?.value)
+				)
+			},
+		)
+		if (changes.length !== 1) return undefined
+		const key = changes[0]
+		const old = previous.read(key),
+			current = next.read(key)
+		return {
+			label: String(key),
+			before: old ? describeOutcomeValue(old.value).text : `<absent>`,
+			after: current ? describeOutcomeValue(current.value).text : `<absent>`,
+		}
+	} catch {
+		return undefined
+	}
+}
+
 function sameValue(before: unknown, after: unknown): boolean {
 	if (Object.is(before, after)) return true
 	if (typeof before !== `object` || typeof after !== `object`) return false

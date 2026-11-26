@@ -2,7 +2,10 @@
 import type { SpaElement } from "@atom.io/spa"
 
 import { EditorIcon } from "./EditorIcon.tsx"
-import type { HistoryCollectionChange } from "./history-value.ts"
+import {
+	changedRecordField,
+	type HistoryCollectionChange,
+} from "./history-value.ts"
 import css from "./OutcomeCollectionChange.module.css"
 import { OutcomeValue } from "./OutcomeValue.tsx"
 import { type EditorTools, useExpanded } from "./store.ts"
@@ -92,6 +95,10 @@ export function OutcomeCollectionChange(props: {
 		const slot = entry[side]
 		const label =
 			(side === `before` ? entry.beforeLabel : entry.afterLabel) ?? entry.label
+		const field =
+			kind === `Array` && entry.changed && entry.before && entry.after
+				? changedRecordField(entry.before.value, entry.after.value)
+				: undefined
 		return (
 			<td
 				data-snapshot-side={side}
@@ -109,6 +116,7 @@ export function OutcomeCollectionChange(props: {
 							eventId={`${props.eventId}:${index}`}
 							label={side === `before` ? `previous value` : `new value`}
 							value={slot.value}
+							summary={field && `${field.label}: ${field[side]}`}
 						/>
 					</snapshot-entry>
 				)}

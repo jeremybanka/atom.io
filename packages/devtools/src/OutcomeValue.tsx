@@ -10,6 +10,7 @@ export function OutcomeValue(
 		tools: EditorTools
 		eventId: string
 		label: string
+		summary?: string | undefined
 	} & ({ value: unknown } | { preview: string; full(): string }),
 ): SpaElement {
 	const [open, toggle] = useExpanded(props.tools, [
@@ -23,7 +24,7 @@ export function OutcomeValue(
 			: { text: props.preview, truncated: false }
 	return (
 		<outcome-value class={css.class}>
-			{text.length > 16 || truncated ? (
+			{props.summary !== undefined || text.length > 16 || truncated ? (
 				<button
 					type="button"
 					aria-label={`${open() ? `Collapse` : `Show full`} ${props.label}`}
@@ -35,9 +36,8 @@ export function OutcomeValue(
 							? `value` in props
 								? describeOutcomeValue(props.value, true).text
 								: props.full()
-							: text.length > 16
-								? `${text.slice(0, 15)}…`
-								: text}
+							: (props.summary ??
+								(text.length > 16 ? `${text.slice(0, 15)}…` : text))}
 					</code>
 				</button>
 			) : (

@@ -24,7 +24,7 @@ window-overlay.class {
 		border: 1px solid var(--bg-color);
 		box-shadow: 0 4px 18px #0006;
 	}
-	> [hidden] {
+	> :is(snap-preview, snap-palette)[hidden] {
 		display: none;
 	}
 	> snap-palette > button {

@@ -40,7 +40,7 @@ transaction-index.class {
 		font-size: 11px;
 		margin-right: auto;
 	}
-	> article[data-index] > transaction-log > node-heading > [data-count] {
+	> article[data-index] > transaction-log > node-heading > small[data-count] {
 		margin-left: auto;
 		margin-right: 6px;
 		font-variant-numeric: tabular-nums;

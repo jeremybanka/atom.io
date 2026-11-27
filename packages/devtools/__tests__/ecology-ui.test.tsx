@@ -4,7 +4,10 @@ import { Silo } from "atom.io"
 import type * as Motion from "motion"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 
-import { createCardFeedback } from "../src/ecology-card-feedback.ts"
+import {
+	type CardFeedbackState,
+	createCardFeedback,
+} from "../src/ecology-card-feedback.ts"
 import { createEcologyController } from "../src/ecology-controller.ts"
 import { Ecology, mountEcology } from "../src/ecology-entry.ts"
 import { createGraphContext } from "../src/ecology-graph.ts"
@@ -1722,6 +1725,7 @@ it(`reveals the caught-error bands over one explosion cycle`, async () => {
 	const image = card.querySelector(`img`)!
 	expect(image.src).toContain(`kablooey.png`)
 	image.dispatchEvent(new Event(`load`))
+	await vi.advanceTimersByTimeAsync(0)
 	expect(card.dataset[`caught`]).toBe(`revealing`)
 	expect(
 		image
@@ -1733,6 +1737,7 @@ it(`reveals the caught-error bands over one explosion cycle`, async () => {
 	expect(card.dataset[`caught`]).toBe(`revealing`)
 	await vi.advanceTimersByTimeAsync(1)
 	image.dispatchEvent(new Event(`animationend`))
+	await vi.advanceTimersByTimeAsync(0)
 	expect(card.querySelector(`img`)).toBeNull()
 	expect(card.dataset[`caught`]).toBe(`true`)
 	f.silo.atom<number>({ key: `new`, default: 0 })
@@ -1740,56 +1745,106 @@ it(`reveals the caught-error bands over one explosion cycle`, async () => {
 	expect(card.querySelector(`img`)).toBeNull()
 })
 
+it.each([`error`, `animationcancel`] as const)(
+	`keeps the caught-error bands after an explosion %s event`,
+	async (event) => {
+		const f = setup()
+		const media = window.matchMedia(`(prefers-reduced-motion: reduce)`)
+		Object.defineProperty(media, `matches`, { value: false })
+		vi.mocked(window.matchMedia).mockReturnValue(media)
+		const transportAtom = f.silo.atom<number | Error, Error>({
+			key: `transport`,
+			default: 0,
+			catch: [Error],
+		})
+		f.mount()
+		await settle()
+		const card = f.host.querySelector<HTMLButtonElement>(
+			`ecology-node-card button[data-graph-id="state:transport"]`,
+		)!
+
+		f.silo.setState(transportAtom, new Error(`carrier unavailable`))
+		await vi.advanceTimersByTimeAsync(30)
+		expect(card.dataset[`caught`]).toBe(`burst`)
+		const image = card.querySelector(`img`)!
+		if (event === `animationcancel`) {
+			image.dispatchEvent(new Event(`load`))
+			await vi.advanceTimersByTimeAsync(0)
+			expect(card.dataset[`caught`]).toBe(`revealing`)
+		}
+		image.dispatchEvent(new Event(event))
+		await vi.advanceTimersByTimeAsync(0)
+		expect(card.querySelector(`[data-error-reveal]`)).toBeNull()
+		expect(card.dataset[`caught`]).toBe(`true`)
+		await settle()
+	},
+)
+
 it(`ignores obsolete explosion events and cleans up without a CSS animation`, async () => {
-	const button = document.createElement(`button`)
 	const media = window.matchMedia(`(prefers-reduced-motion: reduce)`)
 	Object.defineProperty(media, `matches`, { value: false, writable: true })
-	const feedback = createCardFeedback(button, media)
+	const onChange = vi.fn<(state: CardFeedbackState) => void>()
+	const feedback = createCardFeedback(window, media, onChange)
+	const caught = () => onChange.mock.lastCall?.[0].caught
+	const replay = () => {
+		const active = caught()
+		if (!active || active.phase === `true`)
+			throw new Error(`Expected an active explosion`)
+		return active.replay
+	}
+
 	feedback.error(true, true)
-	const obsolete = button.querySelector(`img`)!
+	const obsolete = replay()
 	feedback.error(true, true)
-	const active = button.querySelector(`img`)!
-	obsolete.dispatchEvent(new Event(`load`))
-	obsolete.dispatchEvent(new Event(`animationcancel`))
-	expect(button.dataset[`caught`]).toBe(`burst`)
-	expect(button.querySelector(`img`)).toBe(active)
-	active.dispatchEvent(new Event(`load`))
-	expect(button.dataset[`caught`]).toBe(`revealing`)
+	const active = replay()
+	expect(active).not.toBe(obsolete)
+	feedback.imageLoaded(obsolete)
+	feedback.finishError(obsolete)
+	expect(caught()).toEqual({ phase: `burst`, replay: active })
+	feedback.imageLoaded(active)
+	expect(caught()).toEqual({ phase: `revealing`, replay: active })
 	await vi.advanceTimersByTimeAsync(1_800)
-	expect(button.querySelector(`img`)).toBeNull()
-	expect(button.dataset[`caught`]).toBe(`true`)
+	expect(caught()).toEqual({ phase: `true` })
 
 	feedback.error(true, true)
 	Object.defineProperty(media, `matches`, { value: true })
-	button.querySelector(`img`)!.dispatchEvent(new Event(`load`))
-	expect(button.querySelector(`img`)).toBeNull()
-	expect(button.dataset[`caught`]).toBe(`true`)
+	feedback.imageLoaded(replay())
+	expect(caught()).toEqual({ phase: `true` })
+
+	Object.defineProperty(media, `matches`, { value: false })
+	feedback.error(true, true)
+	const disposed = replay()
 	feedback.dispose()
+	onChange.mockClear()
+	feedback.imageLoaded(disposed)
+	feedback.finishError(disposed)
+	expect(onChange).not.toHaveBeenCalled()
+	expect(vi.getTimerCount()).toBe(0)
 })
 
 it(`animates completion when a Future resolves before the card observes it loading`, async () => {
-	const button = document.createElement(`button`)
-	const feedback = createCardFeedback(button, window.matchMedia(`all`))
+	const onChange = vi.fn<(state: CardFeedbackState) => void>()
+	const feedback = createCardFeedback(window, window.matchMedia(`all`), onChange)
 	feedback.future(false, true, new Set([`resolved`]))
-	expect(button.dataset[`future`]).toBe(`done`)
+	expect(onChange.mock.lastCall?.[0].future).toBe(`done`)
 	await vi.advanceTimersByTimeAsync(1_000)
-	expect(button.dataset[`future`]).toBe(`complete`)
+	expect(onChange.mock.lastCall?.[0].future).toBe(`complete`)
 	feedback.dispose()
 })
 
 it(`shows a second windback if the Future is replaced during windback`, async () => {
-	const button = document.createElement(`button`)
-	const feedback = createCardFeedback(button, window.matchMedia(`all`))
+	const onChange = vi.fn<(state: CardFeedbackState) => void>()
+	const feedback = createCardFeedback(window, window.matchMedia(`all`), onChange)
 	feedback.future(true, false)
 	await vi.advanceTimersByTimeAsync(1_000)
 	feedback.future(true, false, new Set([`replaced`]))
-	expect(button.dataset[`future`]).toBe(`windback`)
+	expect(onChange.mock.lastCall?.[0].future).toBe(`windback`)
 	await vi.advanceTimersByTimeAsync(250)
 	feedback.future(true, false, new Set([`replaced`]))
 	await vi.advanceTimersByTimeAsync(250)
-	expect(button.dataset[`future`]).toBe(`windback`)
+	expect(onChange.mock.lastCall?.[0].future).toBe(`windback`)
 	await vi.advanceTimersByTimeAsync(500)
-	expect(button.dataset[`future`]).toBe(`loading`)
+	expect(onChange.mock.lastCall?.[0].future).toBe(`loading`)
 	feedback.dispose()
 })
 

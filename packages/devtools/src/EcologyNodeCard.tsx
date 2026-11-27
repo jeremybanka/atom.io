@@ -7,12 +7,18 @@ import type { Scene } from "three"
 // eslint-disable-next-line import/extensions -- Three addon exports require the .js suffix.
 import { CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js"
 
+import kablooey from "./assets/kablooey.png"
 import {
 	ecologyLoadState,
 	ecologyOperationLabels,
 	ecologyTimelinePosition,
 } from "./ecology.ts"
-import { createCardFeedback } from "./ecology-card-feedback.ts"
+import {
+	type CardFeedbackState,
+	createCardFeedback,
+	EXPLOSION_FRAMES,
+	EXPLOSION_MS,
+} from "./ecology-card-feedback.ts"
 import type { GraphItem } from "./ecology-graph.ts"
 import type { ProjectedEdge } from "./ecology-lines.ts"
 import { type createEcologyMotion, FAMILY_SPRING } from "./ecology-motion.ts"
@@ -100,7 +106,50 @@ export function EcologyNodeCard(props: {
 		return `value` in source && !peekState(props.tools.store, source.key).present
 	}
 	const empty: readonly ProjectedEdge[] = []
-	const [pathCount, setPathCount] = useLocal(useStore(), 0)
+	const store = useStore()
+	const [pathCount, setPathCount] = useLocal(store, 0)
+	const [feedbackState, setFeedbackState] = useLocal<CardFeedbackState>(store, {
+		future: undefined,
+		caught: undefined,
+	})
+	const futureDescription = () => {
+		switch (feedbackState().future) {
+			case `loading`:
+				return `Loading`
+			case `windback`:
+				return `Load restarted`
+			case `done`:
+			case `complete`:
+				return `Load complete`
+			case undefined:
+				return undefined
+		}
+	}
+	let feedback: ReturnType<typeof createCardFeedback> | undefined
+	const errorReveal = () => {
+		const { caught } = feedbackState()
+		if (!caught || caught.phase === `true`) return null
+		const { replay } = caught
+		return (
+			<span
+				key={replay}
+				data-error-reveal
+				aria-hidden="true"
+				style={`--ecology-explosion-duration: ${EXPLOSION_MS}ms; --ecology-explosion-frames: ${EXPLOSION_FRAMES}`}
+			>
+				<span data-explosion>
+					<img
+						alt=""
+						onLoad={() => feedback?.imageLoaded(replay)}
+						onError={() => feedback?.finishError(replay)}
+						onAnimationEnd={() => feedback?.finishError(replay)}
+						onAnimationCancel={() => feedback?.finishError(replay)}
+						src={kablooey}
+					/>
+				</span>
+			</span>
+		)
+	}
 	const paths = new Map<number, SVGPathElement>()
 	const paintPath = (
 		node: SVGPathElement,
@@ -181,7 +230,12 @@ export function EcologyNodeCard(props: {
 			},
 		)
 		if (`kind` in props.item.source) {
-			const feedback = createCardFeedback(button!, props.reducedMotion)
+			const controller = createCardFeedback(
+				button!.ownerDocument.defaultView!,
+				props.reducedMotion,
+				setFeedbackState,
+			)
+			feedback = controller
 			let lastCaught: unknown
 			let feedbackRevision = 0
 			let feedbackItem: GraphItem | undefined
@@ -201,7 +255,7 @@ export function EcologyNodeCard(props: {
 						item.key,
 					)
 					if (definition && status) props.completedLoads.delete(definition)
-					feedback.future(
+					controller.future(
 						status === `pending`,
 						definition !== undefined && props.completedLoads.has(definition),
 						events,
@@ -209,12 +263,12 @@ export function EcologyNodeCard(props: {
 					const caught = status === `caught`
 					const nextCaught = caught ? raw : undefined
 					if (!Object.is(nextCaught, lastCaught)) {
-						feedback.error(caught, fresh)
+						controller.error(caught, fresh)
 						lastCaught = nextCaught
 					}
 				},
 			)
-			onCleanup(feedback.dispose)
+			onCleanup(controller.dispose)
 		}
 		onCleanup(() => {
 			flash?.cancel()
@@ -284,7 +338,10 @@ export function EcologyNodeCard(props: {
 				data-graph-id={props.item.id}
 				data-history-owner={props.item.history ? props.item.familyId : undefined}
 				data-history-event={props.item.history?.identity}
+				data-future={feedbackState().future}
+				data-caught={feedbackState().caught?.phase}
 				aria-label={description()}
+				aria-description={futureDescription()}
 				aria-pressed={props.selected}
 				aria-expanded={props.expanded}
 				onPointerDown={(event) => {
@@ -300,6 +357,13 @@ export function EcologyNodeCard(props: {
 					<EcologyPrimitiveIcon source={props.item.source} placement="detail" />
 					{detail(props.item.source)}
 				</small>
+				{feedbackState().future && (
+					<span data-future-indicator aria-hidden="true">
+						<span data-loading-glyph />
+						<span data-done-glyph>✓</span>
+					</span>
+				)}
+				{errorReveal()}
 			</button>
 		</ecology-node-card>
 	)

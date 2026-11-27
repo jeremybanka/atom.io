@@ -71,19 +71,19 @@ ecology-node-card.class {
 		border: 1px solid var(--ecology-color);
 		box-shadow: 0 2px 6px #0002;
 		cursor: pointer;
-		> [data-error-reveal] {
+		> span[data-error-reveal] {
 			position: absolute;
 			inset: 0;
 			border-radius: inherit;
 			pointer-events: none;
 		}
-		&[data-caught="burst"] > [data-error-reveal] {
+		&[data-caught="burst"] > span[data-error-reveal] {
 			visibility: hidden;
 		}
 		&[data-caught="true"]::before,
 		&[data-caught="true"]::after,
-		> [data-error-reveal]::before,
-		> [data-error-reveal]::after {
+		> span[data-error-reveal]::before,
+		> span[data-error-reveal]::after {
 			content: "";
 			position: absolute;
 			inset-inline: 1px;
@@ -96,31 +96,34 @@ ecology-node-card.class {
 			pointer-events: none;
 		}
 		&[data-caught="true"]::before,
-		> [data-error-reveal]::before {
+		> span[data-error-reveal]::before {
 			top: 0;
 			border-radius: inherit;
 		}
 		&[data-caught="true"]::after,
-		> [data-error-reveal]::after {
+		> span[data-error-reveal]::after {
 			bottom: 0;
 		}
 		@media (prefers-reduced-motion: no-preference) {
-			&[data-caught="revealing"] > [data-error-reveal]::before,
-			&[data-caught="revealing"] > [data-error-reveal]::after {
+			&[data-caught="revealing"] > span[data-error-reveal]::before,
+			&[data-caught="revealing"] > span[data-error-reveal]::after {
 				animation: ecology-reveal-band 320ms ease-out both;
 			}
-			> [data-error-reveal]::before {
+			> span[data-error-reveal]::before {
 				--ecology-band-start: inset(0 0 100% 0);
 			}
-			> [data-error-reveal]::after {
+			> span[data-error-reveal]::after {
 				--ecology-band-start: inset(100% 0 0 0);
 			}
-			&[data-caught="revealing"] [data-explosion] > img {
+			&[data-caught="revealing"]
+				> span[data-error-reveal]
+				> span[data-explosion]
+				> img {
 				animation: ecology-explosion var(--ecology-explosion-duration)
 					steps(var(--ecology-explosion-frames), end) both;
 			}
 		}
-		> [data-error-reveal] > [data-explosion] {
+		> span[data-error-reveal] > span[data-explosion] {
 			position: absolute;
 			top: -12px;
 			right: -7px;
@@ -138,7 +141,7 @@ ecology-node-card.class {
 				display: none;
 			}
 		}
-		> [data-future-indicator] {
+		> span[data-future-indicator] {
 			display: none;
 			position: absolute;
 			top: 5px;
@@ -150,7 +153,7 @@ ecology-node-card.class {
 			background: var(--surface-inactive);
 			color: var(--ecology-color);
 			pointer-events: none;
-			> [data-loading-glyph] {
+			> span[data-loading-glyph] {
 				width: 12px;
 				height: 12px;
 				box-sizing: border-box;
@@ -159,7 +162,7 @@ ecology-node-card.class {
 				border-radius: inherit;
 				animation: ecology-load 1s infinite;
 			}
-			> [data-done-glyph] {
+			> span[data-done-glyph] {
 				display: none;
 				font: 700 13px/1 system-ui, sans-serif;
 			}
@@ -168,36 +171,36 @@ ecology-node-card.class {
 			> strong, > small {
 				padding-right: 17px;
 			}
-			> [data-future-indicator] {
+			> span[data-future-indicator] {
 				display: grid;
 			}
 		}
-		&[data-future="windback"] > [data-future-indicator] {
+		&[data-future="windback"] > span[data-future-indicator] {
 			color: #e8ad43;
-			> [data-loading-glyph] {
+			> span[data-loading-glyph] {
 				animation: ecology-windback 500ms ease-out both;
 			}
 		}
 		&:is([data-future="done"], [data-future="complete"])
-			> [data-future-indicator] {
-			> [data-loading-glyph] {
+			> span[data-future-indicator] {
+			> span[data-loading-glyph] {
 				display: none;
 			}
-			> [data-done-glyph] {
+			> span[data-done-glyph] {
 				display: block;
 			}
 		}
-		&[data-future="done"] > [data-future-indicator] {
+		&[data-future="done"] > span[data-future-indicator] {
 			background: #176345;
 			color: #fff;
 			animation: ecology-complete 1s both;
 		}
-		&[data-future="complete"] > [data-future-indicator] {
+		&[data-future="complete"] > span[data-future-indicator] {
 			color: var(--ink-muted);
 		}
 		@media (prefers-reduced-motion: reduce) {
-			&[data-future="done"] > [data-future-indicator],
-			&[data-future] > [data-future-indicator] > [data-loading-glyph] {
+			&[data-future="done"] > span[data-future-indicator],
+			&[data-future] > span[data-future-indicator] > span[data-loading-glyph] {
 				animation: none;
 			}
 		}

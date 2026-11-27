@@ -1,12 +1,18 @@
 import type { FutureActivity } from "atom.io/introspection"
 
-import kablooey from "./assets/kablooey.png"
-
 const CYCLE_MS = 1_000
 const WINDBACK_MS = 500
 // The strip preserves the supplied GIF's composited frames and timing.
-const EXPLOSION_FRAMES = 17
-const EXPLOSION_MS = EXPLOSION_FRAMES * 100
+export const EXPLOSION_FRAMES = 17
+export const EXPLOSION_MS: number = EXPLOSION_FRAMES * 100
+
+export type CardFeedbackState = {
+	future: `loading` | `windback` | `done` | `complete` | undefined
+	caught:
+		| { phase: `true` }
+		| { phase: `burst` | `revealing`; replay: number }
+		| undefined
+}
 
 interface CardFeedback {
 	future(
@@ -15,54 +21,28 @@ interface CardFeedback {
 		events?: ReadonlySet<FutureActivity>,
 	): void
 	error(caught: boolean, animate: boolean): void
+	imageLoaded(replay: number): void
+	finishError(replay: number): void
 	dispose(): void
 }
 
 export function createCardFeedback(
-	button: HTMLButtonElement,
+	clock: Pick<Window, `setTimeout` | `clearTimeout`>,
 	reducedMotion: MediaQueryList,
+	onChange: (state: CardFeedbackState) => void,
 ): CardFeedback {
-	const view = button.ownerDocument.defaultView!
-	let phase: `loading` | `windback` | `done` | `complete` | undefined
+	let state: CardFeedbackState = { future: undefined, caught: undefined }
 	let phaseTimer: number | undefined
-	let indicator: HTMLSpanElement | undefined
 	let pending = false
 	let windback = false
 	let completed = false
-	const show = (next: typeof phase) => {
-		phase = next
-		if (next) {
-			if (!indicator) {
-				const document = button.ownerDocument
-				indicator = document.createElement(`span`)
-				indicator.dataset[`futureIndicator`] = ``
-				indicator.setAttribute(`aria-hidden`, `true`)
-				const loading = document.createElement(`span`)
-				loading.dataset[`loadingGlyph`] = ``
-				const done = document.createElement(`span`)
-				done.dataset[`doneGlyph`] = ``
-				done.textContent = `✓`
-				indicator.append(loading, done)
-				button.append(indicator)
-			}
-			button.dataset[`future`] = next
-			button.setAttribute(
-				`aria-description`,
-				next === `done` || next === `complete`
-					? `Load complete`
-					: next === `windback`
-						? `Load restarted`
-						: `Loading`,
-			)
-		} else {
-			indicator?.remove()
-			indicator = undefined
-			delete button.dataset[`future`]
-			button.removeAttribute(`aria-description`)
-		}
+	const show = (future: CardFeedbackState[`future`]) => {
+		if (state.future === future) return
+		state = { ...state, future }
+		onChange(state)
 	}
 	const hold = (duration: number, next: () => void) => {
-		phaseTimer = view.setTimeout(() => {
+		phaseTimer = clock.setTimeout(() => {
 			phaseTimer = undefined
 			next()
 		}, duration)
@@ -80,12 +60,17 @@ export function createCardFeedback(
 			})
 		} else show(undefined)
 	}
-	let explosion: HTMLSpanElement | undefined
+	let lastReplay = 0
 	let explosionTimer: number | undefined
-	const clearExplosion = () => {
-		view.clearTimeout(explosionTimer)
-		explosion?.remove()
-		explosion = undefined
+	const showError = (caught: CardFeedbackState[`caught`]) => {
+		state = { ...state, caught }
+		onChange(state)
+	}
+	const finishError = (replay: number) => {
+		const { caught } = state
+		if (!caught || caught.phase === `true` || caught.replay !== replay) return
+		clock.clearTimeout(explosionTimer)
+		showError({ phase: `true` })
 	}
 	return {
 		future(
@@ -98,83 +83,53 @@ export function createCardFeedback(
 			pending = nextPending
 			completed = nextCompleted
 			if (started) {
-				view.clearTimeout(phaseTimer)
+				clock.clearTimeout(phaseTimer)
 				windback = false
 				show(`loading`)
 				hold(CYCLE_MS, advance)
 			}
 			if (
 				events?.has(`replaced`) &&
-				(phase === `loading` || phase === `windback`)
+				(state.future === `loading` || state.future === `windback`)
 			)
 				windback = true
-			if (phaseTimer === undefined && phase === `loading`) advance()
-			else if (!phase && completed) {
+			if (phaseTimer === undefined && state.future === `loading`) advance()
+			else if (!state.future && completed) {
 				if (events?.has(`resolved`)) advance()
 				else show(`complete`)
-			} else if (!completed && (phase === `done` || phase === `complete`)) {
-				view.clearTimeout(phaseTimer)
+			} else if (
+				!completed &&
+				(state.future === `done` || state.future === `complete`)
+			) {
+				clock.clearTimeout(phaseTimer)
 				phaseTimer = undefined
 				show(undefined)
 			}
 		},
 		error(caught: boolean, animate: boolean): void {
-			clearExplosion()
-			if (!caught) {
-				delete button.dataset[`caught`]
+			clock.clearTimeout(explosionTimer)
+			if (!caught) showError(undefined)
+			else if (!animate || reducedMotion.matches) showError({ phase: `true` })
+			else showError({ phase: `burst`, replay: ++lastReplay })
+		},
+		imageLoaded(replay: number): void {
+			const { caught } = state
+			if (caught?.phase !== `burst` || caught.replay !== replay) return
+			if (reducedMotion.matches) {
+				finishError(replay)
 				return
 			}
-			button.dataset[`caught`] = `true`
-			if (!animate || reducedMotion.matches) return
-			const document = button.ownerDocument
-			const reveal = document.createElement(`span`)
-			reveal.dataset[`errorReveal`] = ``
-			reveal.setAttribute(`aria-hidden`, `true`)
-			reveal.style.setProperty(
-				`--ecology-explosion-duration`,
-				`${EXPLOSION_MS}ms`,
-			)
-			reveal.style.setProperty(
-				`--ecology-explosion-frames`,
-				String(EXPLOSION_FRAMES),
-			)
-			const viewport = document.createElement(`span`)
-			viewport.dataset[`explosion`] = ``
-			const image = document.createElement(`img`)
-			image.alt = ``
-			viewport.append(image)
-			reveal.append(viewport)
-			explosion = reveal
-			button.dataset[`caught`] = `burst`
-			const finish = () => {
-				if (explosion !== reveal) return
-				clearExplosion()
-				button.dataset[`caught`] = `true`
-			}
-			image.addEventListener(
-				`load`,
-				() => {
-					if (explosion !== reveal) return
-					if (reducedMotion.matches) {
-						finish()
-						return
-					}
-					button.dataset[`caught`] = `revealing`
-					// The sprite normally finishes on animationend. Clean up if CSS never animates it.
-					explosionTimer = view.setTimeout(finish, EXPLOSION_MS + 100)
-				},
-				{ once: true },
-			)
-			image.addEventListener(`error`, finish, { once: true })
-			image.addEventListener(`animationend`, finish, { once: true })
-			image.addEventListener(`animationcancel`, finish, { once: true })
-			image.src = kablooey
-			button.append(reveal)
+			showError({ phase: `revealing`, replay })
+			// Finish if the stylesheet does not dispatch an animation event.
+			explosionTimer = clock.setTimeout(() => {
+				finishError(replay)
+			}, EXPLOSION_MS + 100)
 		},
+		finishError,
 		dispose(): void {
-			view.clearTimeout(phaseTimer)
-			indicator?.remove()
-			clearExplosion()
+			clock.clearTimeout(phaseTimer)
+			clock.clearTimeout(explosionTimer)
+			state = { future: undefined, caught: undefined }
 		},
 	}
 }

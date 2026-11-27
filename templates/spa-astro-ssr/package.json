@@ -49,7 +49,7 @@
 		"@types/node": "26.6.11",
 		"galley.md": "0.3.1",
 		"oxlint": "1.95.0",
-		"oxlint-tsgolint": "7.0.2008",
+		"oxlint-tsgolint": "7.0.2009",
 		"playwright": "1.65.1",
 		"typescript": "7.1.0-dev.20261126.1",
 		"vite": "8.3.8"

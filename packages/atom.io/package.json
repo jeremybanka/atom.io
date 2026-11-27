@@ -1,6 +1,6 @@
 {
 	"name": "atom.io",
-	"version": "0.54.14",
+	"version": "0.54.15",
 	"description": "Versatile state engine for TypeScript applications.",
 	"homepage": "https://atom.io.fyi",
 	"repository": {

@@ -35,11 +35,8 @@ function fixture() {
 		namespace: `test`,
 		presence: createPresence,
 		attach() {
-			let props: Record<string, unknown> = {}
 			return {
-				update(next) {
-					props = next
-				},
+				update() {},
 				dispose() {},
 				exit(next) {
 					if (!next[`exit`]) return undefined
@@ -52,9 +49,7 @@ function fixture() {
 					pending.push({ finish, cancel, handle })
 					return handle
 				},
-				resume() {
-					void props
-				},
+				resume() {},
 			}
 		},
 	}

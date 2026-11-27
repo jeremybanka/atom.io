@@ -102,7 +102,8 @@ export function EcologyNodeCard(props: {
 	}
 	const uncached = () => {
 		const source = props.item.source
-		void props.activity
+		// Refresh the cache check when the node's activity changes.
+		props.activity
 		return `value` in source && !peekState(props.tools.store, source.key).present
 	}
 	const empty: readonly ProjectedEdge[] = []

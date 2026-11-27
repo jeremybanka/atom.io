@@ -348,7 +348,7 @@ export function Examples(props: {
 // against the package exports, including in the packed Breakage consumers.
 export function Rejections(): JSX.Element[] {
 	const textareaRef = (element: HTMLTextAreaElement | null): void => {
-		void element?.rows
+		element?.rows
 	}
 	const inputRef = (element: HTMLInputElement | null): void => {
 		element?.select()

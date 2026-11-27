@@ -31,10 +31,8 @@ export async function contracts(scope: Resumption): Promise<void> {
 	const current: ServerCollection | undefined = currentCollection()
 	const rendered = await owned.collect(() => 1, { drain: false })
 	const value: number = rendered.value
-	void [current, value]
 	owned.dispose()
 	const text: string = serialize(payload)
-	void text
 	createResumption(payload).dispose()
 	// @ts-expect-error Client defaults must match the server value.
 	void resumable({ key: `number`, server: () => 1, client: () => `wrong` })

@@ -10,4 +10,4 @@ const resetButton = (
 )
 // @exhibit-region end reset-button
 
-void resetButton
+export { resetButton }

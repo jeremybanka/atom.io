@@ -71,7 +71,6 @@ ecology-node-card.class {
 		border: 1px solid var(--ecology-color);
 		box-shadow: 0 2px 6px #0002;
 		cursor: pointer;
-		/* @lasertag-disable [dead-selector] createCardFeedback appends these spans at runtime */
 		> span[data-error-reveal] {
 			position: absolute;
 			inset: 0;
@@ -205,7 +204,6 @@ ecology-node-card.class {
 				animation: none;
 			}
 		}
-		/* @lasertag-enable [dead-selector] */
 		> strong, > small {
 			display: block;
 			overflow: hidden;

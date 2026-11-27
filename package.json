@@ -99,7 +99,7 @@
 		"tonnage": "0.5.2",
 		"turbo": "2.11.13",
 		"typescript": "7.0.2",
-		"vitest": "5.1.1"
+		"vitest": "5.1.2"
 	},
 	"packageManager": "pnpm@12.23.0",
 	"engines": {

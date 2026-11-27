@@ -4,7 +4,7 @@ const CYCLE_MS = 1_000
 const WINDBACK_MS = 500
 // The strip preserves the supplied GIF's composited frames and timing.
 export const EXPLOSION_FRAMES = 17
-export const EXPLOSION_MS = EXPLOSION_FRAMES * 100
+export const EXPLOSION_MS: number = EXPLOSION_FRAMES * 100
 
 export type CardFeedbackState = {
 	future: `loading` | `windback` | `done` | `complete` | undefined

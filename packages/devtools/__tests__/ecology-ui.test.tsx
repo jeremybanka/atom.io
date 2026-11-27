@@ -1745,6 +1745,41 @@ it(`reveals the caught-error bands over one explosion cycle`, async () => {
 	expect(card.querySelector(`img`)).toBeNull()
 })
 
+it.each([`error`, `animationcancel`] as const)(
+	`keeps the caught-error bands after an explosion %s event`,
+	async (event) => {
+		const f = setup()
+		const media = window.matchMedia(`(prefers-reduced-motion: reduce)`)
+		Object.defineProperty(media, `matches`, { value: false })
+		vi.mocked(window.matchMedia).mockReturnValue(media)
+		const transportAtom = f.silo.atom<number | Error, Error>({
+			key: `transport`,
+			default: 0,
+			catch: [Error],
+		})
+		f.mount()
+		await settle()
+		const card = f.host.querySelector<HTMLButtonElement>(
+			`ecology-node-card button[data-graph-id="state:transport"]`,
+		)!
+
+		f.silo.setState(transportAtom, new Error(`carrier unavailable`))
+		await vi.advanceTimersByTimeAsync(30)
+		expect(card.dataset[`caught`]).toBe(`burst`)
+		const image = card.querySelector(`img`)!
+		if (event === `animationcancel`) {
+			image.dispatchEvent(new Event(`load`))
+			await vi.advanceTimersByTimeAsync(0)
+			expect(card.dataset[`caught`]).toBe(`revealing`)
+		}
+		image.dispatchEvent(new Event(event))
+		await vi.advanceTimersByTimeAsync(0)
+		expect(card.querySelector(`[data-error-reveal]`)).toBeNull()
+		expect(card.dataset[`caught`]).toBe(`true`)
+		await settle()
+	},
+)
+
 it(`ignores obsolete explosion events and cleans up without a CSS animation`, async () => {
 	const media = window.matchMedia(`(prefers-reduced-motion: reduce)`)
 	Object.defineProperty(media, `matches`, { value: false, writable: true })

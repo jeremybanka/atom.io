@@ -6,8 +6,6 @@ import {
 } from "resumability/astro-client"
 import { requestResumption, resumableRenderer } from "resumability/astro-server"
 
-export { resumableRenderer }
-
 export const config = defineConfig({
 	integrations: [resumability()],
 	vite: { plugins: [resumablePlugin()] },

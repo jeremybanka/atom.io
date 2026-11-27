@@ -10,7 +10,4 @@ write(`wrong`)
 StoreProvider({ children: undefined })
 
 type IsAny<T> = 0 extends 1 & T ? true : false
-export const typed: [IsAny<typeof StoreProvider>, IsAny<typeof useO>] = [
-	false,
-	false,
-]
+const typed: [IsAny<typeof StoreProvider>, IsAny<typeof useO>] = [false, false]

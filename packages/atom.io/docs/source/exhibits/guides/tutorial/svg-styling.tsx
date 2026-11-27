@@ -18,5 +18,3 @@ const gridFill = (
 	/>
 )
 // @exhibit-region end grid-fill
-
-export { gridFill, stageFill }

@@ -149,6 +149,27 @@ async function connected(setup: ReturnType<typeof scenario>): Promise<{
 }
 
 describe(`realtime push leases`, () => {
+	test.each([0, 90])(
+		`rejects a renewal interval of %i ms for a 90 ms lease`,
+		(renewAfterMs) => {
+			const silo = new AtomIO.Silo(
+				{ isProduction: false, lifespan: `ephemeral`, name: `LEASE-SERVER` },
+				IMPLICIT.STORE,
+			)
+			const receive = RTS.realtimeStateReceiver({
+				consumer: `user::alice`,
+				socket: new TestSocket(),
+				store: silo.store,
+			})
+			expect(() =>
+				receive(type(`number`), countAtom, serverCountAtom, {
+					leaseDurationMs: 90,
+					renewAfterMs,
+				}),
+			).toThrow(`renewAfterMs must be positive and shorter than the lease`)
+		},
+	)
+
 	test(`hands ownership to a FIFO waiter when the owner disconnects`, async () => {
 		const setup = scenario(new ManualClock())
 		const { alice, bob } = await connected(setup)

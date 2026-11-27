@@ -188,6 +188,7 @@ export function DebuggerPanel(props: {
 				) : null}
 				{picker && open() && !hidden() ? (
 					<StorePickerControl
+						/* @lasertag-adopt-subtree */
 						picker={picker}
 						store={props.store}
 						menuId={panelId + `-stores`}

@@ -32,7 +32,7 @@ event-view.class {
 	}
 	& > event-heading > button[data-timeline-label] {
 		width: auto;
-		> [data-timeline-caret] {
+		> span[data-timeline-caret] {
 			display: grid;
 			place-items: center;
 			width: 22px;
@@ -47,7 +47,7 @@ event-view.class {
 		outline: 2px solid var(--ink-strong);
 		outline-offset: -2px;
 	}
-	& > p[data-change] > [data-kind="number"] {
+	& > p[data-change] > :is(del, ins)[data-kind="number"] {
 		display: inline-block;
 		min-width: 3ch;
 		text-align: right;
@@ -140,11 +140,11 @@ event-view.class {
 	&[data-timeline-event] > event-heading {
 		> button:is([data-graph-id], [data-timeline-label]) {
 			padding-inline-end: 0;
-			> [data-timeline-kind] {
+			> small[data-timeline-kind] {
 				flex-shrink: 3;
 			}
 		}
-		> [data-timeline-tail], > button > [data-timeline-tail] {
+		> span[data-timeline-tail], > button > span[data-timeline-tail] {
 			display: flex;
 			align-items: center;
 			justify-content: flex-end;
@@ -155,26 +155,26 @@ event-view.class {
 			margin-inline-start: auto;
 			padding-inline: 6px;
 			font-size: 11px;
-			> [data-redo-next] {
+			> small[data-redo-next] {
 				color: var(--timeline-accent);
 				flex-shrink: 0;
 			}
-			> [data-timeline-summary] {
+			> small[data-timeline-summary] {
 				min-inline-size: 0;
 				overflow: hidden;
 				text-overflow: ellipsis;
 				line-height: 16px;
 				color: var(--ink-muted);
-				&:has(> [data-summary-values]) {
+				&:has(> span[data-summary-values]) {
 					display: flex;
 					align-items: center;
 					gap: 6px;
 				}
-				> [data-summary-label] {
+				> span[data-summary-label] {
 					overflow: hidden;
 					text-overflow: ellipsis;
 				}
-				> [data-summary-values] {
+				> span[data-summary-values] {
 					display: flex;
 					align-items: center;
 					gap: 4px;
@@ -216,14 +216,14 @@ event-view.class {
 			color: var(--accent);
 			font-size: 11px;
 			line-height: 16px;
-			> [data-outcome-link-label] {
+			> span[data-outcome-link-label] {
 				overflow: hidden;
 				text-overflow: ellipsis;
 			}
-			> [data-outcome-link-icon] {
+			> span[data-outcome-link-icon] {
 				flex-shrink: 0;
 			}
-			&:hover > [data-outcome-link-label] {
+			&:hover > span[data-outcome-link-label] {
 				text-decoration: underline;
 			}
 		}
@@ -242,10 +242,13 @@ event-view.class {
 		}
 	}
 	&[data-timeline-state="future"]
-		> event-heading :is(strong, [data-timeline-kind]) {
+		> event-heading > :is(strong, small[data-timeline-kind]),
+	&[data-timeline-state="future"]
+		> event-heading > button > :is(strong, small[data-timeline-kind]) {
 		color: var(--ink-muted);
 	}
-	[data-timeline-kind] {
+	> event-heading > small[data-timeline-kind],
+	> event-heading > button > small[data-timeline-kind] {
 		min-width: 0;
 		overflow: hidden;
 		text-overflow: ellipsis;

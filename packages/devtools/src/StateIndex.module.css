@@ -40,9 +40,4 @@ state-index.class {
 		font-size: 11px;
 		margin-right: auto;
 	}
-	> article[data-index] > state-node > node-heading > [data-count] {
-		margin-left: auto;
-		margin-right: 6px;
-		font-variant-numeric: tabular-nums;
-	}
 }

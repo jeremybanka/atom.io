@@ -7,24 +7,24 @@ outcome-value-pair.class {
 		line-height: 18px;
 		overflow-wrap: anywhere;
 	}
-	> [data-value-columns] {
+	> value-snapshots[data-value-columns] {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		grid-template-rows: auto auto;
 		border-top: 1px solid var(--line);
 		&[data-full-comparison] {
-			> [data-value-side] > code {
+			> value-snapshot[data-value-side] > code {
 				max-block-size: 12rem;
 				overflow: auto;
 				scrollbar-gutter: stable;
 			}
 		}
-		> [data-value-side] {
+		> value-snapshot[data-value-side] {
 			display: grid;
 			grid-row: span 2;
 			grid-template-rows: subgrid;
 			min-width: 0;
-			& + [data-value-side] {
+			& + value-snapshot[data-value-side] {
 				border-inline-start: 1px solid var(--line);
 			}
 			> p {
@@ -55,13 +55,13 @@ outcome-value-pair.class {
 		}
 	}
 	@container atom-io-devtools (max-width: 360px) {
-		> [data-value-columns][data-full-comparison] {
+		> value-snapshots[data-value-columns][data-full-comparison] {
 			grid-template-columns: 1fr;
-			> [data-value-side] {
+			> value-snapshot[data-value-side] {
 				display: block;
 				grid-row: auto;
 			}
-			> [data-value-side] + [data-value-side] {
+			> value-snapshot[data-value-side] + value-snapshot[data-value-side] {
 				border-inline-start: 0;
 				border-block-start: 1px solid var(--line);
 			}

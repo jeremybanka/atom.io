@@ -10,7 +10,7 @@ timeline-history.class {
 	> section {
 		min-width: 0;
 	}
-	[data-cursor] {
+	> p[data-cursor], > section > p[data-cursor] {
 		display: flex;
 		align-items: center;
 		gap: 6px;
@@ -23,23 +23,23 @@ timeline-history.class {
 			display: inline-block;
 			vertical-align: middle;
 		}
-		> [data-cursor-label]::before {
+		> span[data-cursor-label]::before {
 			width: 5px;
 			height: 5px;
 			margin-inline-end: 6px;
 			background: currentColor;
 			border-radius: 50%;
 		}
-		> [data-cursor-track] {
+		> span[data-cursor-track] {
 			flex: 1;
 			&::before {
 				width: 100%;
 				border-block-start: 1px solid currentColor;
 			}
 		}
-		& + event-view {
-			border-top-color: transparent;
-		}
+	}
+	> section > p[data-cursor] + event-view {
+		border-top-color: transparent;
 	}
 	> p[data-empty-history] {
 		padding: 3px 6px 3px 22px;

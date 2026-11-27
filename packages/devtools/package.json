@@ -91,7 +91,7 @@
 		"@atom.io/spa": "workspace:*",
 		"@breakage/changesets": "0.1.0",
 		"@tsdown/css": "0.23.7",
-		"@types/node": "26.6.10",
+		"@types/node": "26.6.11",
 		"@types/react": "19.3.3",
 		"@types/react-dom": "19.3.0",
 		"@types/three": "0.187.0",

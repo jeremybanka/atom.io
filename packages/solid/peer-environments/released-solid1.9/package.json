@@ -9,7 +9,7 @@
 		"solid-js": "1.9.20"
 	},
 	"devDependencies": {
-		"@types/node": "26.6.10",
+		"@types/node": "26.6.11",
 		"typescript": "7.0.2"
 	},
 	"breakage": {

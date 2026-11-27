@@ -4,6 +4,6 @@
 	"private": true,
 	"type": "module",
 	"dependencies": { "astro": "7.4.13" },
-	"devDependencies": { "@types/node": "26.6.10", "typescript": "7.0.2" },
+	"devDependencies": { "@types/node": "26.6.11", "typescript": "7.0.2" },
 	"breakage": { "candidates": [] }
 }

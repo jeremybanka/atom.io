@@ -81,7 +81,7 @@
 	"dependencies": {
 		"arktype": "2.2.10",
 		"comline": "0.9.3",
-		"devalue": "6.0.3",
+		"devalue": "6.0.4",
 		"motion": "14.14.0",
 		"three": "0.187.0",
 		"ws": "8.23.0"

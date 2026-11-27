@@ -90,5 +90,3 @@ const residency = createMosaicDomainResidencyServer({
 		schema: textRangeSchema,
 	},
 })
-
-void residency

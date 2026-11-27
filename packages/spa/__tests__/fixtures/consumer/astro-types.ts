@@ -12,8 +12,7 @@ const factory: AstroStoreFactory<{ message: string }> = async (
 	props,
 	context,
 ) => {
-	const element: HTMLElement | undefined = context.element
-	void element
+	context.element satisfies HTMLElement | undefined
 	context.signal.throwIfAborted()
 	context.onCleanup(() => {})
 	await Promise.resolve(props.message)
@@ -29,8 +28,7 @@ export const invalid: AstroStoreFactory = () => 42
 
 export function contextContract(context: AstroStoreContext): void {
 	// @ts-expect-error SSR does not provide a browser element.
-	const host: HTMLElement = context.element
-	void host
+	context.element satisfies HTMLElement
 	// @ts-expect-error Cleanup registration requires a callback.
 	context.onCleanup(null)
 }
@@ -49,12 +47,10 @@ const prepare: AstroStorePreparation<{ message: string }> = async (
 	await resource
 	application.onCleanup(() => {})
 	application.signal.throwIfAborted()
-	const canResume: boolean = application.canResume
-	void canResume
+	application.canResume satisfies boolean
 	// @ts-expect-error The adapter owns hydration eligibility.
 	application.canResume = true
-	const key: string = store.config.name
-	void key
+	store.config.name satisfies string
 }
 App.prepareStore = prepare
 App.isolate = true

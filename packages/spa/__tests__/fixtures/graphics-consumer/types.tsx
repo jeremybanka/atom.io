@@ -49,7 +49,7 @@ const konvaEvents = (
 			event.currentTarget.width(event.evt.clientX)
 		}}
 		onPointerUp={(event) => {
-			void event.evt.pointerId
+			event.evt.pointerId
 		}}
 		onGotPointerCapture={(event) => {
 			const native: PointerEvent = event.evt
@@ -60,58 +60,56 @@ const konvaEvents = (
 			event.currentTarget.width(native.pointerId)
 		}}
 		onMouseEnter={(event) => {
-			void event.evt.clientX
+			event.evt.clientX
 		}}
 		onMouseLeave={(event) => {
-			void event.evt.relatedTarget
+			event.evt.relatedTarget
 		}}
 		onWheel={(event) => {
-			void event.evt.deltaY
+			event.evt.deltaY
 		}}
 		onDragStart={(event) => {
-			void event.evt.type
+			event.evt.type
 		}}
 		onDblClick={(event) => {
-			void event.evt.button
+			event.evt.button
 		}}
 		onTap={(event) => {
-			void event.evt.touches
+			event.evt.touches
 		}}
 		onContextMenu={(event) => {
-			void event.evt.clientX
+			event.evt.clientX
 		}}
 		onTransformEnd={(event) => {
 			event.currentTarget.width()
 			const native: MouseEvent | TouchEvent | PointerEvent | undefined =
 				event.evt
-			if (native) void native.type
+			if (native) native.type
 			// @ts-expect-error Programmatic stopTransform() has no native event.
-			void event.evt.type
+			event.evt.type
 		}}
 	/>
 )
 // @ts-expect-error A misspelled Konva handler is not an arbitrary config property.
 const misspelledKonvaEvent = <Rect onPointerMoev={() => {}} />
 const keyboardOnly = (event: { evt: KeyboardEvent }): void => {
-	void event.evt.key
+	event.evt.key
 }
 // @ts-expect-error Pointer events are not keyboard events.
 const wrongKonvaEvent = <Rect onPointerMove={keyboardOnly} />
 const requiresNativeEvent = (event: {
 	evt: MouseEvent | TouchEvent | PointerEvent
 }): void => {
-	void event.evt.type
+	event.evt.type
 }
 // @ts-expect-error Transform completion does not always include a native event.
 const unsafeTransformEnd = <Rect onTransformEnd={requiresNativeEvent} />
-void [konvaEvents, misspelledKonvaEvent, wrongKonvaEvent, unsafeTransformEnd]
 // @ts-expect-error: Three.js motion targets preserve tuple dimensions.
 const badVector = <Mesh motion:animate={{ position: [1, 2] }} />
 // @ts-expect-error: DOM keyframes contain scalar values.
 const badDOM = <sliding-panel motion:animate={{ x: [1, false, 3] }} />
 // @ts-expect-error: Motion transition options are checked against the installed peer.
 const badTransition = <sliding-panel motion:transition={{ stiffness: `fast` }} />
-void [scene, drawing, badVector, badDOM, badTransition]
 
 const input = (
 	<Mesh
@@ -121,20 +119,17 @@ const input = (
 			event.preventDefault()
 			event.setPointerCapture()
 			event.releasePointerCapture()
-			const native: PointerEvent = event.nativeEvent
-			void native
+			event.nativeEvent satisfies PointerEvent
 			// @ts-expect-error: A mesh currentTarget is not a DOM element.
 			event.currentTarget.style
 		}}
 	/>
 )
-void input
 
 // @ts-expect-error: Exit targets have the same native tuple constraints as animate targets.
 const badExit = <Mesh motion:exit={{ position: [1, 2] }} />
 // @ts-expect-error: DOM exits require at least two keyframes.
 const badDOMExit = <sliding-panel motion:exit={{ x: [1] }} />
-void [badExit, badDOMExit]
 
 const overlay = (
 	<div
@@ -155,7 +150,6 @@ const badPlacement = <div floating:placement="somewhere" />
 const badSceneFloating = <Mesh floating:placement="bottom" />
 // @ts-expect-error: References are DOM or virtual elements.
 const badReference = <div floating:reference="anchor" />
-void [badPlacement, badSceneFloating, badReference]
 
 const customGeometry = new THREE.ExtrudeGeometry(new THREE.Shape(), {
 	depth: 0.3,
@@ -170,14 +164,6 @@ const emptyMesh = <Mesh args={[]} />
 const badGeometry = <Mesh args={[`geometry`]} />
 // @ts-expect-error: Mesh materials must be Three Material instances.
 const badMaterial = <Mesh args={[customGeometry, [42]]} />
-void [
-	customMesh,
-	multiMaterialMesh,
-	defaultGeometryMesh,
-	emptyMesh,
-	badGeometry,
-	badMaterial,
-]
 
 const sequence = (
 	<sliding-panel
@@ -201,7 +187,6 @@ const badTimes = <sliding-panel motion:transition={{ times: [`slow`] }} />
 const badEase = <sliding-panel motion:transition={{ ease: [`linear`, `wat`] }} />
 // @ts-expect-error: Initial DOM targets are scalar values.
 const badInitial = <sliding-panel motion:initial={{ x: [0, 1] }} />
-void [sequence, badTimes, badEase, badInitial]
 
 const configuredCanvas = (
 	<Canvas
@@ -211,7 +196,8 @@ const configuredCanvas = (
 			renderer.render(nativeScene, camera)
 		}}
 		onResize={({ width, dpr }) => {
-			void [width, dpr]
+			width satisfies number
+			dpr satisfies number
 		}}
 	/>
 )
@@ -219,7 +205,6 @@ const configuredCanvas = (
 const badCanvasElement = <Canvas rendererOptions={{ canvas: undefined }} />
 // @ts-expect-error: DPR accepts a number or a pair of clamp bounds.
 const badDpr = <Canvas dpr={[1, 2, 3]} />
-void [configuredCanvas, badCanvasElement, badDpr]
 
 const projected = (
 	<section
@@ -238,4 +223,3 @@ const badLayoutMode = <section motion:layout="everything" />
 const badSceneLayout = <Mesh motion:layout />
 // @ts-expect-error: Shared layout identities are strings or numbers.
 const badLayoutId = <section motion:layoutId={{ id: 1 }} />
-void [badLayoutMode, badSceneLayout, badLayoutId]

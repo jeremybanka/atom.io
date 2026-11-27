@@ -73,8 +73,6 @@ const submission = await collaboration.submit(
 const result = await submission.settled
 if (result.status === `accepted`) {
 	const acceptedRevision = result.value.revision
-	void acceptedRevision
 } else if (result.status === `rejected`) {
 	const { code, reason, recovery } = result.rejection
-	void [code, reason, recovery]
 }

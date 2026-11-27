@@ -9,5 +9,3 @@ const resetButton = (
 	</button>
 )
 // @exhibit-region end reset-button
-
-void resetButton

@@ -34,10 +34,8 @@ export const component: Component<{
 	history: TimelineToken<any>
 	action: TransactionToken<(n: number) => string>
 }> = (props) => {
-	const store: RootStore = useStore()
-	void store
-	const dispose: typeof disposeState = useDisposal()
-	void dispose
+	useStore() satisfies RootStore
+	useDisposal() satisfies typeof disposeState
 	// @ts-expect-error The hook gets its store from context and takes no arguments.
 	useDisposal(props.count)
 	const getCount: Accessor<number> = useGetter(props.count)

@@ -9,19 +9,16 @@ const typed: [
 	IsAny<typeof Rules.exactCatchTypes>,
 	IsAny<typeof Rules.exactCatchTypes.create>,
 ] = [false, false, false]
-void typed
 const defaultOptions: [{ permitAnnotation?: boolean }] | undefined =
 	Rules.explicitStateTypes.defaultOptions
 const message: string = Rules.explicitStateTypes.meta.messages.noTypeArgument
 const docsUrl: string = Rules.namingConvention.meta.docs.url
 const effectMessage: string = Rules.banUseEffect.meta.messages.bannedUseEffect
-void [defaultOptions, message, docsUrl, effectMessage]
 // @ts-expect-error Named rules retain their specific message IDs.
 Rules.explicitStateTypes.meta.messages.nonexistentMessage
 type StateOptions = NonNullable<typeof Rules.explicitStateTypes.defaultOptions>
 // @ts-expect-error Rule options retain their value types.
 const invalidOptions: StateOptions = [{ permitAnnotation: `yes` }]
-void invalidOptions
 // @ts-expect-error A missing declaration must not turn the plugin into any.
 plugin.nonexistentProperty
 const plugins: Linter.Config[`plugins`] = {

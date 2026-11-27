@@ -68,4 +68,3 @@ await text.edit({
 
 // Full materialization remains explicit, so a viewport cannot request it by accident.
 const completeDocument = await text.materialize()
-void completeDocument

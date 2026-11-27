@@ -337,8 +337,8 @@ export function realtimeStateReceiver({
 		serverToken = clientToken,
 		options = {},
 	): () => void {
-		const mutexAtom = findInStore(store, mutexAtoms, serverToken.key)
-		void mutexAtom // Ensure the compatibility atom exists before the first claim.
+		// Ensure the compatibility atom exists before the first claim.
+		findInStore(store, mutexAtoms, serverToken.key)
 		const coordinator = coordinatorFor(store, serverToken.key, options)
 		coordinator.register(socket, clientToken.key)
 

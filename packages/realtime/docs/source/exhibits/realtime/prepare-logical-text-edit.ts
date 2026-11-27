@@ -31,5 +31,4 @@ if (signal !== null) {
 	const nextVisibleRuns = document.preview(signal)
 	// Compose derived index maintenance from nextVisibleRuns, then propose both
 	// operation families in one Domain batch. The accepted batch calls do().
-	void nextVisibleRuns
 }

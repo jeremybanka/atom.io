@@ -11,11 +11,10 @@ export const config = defineConfig({
 	vite: { plugins: [resumablePlugin()] },
 })
 // @ts-expect-error Plugin declarations must retain their types in an Astro-only consumer.
-void resumablePlugin().nonexistentPluginMember
+resumablePlugin().nonexistentPluginMember
 
 export function hostContracts(document: Document): void {
 	const browserOwner: AstroBrowserResumption = browserResumption(document)
 	browserOwner.resumeWhen(() => true)()
 	requestResumption(new Request(`https://example.test`)).dispose()
-	void resumableRenderer
 }

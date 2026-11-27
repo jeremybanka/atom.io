@@ -40,18 +40,15 @@ export function loadableTypes(
 			Equal<ReturnType<typeof undefinedFallback>[`value`], string | undefined>
 		>,
 	] = [true, true, true, true, true, true]
-	void checks
 	const result = read()
 	if (result !== `LOADING`) {
-		const value: string | RangeError = result.value
-		void value
+		result.value satisfies string | RangeError
 		// @ts-expect-error Errors are part of value when no fallback is supplied.
 		result.error
 	}
 	const loaded = withFallback()
-	const value: string = loaded.value
-	const error: RangeError | undefined = loaded.error
-	void [value, error]
+	loaded.value satisfies string
+	loaded.error satisfies RangeError | undefined
 	// @ts-expect-error A family requires its key.
 	useLoadable(family)
 	// @ts-expect-error Family keys must match the declared key type.

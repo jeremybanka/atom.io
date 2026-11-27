@@ -18,6 +18,3 @@ const gridFill = (
 	/>
 )
 // @exhibit-region end grid-fill
-
-void stageFill
-void gridFill

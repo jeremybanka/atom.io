@@ -49,8 +49,9 @@ export function StateLeaf(props: {
 			}
 		: props.cachedOnly
 			? () => {
-					void props.capture
-					void props.revision
+					// Track the capture and revision so this snapshot refreshes.
+					props.capture
+					props.revision
 					return peekState(props.tools.store, token.key)
 				}
 			: undefined

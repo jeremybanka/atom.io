@@ -50,7 +50,6 @@ export function familyTypes(
 			>
 		>,
 	] = [true, true, true, true, true]
-	void checks
 	const { getCursor, getLength, getTransaction } = history
 	const cursor: number = getCursor()
 	const length: number = getLength()
@@ -59,7 +58,6 @@ export function familyTypes(
 	if (transaction.redo) transaction.redo()
 	getTransaction().undo?.()
 	getTransaction().redo?.()
-	void [cursor, length]
 	setValue((previous) => previous + 1)
 	ref(document.createElement(`input`))
 	ref(null)

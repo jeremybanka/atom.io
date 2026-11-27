@@ -5,6 +5,7 @@ import type { RootStore } from "atom.io/internal"
 
 import type { StorePicker } from "./mount.ts"
 import { useLocal } from "./store.ts"
+import css from "./StorePickerControl.module.css"
 
 export function StorePickerControl(props: {
 	picker: StorePicker
@@ -41,7 +42,9 @@ export function StorePickerControl(props: {
 	}
 	return (
 		<store-picker-control
+			class={css.class}
 			data-store-picker
+			data-menu-open={open() || undefined}
 			ref={(element) => {
 				host = element
 			}}

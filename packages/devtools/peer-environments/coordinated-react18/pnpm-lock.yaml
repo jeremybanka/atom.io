@@ -9,11 +9,11 @@ importers:
   .:
     dependencies:
       '@types/react':
-        specifier: 18.3.31
-        version: 18.3.31
+        specifier: 18.3.32
+        version: 18.3.32
       '@types/react-dom':
         specifier: 18.3.7
-        version: 18.3.7(@types/react@18.3.31)
+        version: 18.3.7(@types/react@18.3.32)
       react:
         specifier: 18.3.1
         version: 18.3.1
@@ -44,8 +44,8 @@ packages:
     peerDependencies:
       '@types/react': ^18.0.0
 
-  '@types/react@18.3.31':
-    resolution: {integrity: sha512-vfEqpXTvwT91yhmwdfouStN2hSKwTvyRs8qpLfADyrq/kxDw0hZM7Wk9Ug1FELj8hIby+S/+kQCSRFF32nv2Qw==}
+  '@types/react@18.3.32':
+    resolution: {integrity: sha512-hKTeN+STHjfr2eS1uLImPsGpmIQD5SD8DUTQ+14zSne5CTwRpYh25ggOKG/pFIs2r0JmNYrSv4ZqIL07ipSvOA==}
 
   '@types/whatwg-mimetype@3.0.2':
     resolution: {integrity: sha512-c2AKvDT8ToxLIOUlN51gTiHXflsfIFisS4pO7pDPoKouJCESkhZnEy623gwP9laCy5lnLDAw1vAzu2vM2YLOrA==}
@@ -239,11 +239,11 @@ snapshots:
 
   '@types/prop-types@15.7.15': {}
 
-  '@types/react-dom@18.3.7(@types/react@18.3.31)':
+  '@types/react-dom@18.3.7(@types/react@18.3.32)':
     dependencies:
-      '@types/react': 18.3.31
+      '@types/react': 18.3.32
 
-  '@types/react@18.3.31':
+  '@types/react@18.3.32':
     dependencies:
       '@types/prop-types': 15.7.15
       csstype: 3.2.3

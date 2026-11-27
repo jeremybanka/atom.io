@@ -5,7 +5,7 @@
 	"description": "React 19 \u00b7 SDK next",
 	"type": "module",
 	"dependencies": {
-		"@types/react": "19.3.0",
+		"@types/react": "19.3.3",
 		"@types/react-dom": "19.3.0",
 		"react": "19.3.1",
 		"react-dom": "19.3.1"

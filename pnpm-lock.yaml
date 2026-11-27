@@ -492,6 +492,9 @@ importers:
       happy-dom:
         specifier: 21.0.4
         version: 21.0.4
+      lasertag:
+        specifier: 0.9.1
+        version: 0.9.1(@solidjs/web@2.0.4(solid-js@2.0.4))(@types/react@19.3.3)(arktype@2.2.10)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.4)(supports-color@10.2.2)
       playwright:
         specifier: 1.65.1
         version: 1.65.1

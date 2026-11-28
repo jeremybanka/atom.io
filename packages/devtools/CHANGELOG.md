@@ -1,5 +1,13 @@
 # @atom.io/devtools
 
+## 0.2.1
+
+### Patch Changes
+
+- e7a5fbe: Show transactions, timelines, and expandable timeline families in local and remote Ecology. Press Enter or use the caret to open history in the editor and the 3D graph. Transaction outcomes extend below their node, with timeline events above for past steps and below for future steps. History flyouts and their connecting lines animate on expansion, collapse, and cursor changes. Icon controls undo and redo timeline steps when the store allows control. Give atoms, selectors, transactions, and timelines distinct hue ranges. Dashed lines connect transaction outcomes to affected states. Dotted lines connect timelines to their scopes and timeline events to affected states and matching retained outcomes. History cards keep their routes while clustered around their parent. Hover or select an individual history entry to highlight it in both the graph and editor. Transaction outcomes use compact summaries with write counts and show the state changes first when opened. Compare array, object, map, and set snapshots side by side with changed entries highlighted and scrollable previews for large values. Align shifted array items, keep distant edits reachable, and show when large comparisons can miss changes. Preserve Map and Set iteration order, distinguish object keys by reference, and reveal meaningful differences in nested values, long text, and transaction metadata. Search by primitive type or key and see empty timeline families as soon as they are registered. Timeline events now open as compact rows with scoped before and after diffs, a clear current position, and a preview of the next undo range. Preview each timeline change at a glance, with inline diffs for short values and summaries for larger changes. Follow retained transaction outcomes from the event heading in either timeline view.
+- 8238146: Show color-matched atom, selector, and family icons in the Ecology node editor and on 3D graph cards.
+- 5cc6630: Ship the standalone Devtools browser viewer and atom-io-devtools CLI for authenticated control of running Node applications over WebSockets.
+
 ## 0.2.0
 
 ### Minor Changes

@@ -1,5 +1,19 @@
 # atom.io.fyi
 
+## 0.2.120
+
+### Patch Changes
+
+- Updated dependencies [e7a5fbe]
+- Updated dependencies [8238146]
+- Updated dependencies [3114121]
+- Updated dependencies [5cc6630]
+  - @atom.io/devtools@0.2.1
+  - atom.io@0.54.15
+  - @atom.io/react@0.2.1
+  - @atom.io/solid@0.1.6
+  - @atom.io/spa@0.0.12
+
 ## 0.2.119
 
 ### Patch Changes
